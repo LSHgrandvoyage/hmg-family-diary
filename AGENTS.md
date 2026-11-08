@@ -3,6 +3,7 @@
 - `.specify/memory/constitution.md`를 먼저 읽고 따른다.
 - 제품 정본은 `docs/product-brief.md`, 기능 정본은 `specs/001-family-trip-memory/spec.md`다.
 - 가족 여행일기·원본 음성 보관·차량과 휴대폰 양쪽 읽기·듣기는 첫 버전 요구사항이다.
+- 입력은 자유 발화이며 LLM이 사건·장소·시점·주제를 분류·정제한다. 한마디·한 장소·짧은 발화 형식을 강제하지 않는다.
 - 타깃의 세부 조건은 초기 가설이다. 인터뷰·실행하지 않은 결과를 완료로 쓰지 않는다.
 - 현재 단계는 제품 정의와 명세다. 구현 전 plan·tasks를 작성하고 요구사항에 연결한다.
 - 생성된 `.agents/skills/`와 `.specify/templates/`를 제품 내용으로 덮어쓰지 않는다.

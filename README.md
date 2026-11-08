@@ -1,6 +1,6 @@
 # HMG Family Diary
 
-여행을 마치고 차에 모인 가족의 한마디를 **일기와 실제 목소리**로 남겨,
+차에서 자유롭게 풀어놓은 가족 이야기를 LLM이 분류·정제해 **일기와 실제 목소리**로 남겨,
 차량과 휴대폰에서 다시 읽고 듣는 가족 여행 기록 서비스.
 
 현재는 제품 정의와 기능 명세 단계다. 앱·SDK 실행·사용자 인터뷰 결과는 아직 없다.
@@ -30,7 +30,7 @@ uvx --from specify-cli==1.3.2 specify integration status
 이 저장소를 작업 폴더로 열고 에이전트 채팅에서 아래 순서로 진행한다.
 이름은 쉘 명령이 아니라 설치된 skill 호출이다.
 
-- `$speckit-constitution`: 현재 헌장 1.0.0. 원칙 변경이 있을 때 갱신
+- `$speckit-constitution`: 현재 헌장 1.1.0. 원칙 변경이 있을 때 갱신
 - `$speckit-specify`: 현재 `specs/001-family-trip-memory/spec.md` 기준선 작성 완료
 - `$speckit-clarify`: 추가 제품 판단이 필요할 때 사용
 - `$speckit-plan`: 기술 검증 결과를 반영해 구현 계획 작성 — 다음 단계

@@ -4,7 +4,8 @@
 차량과 휴대폰에서 다시 읽고 듣는 가족 여행 기록 서비스.
 
 첫 구현을 시작했다. Mac ARM64의 **Pleos Connect2.1.0 에뮬레이터에 demo APK를 설치·실행**했고,
-일기·원문·구간 재생을 확인하는 합성 모바일 웹 미리 보기를 Docker로 실행했다.
+보관함·검색·일기·원문·구간 재생을 확인하는 합성 모바일 웹 미리 보기를 Docker로 실행했다.
+[k-style-ui-ux 적용 기록](docs/design/k-style-redesign.md)과 [화면 검증](docs/evidence/kstyle-validation.md)을 참고한다.
 실제 녹음/STT/LLM/인증/동기화는 아직 미연결이며 전체 MVP 완료가 아니다.
 [현재 구현·미구현 범위](docs/evidence/implementation-progress.md) · [기기·APK 검증](docs/evidence/g0-environment.md)
 

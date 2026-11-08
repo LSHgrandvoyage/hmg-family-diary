@@ -1,0 +1,304 @@
+/* foundation tokens — derive.py palette 마이리얼트립 --shape 4/8/12 --density comfy --font pretendard
+   이 파일은 생성물이다. 직접 고치지 말고 파라미터를 바꿔 다시 만든다. */
+
+:root {
+  /* 색 — palette 마이리얼트립 */
+  --c-bg: #f1f3f5;
+  --c-surface: #ffffff;
+  --c-line: #e9ecef;
+  --c-text-1: #000000;
+  --c-text-2: #495056;
+  --c-text-3: #666d75;
+  --c-brand: #2b96ed;
+  --c-on-brand: #ffffff;
+  --c-brand-line: #2b96ed; /* 흰 바탕 위 선·상태 표시(선택 테두리·탭 밑줄·진행·별·하트) — 보통 브랜드와 같고, 밝은 브랜드(노랑·연두)면 먹색 */
+  --c-brand-text: #0a70c2;
+  --c-brand-tint: #e7f4fd;
+  --c-brand-tint-text: #0a70c2;
+  --c-danger: #c83323;
+  --c-danger-tint: #fbf1ef;
+  --c-danger-tint-text: #c83323;
+
+  /* 강조색 — 드물게 강조할 짧은 글자·점에만(.accent-text·.accent-dot). 버튼·면·선택 상태에 쓰지 않는다 */
+  --c-accent: #0a70c2;
+  --c-accent-text: #0a70c2;
+
+  /* 의미색 — 확정(브랜드)·바뀜(주의)·안내(정보)·완료(성공)가 같은 색이 되지 않게 */
+  --c-success: #137b5e;
+  --c-success-tint: #e6f8f3;
+  --c-success-tint-text: #137b5e;
+  --c-warning: #b94100;
+  --c-warning-tint: #fff8e1;
+  --c-warning-tint-text: #b94100;
+  --c-info: #7257ff;
+  --c-info-tint: #f2efff;
+  --c-info-tint-text: #6a4dff;
+
+  /* 상호작용·비활성·겹침 */
+  --c-brand-pressed: #1583db;
+  --c-focus: #0a70c2;
+  --c-line-strong: #bfbfbf;
+  --c-text-disabled: #9e9e9e;
+  --c-disabled-bg: #e9ecef;
+  --c-overlay: rgba(0, 0, 0, 0.45);
+  --shadow-1: 0 2px 4px 0 rgba(33, 37, 41, 0.1);
+  --shadow-2: 0 4px 8px 0 rgba(33, 37, 41, 0.1);
+
+  /* 타이포 — pretendard */
+  --font: "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
+  --tracking: -0.02em;
+  --fs-title: 28px;
+  --fw-title: 700;
+  --lh-title: 1.36;
+  --fs-h2: 20px;
+  --fw-h2: 700;
+  --lh-h2: 1.4;
+  --fs-body: 16px;
+  --fw-body: 400;
+  --lh-body: 1.55;
+  --fs-strong: 16px;
+  --fw-strong: 600;
+  --lh-strong: 1.5;
+  --fs-sub: 14px;
+  --fw-sub: 400;
+  --lh-sub: 1.5;
+  --fs-caption: 12px;
+  --fw-caption: 500;
+  --lh-caption: 1.4;
+
+  /* 여백 — comfy */
+  --page-x: 24px;
+  --block-pad: 24px;
+  --block-gap: 12px;
+  --row-py: 16px;
+  --stack-s: 8px;
+  --stack-m: 16px;
+  --stack-l: 32px;
+
+  /* 모양 — 4/8/12 */
+  --r-s: 4px;
+  --r-m: 8px;
+  --r-l: 12px;
+  --r-pill: 999px;
+
+  /* 크기 */
+  --h-appbar: 56px;
+  --h-btn: 56px;
+  --h-btn-s: 44px;
+  --h-tab: 64px;
+  --h-row: 64px;
+  --icon: 24px;
+}
+
+/* 큰 글자: 편집하지 않는 사람의 기본값(화면에 표시 없음) */
+.text-large {
+  --fs-title: 28px;
+  --fw-title: 700;
+  --lh-title: 1.36;
+  --fs-h2: 20px;
+  --fw-h2: 700;
+  --lh-h2: 1.4;
+  --fs-body: 18px;
+  --fw-body: 400;
+  --lh-body: 1.55;
+  --fs-strong: 18px;
+  --fw-strong: 600;
+  --lh-strong: 1.5;
+  --fs-sub: 16px;
+  --fw-sub: 400;
+  --lh-sub: 1.5;
+  --fs-caption: 16px;
+  --fw-caption: 500;
+  --lh-caption: 1.4;
+}
+
+/* 버튼: 흰 글자 대비가 4.5 미만 → 큰 굵은 글자(19px/700)로 WCAG 큰 글씨 기준(3:1) 충족 */
+.btn.primary {
+  font-size: 19px;
+  font-weight: 700;
+}
+
+:root[data-palette="coral"] {
+  /* 색 — palette 에어비앤비 */
+  --c-bg: #f2f2f2;
+  --c-surface: #ffffff;
+  --c-line: #ebebeb;
+  --c-text-1: #222222;
+  --c-text-2: #515151;
+  --c-text-3: #6c6c6c;
+  --c-brand: #da1249;
+  --c-on-brand: #ffffff;
+  --c-brand-line: #da1249; /* 흰 바탕 위 선·상태 표시(선택 테두리·탭 밑줄·진행·별·하트) — 보통 브랜드와 같고, 밝은 브랜드(노랑·연두)면 먹색 */
+  --c-brand-text: #da1249;
+  --c-brand-tint: #ffeef0;
+  --c-brand-tint-text: #da1249;
+  --c-danger: #d7251c;
+  --c-danger-tint: #fff5f3;
+  --c-danger-tint-text: #d7251c;
+
+  /* 강조색 — 드물게 강조할 짧은 글자·점에만(.accent-text·.accent-dot). 버튼·면·선택 상태에 쓰지 않는다 */
+  --c-accent: #da1249;
+  --c-accent-text: #da1249;
+
+  /* 의미색 — 확정(브랜드)·바뀜(주의)·안내(정보)·완료(성공)가 같은 색이 되지 않게 */
+  --c-success: #038026;
+  --c-success-tint: #f1faf2;
+  --c-success-tint-text: #038026;
+  --c-warning: #be4900;
+  --c-warning-tint: #fef6ec;
+  --c-warning-tint-text: #be4900;
+  --c-info: #166bd8;
+  --c-info-tint: #f0f8ff;
+  --c-info-tint-text: #166bd8;
+
+  /* 상호작용·비활성·겹침 */
+  --c-brand-pressed: #a21039;
+  --c-focus: #da1249;
+  --c-line-strong: #bfbfbf;
+  --c-text-disabled: #a0a0a0;
+  --c-disabled-bg: #ebebeb;
+  --c-overlay: rgba(34, 34, 34, 0.45);
+  --shadow-1: 0 8px 28px rgba(0, 0, 0, 0.28);
+  --shadow-2: 1px solid rgba(0, 0, 0, 0.04);
+
+  /* 타이포 — pretendard */
+  --font: "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
+  --tracking: -0.02em;
+  --fs-title: 28px;
+  --fw-title: 700;
+  --lh-title: 1.36;
+  --fs-h2: 20px;
+  --fw-h2: 700;
+  --lh-h2: 1.4;
+  --fs-body: 16px;
+  --fw-body: 400;
+  --lh-body: 1.55;
+  --fs-strong: 16px;
+  --fw-strong: 600;
+  --lh-strong: 1.5;
+  --fs-sub: 14px;
+  --fw-sub: 400;
+  --lh-sub: 1.5;
+  --fs-caption: 12px;
+  --fw-caption: 500;
+  --lh-caption: 1.4;
+
+  /* 여백 — comfy */
+  --page-x: 24px;
+  --block-pad: 24px;
+  --block-gap: 12px;
+  --row-py: 16px;
+  --stack-s: 8px;
+  --stack-m: 16px;
+  --stack-l: 32px;
+
+  /* 모양 — 6/12/20 */
+  --r-s: 6px;
+  --r-m: 12px;
+  --r-l: 20px;
+  --r-pill: 999px;
+
+  /* 크기 */
+  --h-appbar: 56px;
+  --h-btn: 56px;
+  --h-btn-s: 44px;
+  --h-tab: 64px;
+  --h-row: 64px;
+  --icon: 24px;
+}
+
+:root[data-palette="mint"] {
+  /* 색 — palette 트리플 */
+  --c-bg: #ffffff;
+  --c-surface: #ffffff;
+  --c-line: #ffffff;
+  --c-text-1: #3a3a3a;
+  --c-text-2: #545454;
+  --c-text-3: #717171;
+  --c-brand: #0a8c95;
+  --c-on-brand: #ffffff;
+  --c-brand-line: #0a8c95; /* 흰 바탕 위 선·상태 표시(선택 테두리·탭 밑줄·진행·별·하트) — 보통 브랜드와 같고, 밝은 브랜드(노랑·연두)면 먹색 */
+  --c-brand-text: #086f76;
+  --c-brand-tint: #e2fbfd;
+  --c-brand-tint-text: #086f76;
+  --c-danger: #d81f25;
+  --c-danger-tint: #fdf2f2;
+  --c-danger-tint-text: #d81f25;
+
+  /* 강조색 — 드물게 강조할 짧은 글자·점에만(.accent-text·.accent-dot). 버튼·면·선택 상태에 쓰지 않는다 */
+  --c-accent: #086f76;
+  --c-accent-text: #086f76;
+
+  /* 의미색 — 확정(브랜드)·바뀜(주의)·안내(정보)·완료(성공)가 같은 색이 되지 않게 */
+  --c-success: #1b8849;
+  --c-success-tint: #e9f5ee;
+  --c-success-tint-text: #187b43;
+  --c-warning: #9b6c00;
+  --c-warning-tint: #fdf6e6;
+  --c-warning-tint-text: #966800;
+  --c-info: #1872eb;
+  --c-info-tint: #eaf2fd;
+  --c-info-tint-text: #1368db;
+
+  /* 상호작용·비활성·겹침 */
+  --c-brand-pressed: #0ba9b4;
+  --c-focus: #086f76;
+  --c-line-strong: #c0c0c0;
+  --c-text-disabled: #a0a0a0;
+  --c-disabled-bg: #ffffff;
+  --c-overlay: rgba(58, 58, 58, 0.45);
+  --shadow-1: 0 2px 8px rgba(58, 58, 58, 0.08);
+  --shadow-2: 0 8px 24px rgba(58, 58, 58, 0.14);
+
+  /* 타이포 — pretendard */
+  --font: "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
+  --tracking: -0.02em;
+  --fs-title: 28px;
+  --fw-title: 700;
+  --lh-title: 1.36;
+  --fs-h2: 20px;
+  --fw-h2: 700;
+  --lh-h2: 1.4;
+  --fs-body: 16px;
+  --fw-body: 400;
+  --lh-body: 1.55;
+  --fs-strong: 16px;
+  --fw-strong: 600;
+  --lh-strong: 1.5;
+  --fs-sub: 14px;
+  --fw-sub: 400;
+  --lh-sub: 1.5;
+  --fs-caption: 12px;
+  --fw-caption: 500;
+  --lh-caption: 1.4;
+
+  /* 여백 — comfy */
+  --page-x: 24px;
+  --block-pad: 24px;
+  --block-gap: 12px;
+  --row-py: 16px;
+  --stack-s: 8px;
+  --stack-m: 16px;
+  --stack-l: 32px;
+
+  /* 모양 — round */
+  --r-s: 10px;
+  --r-m: 16px;
+  --r-l: 24px;
+  --r-pill: 999px;
+
+  /* 크기 */
+  --h-appbar: 56px;
+  --h-btn: 56px;
+  --h-btn-s: 44px;
+  --h-tab: 64px;
+  --h-row: 64px;
+  --icon: 24px;
+}
+
+/* Palette preview swatches, copied from the derived palette brand tokens. */
+:root {
+  --palette-blue: #2b96ed;
+  --palette-coral: #da1249;
+  --palette-mint: #0a8c95;
+}

@@ -1,0 +1,29 @@
+flowchart TB
+  accTitle: 가족 여행일기 시스템 아키텍처
+  accDescr: 계획상의 차량 앱과 휴대폰 웹이 인증 API를 통해 보관함을 사용하고 작업자가 텍스트를 정리한다. 차량 원본 캡처와 주차 신호는 미검증이다.
+  subgraph clients["사용 기기"]
+    car["차량 Android 앱<br/>Kotlin · Pleos<br/>녹음 / STT / 읽기 / 재생"]
+    phone["휴대폰 모바일 웹<br/>Next.js · React<br/>연결 / 읽기 / 재생 / 삭제"]
+  end
+  subgraph service["애플리케이션 운영 영역 — 배포 전"]
+    api["웹 · API 서버<br/>Next.js / Node<br/>권한 확인 · 동기화<br/>원본 미디어 프록시"]
+    worker["일기 작업자<br/>Node · lease / 재시도<br/>생성 작업 · 삭제 작업"]
+  end
+  subgraph managed["Supabase — 도입 계획"]
+    auth["Auth<br/>보호자 로그인"]
+    db[("Postgres<br/>보관함 · 일기 · 기기<br/>작업 · 삭제 상태")]
+    files[("Private Storage<br/>원본 음성 조각")]
+  end
+  model["외부 LLM<br/>OpenAI Responses<br/>구조화된 일기 초안"]
+  gate["G1 / G2 미검증<br/>허용된 원본 캡처<br/>확인 가능한 주차 신호"]
+  car <-->|"HTTPS · 기기 토큰"| api
+  phone <-->|"HTTPS · 보호자 세션"| api
+  api -->|"로그인 · 세션 검증"| auth
+  api <-->|"기록 · 작업"| db
+  api <-->|"원본 업로드 / 재생"| files
+  worker <-->|"작업 · 결과"| db
+  worker -->|"삭제 작업"| files
+  worker <-->|"텍스트 + 근거 ID / 초안"| model
+  gate -.->|"실차 활성화 조건"| car
+  classDef pending fill:#fff4db,stroke:#a15c00,color:#543000,stroke-dasharray:5 4;
+  class gate pending;

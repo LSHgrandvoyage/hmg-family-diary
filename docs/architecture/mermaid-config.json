@@ -1,0 +1,32 @@
+{
+  "theme": "base",
+  "fontFamily": "Apple SD Gothic Neo, Noto Sans KR, Arial, sans-serif",
+  "themeVariables": {
+    "fontSize": "16px",
+    "primaryColor": "#eaf0f7",
+    "primaryTextColor": "#17283a",
+    "primaryBorderColor": "#62798e",
+    "lineColor": "#64788a",
+    "secondaryColor": "#e8f3ef",
+    "tertiaryColor": "#f8fafc",
+    "clusterBkg": "#f8fafc",
+    "clusterBorder": "#ccd5df",
+    "edgeLabelBackground": "#ffffff"
+  },
+  "flowchart": {
+    "curve": "linear",
+    "nodeSpacing": 40,
+    "rankSpacing": 65,
+    "padding": 18,
+    "useMaxWidth": false,
+    "wrappingWidth": 280
+  },
+  "er": {
+    "useMaxWidth": false,
+    "entityPadding": 16,
+    "nodeSpacing": 45,
+    "rankSpacing": 65,
+    "fontSize": 16
+  },
+  "layout": "elk"
+}

@@ -1,0 +1,38 @@
+flowchart TB
+  accTitle: 가족 여행일기 서비스 책임 구조
+  accDescr: 단일 웹 API 안의 논리 모듈을 구분한다. 기록 수집, 일기 검토, 조회와 원본 프록시, 동기화와 삭제가 공통 권한 검사를 거치며 긴 생성과 삭제는 별도 작업자가 담당한다.
+  clients["차량 앱 / 보호자 휴대폰"]
+  subgraph web["하나의 웹 · API 프로세스 — 논리 모듈"]
+    guard["접근 제어 · 기기 연결<br/>보관함 격리 / 폐기 토큰 검사"]
+    capture["기록 수집 — 차량만<br/>세션 / 발화 / 음성 checksum"]
+    diary["일기 편집 · 확정<br/>분리 / 병합 / 재포함 / revision"]
+    library["보관함 조회 · 미디어 프록시<br/>날짜 · 장소 / 근거 구간 / Range"]
+    sync["동기화 · 삭제<br/>cursor / tombstone / 기기 ack"]
+  end
+  subgraph jobs["별도 Node 작업자"]
+    organize["분류 · 정제 · 근거 검증<br/>정정 / 시점 / 화자 / 구간"]
+    purge["삭제 작업<br/>전체 세션의 텍스트 · 음성 제거"]
+  end
+  records[("Postgres<br/>메타데이터 · 버전 · 동기화 상태")]
+  queue[("Postgres Jobs<br/>작업 행 · lease · 재시도")]
+  audio[("Private Storage<br/>원본 음성")]
+  llm["LLM<br/>텍스트 → 구조화된 초안"]
+  clients -->|"인증된 요청"| guard
+  guard --> capture
+  guard --> diary
+  guard --> library
+  guard --> sync
+  capture -->|"발화 · manifest"| records
+  capture -->|"검증된 원본"| audio
+  diary -->|"생성 요청"| queue
+  diary -->|"검토 · 저장"| records
+  library <-->|"읽기"| records
+  library <-->|"권한 확인 후 전송"| audio
+  sync -->|"삭제 먼저 기록"| records
+  sync -->|"정리 작업 등록"| queue
+  queue -->|"generate"| organize
+  queue -->|"purge"| purge
+  organize <-->|"근거가 있는 정리"| llm
+  organize -->|"revision 재검사 후 반영"| records
+  purge -->|"원본 제거"| audio
+  purge -->|"내용 제거 · 표식 유지"| records

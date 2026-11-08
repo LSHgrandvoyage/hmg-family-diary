@@ -1,0 +1,70 @@
+erDiagram
+  accTitle: 가족 여행일기 핵심 데이터 아키텍처
+  accDescr: 보관함 아래의 세션은 불변 음성 조각과 발화를 보유한다. 일기 버전은 발화 구간을 근거로 참조하며 삭제 표식은 기록 재생성을 차단한다. 논리 관계도이며 실제 SQL 스키마는 아직 없다.
+  direction TB
+  Vault ||--o{ Member : "구성원"
+  Vault ||--o{ Device : "연결 기기"
+  Vault ||--o{ Session : "기록 소유"
+  Session ||--o{ AudioChunk : "불변 원본"
+  Session ||--o{ Utterance : "인식문과 수정문"
+  Member ||--o{ Utterance : "선택한 발화자"
+  Utterance ||--o{ SourceSpan : "근거 구간"
+  Session ||--o{ EventGroup : "사건 분류"
+  Session ||--o{ DiaryVersion : "초안과 확정본"
+  DiaryVersion }o..o{ SourceSpan : "논리적 근거 참조"
+  Session ||--o{ Job : "생성과 삭제"
+  Vault ||--o{ Tombstone : "삭제 이후에도 유지"
+  Vault {
+    uuid id PK
+    uuid owner_user_id UK
+  }
+  Device {
+    uuid id PK
+    uuid vault_id FK
+    string token_hash
+  }
+  Member {
+    uuid id PK
+    uuid vault_id FK
+    string display_name
+  }
+  Session {
+    uuid id PK
+    uuid vault_id FK
+    int revision
+  }
+  AudioChunk {
+    uuid id PK
+    int sequence
+    string sha256
+  }
+  Utterance {
+    uuid id PK
+    uuid member_id FK
+    string transcript_raw
+  }
+  SourceSpan {
+    uuid utterance_id FK
+    int start_ms
+    int end_ms
+  }
+  EventGroup {
+    uuid id PK
+    date date
+    string time_relation
+  }
+  DiaryVersion {
+    uuid id PK
+    int input_revision
+    string status
+  }
+  Job {
+    uuid id PK
+    string kind
+    string state
+  }
+  Tombstone {
+    uuid session_id
+    int deletion_revision
+    datetime deleted_at
+  }

@@ -7,7 +7,9 @@
 월별 보관함·기간 선택·검색·일기·전체 녹음과 원문 타임라인을 확인하는 합성 모바일 웹 미리 보기를 Docker로 실행했다.
 [k-style-ui-ux 적용 기록](docs/design/k-style-redesign.md)과 [타임라인 검증](docs/evidence/timeline-validation.md)을 참고한다.
 차량 정보·녹음 시작 위치·이 차의 추억 모아보기도 합성 자료로 제공한다. [차량 기능 설계](docs/research/vehicle-memory.md) · [차량 화면 검증](docs/evidence/vehicle-context-validation.md)
-실제 녹음/STT/LLM/인증/동기화 및 차량/위치 자동 수집은 아직 미연결이며 전체 MVP 완료가 아니다.
+별도 에뮬레이터 실험 앱에 AudioRecord 녹음·원본 저장·재생과 Pleos ON_DEVICE STT를 연결했다.
+무음 입력 저장·재생 및 합성 음성의 인식 콜백을 확인했지만, 실제 사용자 발화와 긴 입력의 누락 없는 인식은 미검증이다.
+제품의 실제 녹음/STT/LLM/인증/동기화 및 차량/위치 자동 수집은 아직 미완료이며 전체 MVP 완료가 아니다.
 [현재 구현·미구현 범위](docs/evidence/implementation-progress.md) · [기기·APK 검증](docs/evidence/g0-environment.md)
 
 ## 지금 실행하기
@@ -54,6 +56,25 @@ adb install -r app/build/outputs/apk/demo/debug/app-demo-debug.apk
 현재 체크아웃의 SDK는 `.tools/android-sdk`, Gradle 캐시는 `.tools/gradle`이며 필요하면
 `ANDROID_HOME`/`GRADLE_USER_HOME`에 지정한다. 개발 도구·AVD·음원은 Git에서 제외한다.
 이 맥북의 준비된 Pleos 창을 다시 열려면 저장소 루트에서 `./scripts/run-vehicle-emulator.sh`를 실행한다.
+
+### 맥북에서 녹음 실험하기
+
+```sh
+# 터미널 1: 에뮬레이터 창과 호스트 마이크 입력 허용 (녹음은 앱에서 직접 시작)
+./scripts/run-vehicle-emulator.sh -allow-host-audio
+# 터미널 2: 부팅이 끝난 뒤 빌드·설치·실행
+./scripts/install-capture-probe.sh
+```
+
+`가족의 이야기 · 녹음 실험`에서 **모의 P 확인 → 공동 녹음 안내 확인 → 녹음 시작**을 누른다.
+첫 Android 마이크 권한 허용 후에는 모의 P를 다시 확인하고 시작한다. macOS에서 마이크 허용을 요청하면 허용한다.
+입력이 들리지 않으면 에뮬레이터 `… → Microphone → Enable Host Microphone Access`를 확인한다.
+말한 뒤 **녹음 마침 → 선택한 원본 듣기 → 같은 원본으로 STT** 순서로 시험한다.
+최신 원본이 선택되며 이전 파일은 목록에서 선택한다. 중단·화면 이탈 후 자동 재개하지 않는다.
+
+`probeDebug`는 에뮬레이터 전용이며 release 빌드가 없다. 파일은 앱 전용 평문 실험 저장소에 남으며
+서버·웹으로 전송되지 않는다. **실험 원본 전체 삭제**로 미완료 파일까지 지울 수 있다.
+실제 주차·암호화 저장·기기 동기화의 제품 구현을 대신하지 않는다. [검증 결과와 남은 과제](docs/evidence/g1-capture.md)
 
 전체 서버 목표는 Docker Compose의 web·worker·PostgreSQL·Caddy, Better Auth와 비공개 AudioStore다.
 `compose.preview.yaml`은 화면 확인 전용이며 T039 운영 계약을 충족하는 구성이 아니다.

@@ -171,3 +171,14 @@ G5는 SDK capability·위치 권한·timestamp 단위/최신성·차량 변경·
 사진 첨부는 FR-018로 첫 버전에 포함한다. 웹 미리 보기는 브라우저 IndexedDB에 정규화한 사진 사본만 저장하며 서버 업로드/기기 동기화로 표시하지 않는다. 인증된 서비스 구현은 PhotoStore와 비공개 photo_data 볼륨을 사용하며 HTTP·삭제·백업 계약에 포함한다. Supabase는 추가하지 않는다.
 
 FR-019는 같은 vault의 녹음 위치 좌표를 Haversine 거리로 비교해 300m 이내 과거 기록을 최신순 최대3개로 반환한다. 반경은 초기 정책이다. 좌표가 없거나 현재 위치 상태가 미확인이면 결과를 만들지 않는다. API 인증과 주차 gating은 T046의 실제 통합 검증 대상이다. 웹 fixture의 주차/위치는 시연 가정이며 실제 SDK 증거가 아니다.
+
+## G1 probe revision — 2026-11-08
+
+T005 실험은 별도 `probeDebug` 패키지에서 실행한다. release variant는 만들지 않고 런타임에도
+에뮬레이터 여부를 확인한다. 실험자가 모의 P와 공동 녹음 안내를 명시적으로 확인해야 시작한다.
+AudioRecord의 16kHz/16-bit/mono PCM을 앱 전용 WAV에 보존하고 동일 payload만 Pleos
+SpeechToText3.3.1 ON_DEVICE에 전달한다. `request()`로 별도 마이크를 켜지 않는다.
+probe는 네트워크 권한을 제거하고 원본·인식문을 서버/Git/앱 로그로 내보내지 않는다.
+실험 파일은 앱 전용 평문이며 제품의 암호화 LocalStore(T008), chunk 복구, 동기화를 대신하지 않는다.
+probe UI에서 전체 삭제를 제공한다. 실제 주차·UX 신호 연결 전 pleos 제품 flavor는 잠금을 유지한다.
+합성 PCM 주입/무음 캡처/사용자 실제 발화 검증은 각각 구분해 G1에 기록한다.

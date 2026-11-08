@@ -15,7 +15,7 @@
 - [X] T002 [P] `apps/vehicle/settings.gradle.kts`, `apps/vehicle/build.gradle.kts`, `apps/vehicle/app/build.gradle.kts`에 JDK17·제품 min28과 plan의 공식 샘플 조합을 검증해 고정한다. demo/pleos flavor·Gradle wrapper를 제공하고 mock 상태가 pleos release에서 켜지지 않게 한다. 선행 T001.
 - [X] T003 [P] `tests/fixtures/freeform/`에 E01~E12의 합성 텍스트·정정·기대 사건/화자/구간 자료와 음성 fixture 생성 절차를 만든다. 실제 가족 자료는 넣지 않는다. 선행 T001.
 - [ ] T004 `docs/evidence/g0-environment.md`에 JDK·Android SDK·Pleos AVD·의존성·권한 초기화의 실제 결과를 기록한다. `apps/vehicle/app/src/main/java/io/hmg/familydiary/platform/CapabilityProbe.kt`에서 지원 여부를 확인한다. 일반 AVD를 Pleos 성공으로 기록하지 않는다. 선행 T002.
-- [ ] T005 `apps/vehicle/app/src/main/java/io/hmg/familydiary/platform/CaptureProbe.kt`와 `docs/evidence/g1-capture.md`로 허용된 원본 PCM→파일→재생→같은 입력 STT,30초/3분/10분/20분,구간·침묵·종료를 검증한다. 포맷·파일 조각 크기·운영 한도를 기록한다. 원본 접근 실패는 G1 실패이며 텍스트 성공으로 대체하지 않는다. 선행 T004.
+- [ ] T005 `apps/vehicle/app/src/probe/java/io/hmg/familydiary/platform/CaptureProbe.kt`와 `docs/evidence/g1-capture.md`로 허용된 원본 PCM→파일→재생→같은 입력 STT,30초/3분/10분/20분,구간·침묵·종료를 검증한다. 별도 emulator-only probeDebug에서 실행하며 제품 빌드에 실험 UI를 넣지 않는다. 포맷·파일 조각 크기·운영 한도를 기록한다. 원본 접근 실패는 G1 실패이며 텍스트 성공으로 대체하지 않는다. 선행 T004.
 - [ ] T006 `apps/vehicle/app/src/main/java/io/hmg/familydiary/platform/ParkedProbe.kt`와 `docs/evidence/g2-parked.md`에서 허용된 주차 신호·UX restriction·focus loss를 검증한다. P→D·D속도0·UNKNOWN·연결단절 때 중단 증거를 남긴다. 불명은 사용 잠금. 선행 T004.
 
 **Checkpoint:** G0~G2는 아직 미통과다. 실패가 나도 T007~T012와 합성 자료 기반 기능 구현은 진행 가능하지만

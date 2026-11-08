@@ -27,8 +27,10 @@ SDK/AVD/Gradle 캐시는 무시되는 `.tools/` 안에 있다. SDK·AVD 바이�
 
 ## 아직 통과하지 않은 항목
 
-G0 전체 완료가 아니다. Pleos 서비스 SDK 의존성·프로젝트 등록·권한 초기화·Speech/Vehicle API 연결을 검증하지 않았다.
-G1(원본 파일→동일 입력 STT)·G2(실제 P 신호와 출발 중단)는 미검증이다. 해당 포트를 활성화하지 않았다.
+G0 전체 완료가 아니다. 후속 probeDebug에서 SpeechToText3.3.1 의존성·STT_SERVICE 권한·ON_DEVICE 초기화는 확인했다.
+ON_DEVICE만 사용하므로 앱 등록 자격 증명은 사용하지 않았다. Vehicle SDK 초기화·실제 P 신호는 아직 미검증이다.
+G1 원본 파일 저장·재생 및 합성 PCM의 한국어 인식 콜백은 [부분 검증](g1-capture.md)했으나,
+실제 사용자 발화·누락 없는 STT·긴 입력은 남아 있다. G2는 미검증이며 제품 포트는 잠금을 유지한다.
 `CapabilityProbe`는 Android 환경과 미검증 상태를 표시하며, Automotive feature만으로 Pleos SDK 성공을 판정하지 않는다.
 
 ## 보유 기기별 역할

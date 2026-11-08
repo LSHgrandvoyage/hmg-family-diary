@@ -7,7 +7,7 @@ test("archive groups by year and month and combines period with search", async (
   await expect(
     page.getByRole("heading", { name: "함께한 날을 다시 꺼내 봐요" }),
   ).toBeVisible();
-  await expect(page.locator(".month-group")).toHaveCount(2);
+  await expect(page.locator(".month-group")).toHaveCount(3);
   await expect(page.locator(".month-group").first()).toContainText(
     "2026년 11월",
   );
@@ -29,7 +29,7 @@ test("archive groups by year and month and combines period with search", async (
   await expect(page.getByRole("combobox", { name: "기록 기간" })).toHaveValue(
     "all",
   );
-  await expect(page.locator(".story-row")).toHaveCount(3);
+  await expect(page.locator(".story-row")).toHaveCount(4);
   await page.screenshot({
     path: `docs/evidence/timeline-${info.project.name}-archive.png`,
     fullPage: true,
@@ -213,8 +213,8 @@ test("recording context keeps the car and capture place together and links histo
   await page
     .getByRole("combobox", { name: "함께한 차" })
     .selectOption("demo-avante");
-  await expect(page.locator(".story-row")).toHaveCount(1);
-  await expect(page.locator(".story-row")).toContainText("아반떼");
+  await expect(page.locator(".story-row")).toHaveCount(2);
+  await expect(page.locator(".story-row").first()).toContainText("아반떼");
   await expect(page.locator(".recent-story")).toHaveAttribute(
     "href",
     "/demo/cafe",
@@ -223,7 +223,7 @@ test("recording context keeps the car and capture place together and links histo
     path: `docs/evidence/vehicle-${info.project.name}-archive.png`,
     fullPage: true,
   });
-  await page.locator(".story-row").click();
+  await page.locator('.story-row[href="/demo/cafe"]').click();
   await expect(context).toContainText("현대 아반떼");
   await expect(context).toContainText("위치 확인 못함");
   await expect(context).not.toContainText("강릉");

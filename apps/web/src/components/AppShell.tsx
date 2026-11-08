@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Icon } from "./Icon";
+import { records } from "../demo/records";
 import { Sheet } from "./Sheet";
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState(false);
@@ -73,10 +74,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="sample-info">
             <h3 className="row-title">샘플로 둘러보는 중이에요</h3>
             <p>
-              일기 3개와 합성 시험음으로 만든 화면이에요. 실제 가족의 녹음은
-              저장하지 않아요.
+              일기 {records.length}개와 합성 시험음으로 만든 화면이에요. 실제
+              가족의 녹음은 저장하지 않아요.
             </p>
-            <p>차량 녹음·AI 정리·기기 연결은 아직 준비 중이에요.</p>
+            <p>
+              사진은 이 브라우저에만 저장돼요. 차량 녹음·AI 정리·기기 연결은
+              아직 준비 중이에요.
+            </p>
           </div>
         </Sheet>
       )}

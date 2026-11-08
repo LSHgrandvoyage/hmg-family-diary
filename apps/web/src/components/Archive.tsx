@@ -204,7 +204,7 @@ export default function Archive({
             )}
           </div>
           <p className="preview-footnote">
-            샘플 일기 3개 · 재생 시 합성 시험음이 들려요.
+            샘플 일기 {records.length}개 · 재생 시 합성 시험음이 들려요.
           </p>
         </section>
       </main>

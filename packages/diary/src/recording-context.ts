@@ -14,6 +14,8 @@ export type RecordingLocation =
       status: "available";
       label: string;
       observedAt: string;
+      latitude?: number;
+      longitude?: number;
       source: "vehicle_sdk" | "user" | "demo";
     }
   | { status: "omitted" | "denied" | "unsupported" | "unavailable" | "stale" };

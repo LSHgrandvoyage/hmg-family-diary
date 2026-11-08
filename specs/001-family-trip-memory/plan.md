@@ -2,7 +2,7 @@
 
 **Branch**: `main` | **Date**: 2026-11-08 | **Spec**: [spec.md](spec.md)
 
-**Input**: `specs/001-family-trip-memory/spec.md` · 헌장 1.2.0
+**Input**: `specs/001-family-trip-memory/spec.md` · 헌장 1.3.0
 
 **Revision**: 2026-11-08 사용자 결정으로 Supabase 계획을 Docker Compose 단일 호스트 구성으로 대체했다.
 앱·컨테이너는 아직 구현·실행하지 않았다. [실행·저장 계약](contracts/runtime-and-storage.md)을 따른다.
@@ -64,7 +64,7 @@ Mailpit는 개발 프로필, migrate는 일회성 실행이다. 실기기에는 
 
 | 원칙 | 설계 전 판단 | 설계 후 확인 |
 |---|---|---|
-| I 문제에서 시작 | 제품·17개 FR·7개 SC 기준 | [tasks.md](tasks.md)의 커버리지로 추적 |
+| I 문제에서 시작 | 제품·19개 FR·7개 SC 기준 | [tasks.md](tasks.md)의 커버리지로 추적 |
 | II 기억·목소리 보존 | 원본을 같은 입력의 근거로 유지 | 불변 음성·수정 버전·구간 FK 및 의미 검증 |
 | III 주차 맥락 | fail-closed | G2 실제 신호 판정 + UX restriction + focus 중단 |
 | IV 접근·삭제 | 보관함/기기 권한 적용 | 인증 프록시, tombstone, 온라인 해제·오프라인 대기 |
@@ -165,3 +165,9 @@ VehicleProfile에서 SessionContext로 복사한다. 녹음 시작 시 차량 �
 G5는 SDK capability·위치 권한·timestamp 단위/최신성·차량 변경·미지원 환경 검증이다.
 웹은 먼저 가상 snapshot/위치와 미확인 상태로 흐름을 제공한다. 차별 조회/표시와 순수 snapshot
 정책의 단위 검증은 가능하지만 Android 수집·DB 영속·인증된 동기화의 대체 증거가 아니다.
+
+## Photo and recall revision — 2026-11-08
+
+사진 첨부는 FR-018로 첫 버전에 포함한다. 웹 미리 보기는 브라우저 IndexedDB에 정규화한 사진 사본만 저장하며 서버 업로드/기기 동기화로 표시하지 않는다. 인증된 서비스 구현은 PhotoStore와 비공개 photo_data 볼륨을 사용하며 HTTP·삭제·백업 계약에 포함한다. Supabase는 추가하지 않는다.
+
+FR-019는 같은 vault의 녹음 위치 좌표를 Haversine 거리로 비교해 300m 이내 과거 기록을 최신순 최대3개로 반환한다. 반경은 초기 정책이다. 좌표가 없거나 현재 위치 상태가 미확인이면 결과를 만들지 않는다. API 인증과 주차 gating은 T046의 실제 통합 검증 대상이다. 웹 fixture의 주차/위치는 시연 가정이며 실제 SDK 증거가 아니다.

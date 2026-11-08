@@ -104,3 +104,9 @@ T040에서 다음 절차를 합성 데이터로 검증한다.
 도메인 SQL을 함께 이전하고, 객체 저장소에는 논리 key와 bytes/checksum을 유지해 복사한다.
 검증 후 연결 설정·adapter를 전환하며 실패 시 접근을 닫고 이전 환경으로 복구한다.
 이미지 실행 위치 변경만으로 DB·파일이 자동 이전되거나 무중단이 보장되지는 않는다.
+
+## Planned photo storage extension (FR-018)
+
+운영 프로토타입의 PhotoStore는 별도 비공개 `photo_data` 볼륨을 사용한다. 서버의 파일 검증/재인코딩과 DB 메타데이터 저장이 완료돼야 ready를 반환한다. 원본 파일명은 저장 경로로 쓰지 않고 UUID를 쓴다. 볼륨은 정적 공개 경로로 마운트하지 않는다. 인증된 조회, 세션/개별 사진 삭제, tombstone 복원, 백업/복원에 사진 사본도 포함한다.
+
+현재 `compose.preview.yaml`에는 사진 서버 API나 이 볼륨이 없다. 사진은 브라우저 IndexedDB에만 저장되며 Docker 재시작/서버 백업과 별개다. 같은 기기에서도 localhost 주소와 LAN IP 주소는 서로 다른 origin이므로 사진 보관함이 공유되지 않는다. [IndexedDB의 origin 및 Blob 저장](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API), [Canvas 사본 생성](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toBlob)을 참고했다.

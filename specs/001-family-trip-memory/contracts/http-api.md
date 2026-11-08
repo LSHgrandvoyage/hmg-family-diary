@@ -93,3 +93,10 @@ receipt·device_secret·인증 쿠키는 로깅하지 않는다.
 - POST /sessions의 recording_context는 차량 snapshot 및 녹음 시작 시점의 위치 상태/관측시각을 포함한다. 인증 차량의 동일 vault VehicleProfile만 연결하며 client snapshot의 범위·출처·값을 검증한다.
 - GET /sessions 및 GET /sessions/{id}는 해당 기록의 snapshot을 반환한다. GET /sessions의 vehicle_id 선택 필터는 현재 연결 차량에 한정하지 않고 같은 vault의 과거 기록도 조회한다. 등록번호는 검색/URL에 사용하지 않는다.
 - VehicleProfile 편집/기록별 context 편집 API와 DB 검증은 T041에 추가한다. 현재 public demo는 이 API를 구현한 것이 아니다.
+
+## Planned photo / recall APIs (not connected in preview)
+
+- POST /sessions/{id}/photos: 인증 보호자·동일 vault·비삭제 기록 검증 후 파일 검증/재인코딩/비공개 PhotoStore 저장. MIME만 믿지 않고 decoder 검증,10MB·8장 제한, 초과413/422, 멱등키와 동시 업로드 한도 검증.
+- GET /sessions/{id}/photos 및 GET /sessions/{id}/photos/{photo_id}/content: 매 요청 동일 vault/삭제 확인, private no-store, 공개 정적 경로 금지.
+- DELETE /sessions/{id}/photos/{photo_id}: 즉시 읽기 차단 후 사본 삭제 상태. 세션 삭제도 사진 포함.
+- GET /sessions/{id}/nearby-memories: 인증 보관함의 기준 세션 녹음 위치로만 근접 기록 조회. 임의 가족 ID/좌표를 URL로 넘겨 타인 기록을 검색하지 않는다. 현재/미래/삭제 기록 제외.

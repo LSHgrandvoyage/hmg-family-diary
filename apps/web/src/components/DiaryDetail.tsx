@@ -1,14 +1,22 @@
 "use client";
 import Link from "next/link";
 import { useRef, useState } from "react";
+import { PhotoGallery } from "./PhotoGallery";
+import { RevisitMemories } from "./RevisitMemories";
 import { RecordingContextCard } from "./RecordingContextCard";
 import { AppShell } from "./AppShell";
 import { Icon } from "./Icon";
 import { AudioPlayer, type PlaybackRequest, stamp } from "./AudioPlayer";
 import { members, demoRecording, type DiaryRecord } from "../demo/records";
-export function DiaryDetail({ record }: { record: DiaryRecord }) {
+export function DiaryDetail({
+  record,
+  initialTab = "diary",
+}: {
+  record: DiaryRecord;
+  initialTab?: "diary" | "source";
+}) {
   const [request, setRequest] = useState<PlaybackRequest | null>(null);
-  const [tab, setTab] = useState<"diary" | "source">("diary");
+  const [tab, setTab] = useState<"diary" | "source">(initialTab);
   const sequence = useRef(0);
   const diaryTab = useRef<HTMLButtonElement>(null);
   const sourceTab = useRef<HTMLButtonElement>(null);
@@ -109,8 +117,10 @@ export function DiaryDetail({ record }: { record: DiaryRecord }) {
                 onClose={closePlayer}
               />
             )}
+            <PhotoGallery key={record.id} recordId={record.id} />
           </article>
           <aside className="memory-panel">
+            <RevisitMemories record={record} />
             <RecordingContextCard context={record.context} />
             <section className="block">
               <div className="block-head">

@@ -32,12 +32,15 @@ export const members = [
 export const records = [
   {
     id: "sea",
+    vaultId: "demo-family",
     context: captureRecordingContext({
       capturedAt: "2026-11-08T07:42:00Z",
       vehicle: demoVehicles[0],
       location: {
         status: "available",
         label: "강원 강릉시 · 해변 주차장 (예시)",
+        latitude: 37.75,
+        longitude: 128.9,
         observedAt: "2026-11-08T07:41:55Z",
         source: "demo",
       },
@@ -61,12 +64,15 @@ export const records = [
   },
   {
     id: "park",
+    vaultId: "demo-family",
     context: captureRecordingContext({
       capturedAt: "2026-11-01T06:20:00Z",
       vehicle: demoVehicles[0],
       location: {
         status: "available",
         label: "서울 · 공원 주차장 (예시)",
+        latitude: 37.55,
+        longitude: 126.95,
         observedAt: "2026-11-01T06:19:55Z",
         source: "demo",
       },
@@ -94,6 +100,7 @@ export const records = [
   },
   {
     id: "cafe",
+    vaultId: "demo-family",
     context: captureRecordingContext({
       capturedAt: "2026-10-25T05:10:00Z",
       vehicle: demoVehicles[1],
@@ -117,6 +124,42 @@ export const records = [
         member: "child",
         text: "따뜻한 우유가 좋았다.",
         source: "우유가 따뜻해서 좋았어.",
+      },
+    ],
+  },
+  {
+    id: "sea-before",
+    vaultId: "demo-family",
+    context: captureRecordingContext({
+      capturedAt: "2025-11-08T07:00:00Z",
+      vehicle: demoVehicles[1],
+      location: {
+        status: "available",
+        label: "강원 강릉시 · 해변 주차장 (예시)",
+        observedAt: "2025-11-08T07:00:00Z",
+        latitude: 37.7505,
+        longitude: 128.9004,
+        source: "demo",
+      },
+    }),
+    title: "작은 조개를 찾던 날",
+    date: "2025-11-08",
+    day: "2025년 11월 8일 토요일",
+    place: "바다",
+    art: "beach",
+    description: "예전 차와 함께 왔던 날, 아이가 발견한 작은 조개.",
+    paragraph:
+      "해변에서 조개를 주웠다. 보호자는 함께 조개를 찾던 시간이 좋았고, 아이는 작은 조개를 찾았다며 기뻐했다.",
+    memories: [
+      {
+        member: "parent",
+        text: "함께 조개를 찾는 시간이 좋았다.",
+        source: "같이 조개를 찾으니까 좋았어.",
+      },
+      {
+        member: "child",
+        text: "작은 조개를 찾아 기뻤다.",
+        source: "내가 작은 조개 찾았어!",
       },
     ],
   },

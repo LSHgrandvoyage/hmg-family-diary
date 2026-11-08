@@ -91,3 +91,11 @@ PostgreSQL은 인증·도메인·작업을 같은 DB의 분리된 스키마에 �
 - 초기 최신성 정책: 녹음 시작보다 120초 초과 이전의 관측, 5초 초과 미래, 유효하지 않은 시각은 stale로 취급한다. 이는 앱의 초기 기준이며 SDK 보장이나 검증된 정확도 기준이 아니다. G5에서 실제 위치 갱신 주기로 조정한다.
 - 좌표가 필요하면 기존 비공개 보관함 경계 안에서만 취급한다. 웹 fixture는 좌표 없이 가상 장소명만 가진다. 생성 입력에는 번호/VIN/정밀 좌표를 추가하지 않는다.
 - 세션 삭제는 context/번호/장소 사본도 함께 삭제한다. 기록별 명시 수정은 expected_revision으로 새 context_revision을 만들며 차량 프로필 전역 수정과 구분한다.
+
+## Photos and nearby recall (FR-018, FR-019)
+
+Photo: id, vault_id, session_id, storage_key, content_type, bytes, width, height, created_at, state, deleted_at. 프로필/일기와 동일 vault 검증. 원본 파일명/EXIF 좌표를 장소 추정에 사용하지 않는다. 사용자 선택 이미지의 정규화 사본만 보관한다. PhotoStore는 AudioStore와 별도 인터페이스로 로컬 비공개 파일 adapter부터 구현한다.
+
+미리 보기 Photo: id, recordId, blob, createdAt. IndexedDB에서 recordId index로 격리한다. 서버 인증/가족 권한 구현을 대체하지 않는다. 브라우저 데이터 삭제/저장소 정리 시 사진이 사라질 수 있음을 안내한다.
+
+RecordingLocation.available에 latitude?/longitude?를 추가한다. 유효한 좌표 쌍만 근접 검색에 사용하며 이름으로 좌표를 추측하지 않는다. recording_context의 스냅샷·최신성·삭제 규칙은 유지한다. 회상 후보는 동일 vault, 비삭제, captured_at < 기준 녹음 시각, 반경300m, 최신순 최대3개. 추천 근거는 ‘근처’이며 동일 시설/동일 방문을 확정하지 않는다.

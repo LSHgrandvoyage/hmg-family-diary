@@ -119,6 +119,14 @@ it("rejects fabricated sub-utterance alignment even when full coverage is presen
     "UNVERIFIED_ALIGNMENT",
   );
 });
+it("rejects a provider draft that hides a review question without repairing it", async () => {
+  const d = output();
+  d.review_items = [{ message: "시점 확인", utterance_ids: ["E01-u1"] }];
+  await expect(generator(completed(d)).adapter.generate(input)).rejects.toThrow(
+    "INVALID_OUTPUT",
+  );
+  expect(d.groups[0].needs_review).toBe(false);
+});
 it.each([
   null,
   {},

@@ -1,0 +1,64 @@
+[
+  {
+    "id": "E13",
+    "status": "completed",
+    "started_at": "2026-11-08T15:19:48.916252+00:00",
+    "response": {
+      "source": "observed_ui",
+      "answer": "{\"schema_version\":\"1\",\"groups\":[{\"id\":\"G1\",\"label\":\"연못에서 올챙이 관찰\",\"place_label\":\"연못\",\"date\":null,\"time_relation\":\"occurred\",\"needs_review\":false,\"statements\":[{\"text\":\"보호자는 연못에서 올챙이를 한참 봤고, 올챙이의 이름은 모르겠다고 말했다.\",\"audience\":\"member\",\"member_id\":\"parent\",\"source_spans\":[{\"utterance_id\":\"E13-u1\",\"start_ms\":0,\"end_ms\":15000}]},{\"text\":\"보호자는 햇빛에 물결이 반짝이는 모습이 좋았다고 말했다.\",\"audience\":\"member\",\"member_id\":\"parent\",\"source_spans\":[{\"utterance_id\":\"E13-u1\",\"start_ms\":0,\"end_ms\":15000}]},{\"text\":\"아이는 올챙이가 너무 빨리 도망가서 아쉬웠다고 말했다.\",\"audience\":\"member\",\"member_id\":\"child\",\"source_spans\":[{\"utterance_id\":\"E13-u2\",\"start_ms\":15000,\"end_ms\":30000}]}]},{\"id\":\"G2\",\"label\":\"차로 돌아온 뒤 식사 생각\",\"place_label\":null,\"date\":null,\"time_relation\":\"occurred\",\"needs_review\":false,\"statements\":[{\"text\":\"차에 돌아오니 배가 고팠다고 보호자가 말했다.\",\"audience\":\"member\",\"member_id\":\"parent\",\"source_spans\":[{\"utterance_id\":\"E13-u1\",\"start_ms\":0,\"end_ms\":15000}]}]},{\"id\":\"G3\",\"label\":\"빵집에서 빵 구매\",\"place_label\":\"빵집\",\"date\":null,\"time_relation\":\"occurred\",\"needs_review\":true,\"statements\":[{\"text\":\"보호자는 빵집에서 단팥빵을 샀다고 말했다.\",\"audience\":\"member\",\"member_id\":\"parent\",\"source_spans\":[{\"utterance_id\":\"E13-u3\",\"start_ms\":30000,\"end_ms\":45000}]},{\"text\":\"보호자는 가게 이름이 생각나지 않는다고 말했다.\",\"audience\":\"member\",\"member_id\":\"parent\",\"source_spans\":[{\"utterance_id\":\"E13-u3\",\"start_ms\":30000,\"end_ms\":45000}]}]}],\"excluded_spans\":[{\"source_span\":{\"utterance_id\":\"E13-u3\",\"start_ms\":30000,\"end_ms\":45000},\"reason\":\"repetition\"}],\"review_items\":[{\"message\":\"빵집에서 산 빵이 소보로였는지 단팥빵이었는지 확인이 필요합니다. 보호자는 처음에 소보로라고 말했다가 '아니, 소보로가 아니라 단팥빵이었지'라고 정정했습니다.\",\"utterance_ids\":[\"E13-u3\"]}]}",
+      "chat_url": "https://claude.ai/chat/19a0f9f2-b828-4320-a147-92a5996ee5d7",
+      "model_ui_label": "Haiku 5.5 중간",
+      "observed_at": "2026-11-08T15:21:08.721216+00:00",
+      "ui_settings": {
+        "project_url": "https://claude.ai/project/01a1bba4-568a-705d-a60b-00c1e9c4b0f1",
+        "private": true,
+        "incognito": false,
+        "memory_creation": false,
+        "chat_search_reference": true,
+        "profile_instructions": "unverified",
+        "research": false,
+        "connectors": {
+          "Notion": false,
+          "Slack": false,
+          "Claude in Chrome": false
+        },
+        "effort": "중간",
+        "project_instructions": "neutral experiment isolation guidance"
+      },
+      "tool_use": "none_observed",
+      "notes": "Full answer copied via native Chrome UI into unsent composer and read through accessibility; trailing clipboard whitespace omitted, no content corrected. Input became a pasted text attachment. Project requested by user; chat search remains enabled globally, memory creation off. Not API-equivalent."
+    },
+    "input_sha256": "e44a312a724498dbfa06cb6c6b17de2ecd0760420c08c41e740bec404ce691e8"
+  },
+  {
+    "id": "E14",
+    "status": "completed",
+    "started_at": "2026-11-08T15:21:30.694749+00:00",
+    "response": {
+      "source": "observed_ui",
+      "answer": "{\"schema_version\":\"1\",\"groups\":[{\"id\":\"g1\",\"label\":\"오늘 외출\",\"place_label\":null,\"date\":\"2026-11-08\",\"time_relation\":\"occurred\",\"needs_review\":true,\"statements\":[{\"text\":\"보호자는 오늘 박물관에 갔다고 말했다.\",\"audience\":\"member\",\"member_id\":\"parent\",\"source_spans\":[{\"utterance_id\":\"E14-u1\",\"start_ms\":0,\"end_ms\":15000}]},{\"text\":\"보호자는 입구에서 기다리는 동안 비가 와서 신발이 젖었다고 말했다.\",\"audience\":\"member\",\"member_id\":\"parent\",\"source_spans\":[{\"utterance_id\":\"E14-u1\",\"start_ms\":0,\"end_ms\":15000}]},{\"text\":\"보호자는 커다란 전시물을 보고 나니 오길 잘했다고 생각했다고 말했다.\",\"audience\":\"member\",\"member_id\":\"parent\",\"source_spans\":[{\"utterance_id\":\"E14-u1\",\"start_ms\":0,\"end_ms\":15000}]},{\"text\":\"아이는 오늘 간 곳이 미술관이었다고 말했다.\",\"audience\":\"member\",\"member_id\":\"child\",\"source_spans\":[{\"utterance_id\":\"E14-u2\",\"start_ms\":15000,\"end_ms\":30000}]},{\"text\":\"아이는 전시실이 너무 조용해서 말하기가 어려웠다고 말했다.\",\"audience\":\"member\",\"member_id\":\"child\",\"source_spans\":[{\"utterance_id\":\"E14-u2\",\"start_ms\":15000,\"end_ms\":30000}]},{\"text\":\"보호자는 오늘 방문한 장소에 확신이 없다며 나중에 표를 보고 확인하자고 말했다.\",\"audience\":\"member\",\"member_id\":\"parent\",\"source_spans\":[{\"utterance_id\":\"E14-u5\",\"start_ms\":60000,\"end_ms\":75000}]}]},{\"id\":\"g2\",\"label\":\"어제 시장에서 먹은 만두\",\"place_label\":\"시장\",\"date\":\"2026-11-07\",\"time_relation\":\"occurred\",\"needs_review\":false,\"statements\":[{\"text\":\"보호자는 처음에 어제 시장에서 만두를 세 개 먹었다고 말했지만, 자신이 먹은 것은 두 개이고 하나는 남겼다고 정정했다.\",\"audience\":\"member\",\"member_id\":\"parent\",\"source_spans\":[{\"utterance_id\":\"E14-u3\",\"start_ms\":30000,\"end_ms\":45000}]},{\"text\":\"아이는 어제 시장에서 산 만두가 뜨거웠지만 맛있었다고 말했다.\",\"audience\":\"member\",\"member_id\":\"child\",\"source_spans\":[{\"utterance_id\":\"E14-u4\",\"start_ms\":45000,\"end_ms\":60000}]}]},{\"id\":\"g3\",\"label\":\"다음 달 기차 타기 계획\",\"place_label\":null,\"date\":null,\"time_relation\":\"planned\",\"needs_review\":false,\"statements\":[{\"text\":\"아이는 다음 달에 기차를 타 보고 싶다고 말했다.\",\"audience\":\"member\",\"member_id\":\"child\",\"source_spans\":[{\"utterance_id\":\"E14-u4\",\"start_ms\":45000,\"end_ms\":60000}]}]},{\"id\":\"g4\",\"label\":\"다음 주 도서관 방문 계획\",\"place_label\":\"도서관\",\"date\":null,\"time_relation\":\"planned\",\"needs_review\":true,\"statements\":[{\"text\":\"보호자는 다음 주에 도서관에 가고 싶다고 말했다.\",\"audience\":\"member\",\"member_id\":\"parent\",\"source_spans\":[{\"utterance_id\":\"E14-u5\",\"start_ms\":60000,\"end_ms\":75000}]}]}],\"excluded_spans\":[],\"review_items\":[{\"message\":\"오늘 방문 장소를 보호자는 '박물관', 아이는 '미술관'이라고 각각 말해 어느 쪽인지 입력만으로 정할 수 없어 장소 항목은 비워 두었습니다. 보호자는 같은 발화에서 오늘 방문 장소에 확신이 없다고도 말했습니다.\",\"utterance_ids\":[\"E14-u1\",\"E14-u2\",\"E14-u5\"]}]}",
+      "chat_url": "https://claude.ai/chat/35a95ecc-7271-4424-8ace-6bd239e5db31",
+      "model_ui_label": "Haiku 5.5 중간",
+      "observed_at": "2026-11-08T15:22:44.955033+00:00",
+      "ui_settings": {
+        "project_url": "https://claude.ai/project/01a1bba4-568a-705d-a60b-00c1e9c4b0f1",
+        "private": true,
+        "incognito": false,
+        "memory_creation": false,
+        "chat_search_reference": true,
+        "profile_instructions": "unverified",
+        "research": false,
+        "connectors": {
+          "Notion": false,
+          "Slack": false,
+          "Claude in Chrome": false
+        },
+        "effort": "중간",
+        "project_instructions": "neutral experiment isolation guidance"
+      },
+      "tool_use": "none_observed",
+      "notes": "Full answer copied via native Chrome UI into unsent composer and read through accessibility; trailing clipboard whitespace omitted, no content corrected. Input became a pasted text attachment. Project requested by user; chat search remains enabled globally, memory creation off. Not API-equivalent."
+    },
+    "input_sha256": "c71911fe896c2a0d93c393c3d2db8205c3178fe28716bb039cfdfdee7d66d276"
+  }
+]

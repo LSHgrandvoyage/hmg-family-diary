@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "prepared_at": "2026-11-08T15:19:00.830055+00:00",
+  "source_sha256": "6a4f3109d5b1fab87ccb9d4121307e524d76289fbc2eb3375f9cddab14cda62b",
+  "route": "Claude web subscription",
+  "inference_scope": "response_only",
+  "requested_model": "Haiku 5.5 중간",
+  "additional_api_calls": 0,
+  "api_equivalent": false,
+  "cases": [
+    {
+      "id": "E13",
+      "packet": "packets/E13.txt",
+      "sha256": "e44a312a724498dbfa06cb6c6b17de2ecd0760420c08c41e740bec404ce691e8",
+      "metadata": {
+        "split": "development",
+        "synthetic": true,
+        "prompt_version": "family-diary-v3",
+        "case": "E13",
+        "expected_review": "일반 장소명 연못·빵집 유지, 선택 날짜/상호 누락만으로 질문하지 않음"
+      }
+    },
+    {
+      "id": "E14",
+      "packet": "packets/E14.txt",
+      "sha256": "c71911fe896c2a0d93c393c3d2db8205c3178fe28716bb039cfdfdee7d66d276",
+      "metadata": {
+        "split": "development",
+        "synthetic": true,
+        "prompt_version": "family-diary-v3",
+        "case": "E14",
+        "expected_review": "박물관/미술관 주장은 화자별 보존·충돌 표시, 자기 정정과 오늘/어제/희망은 구별"
+      }
+    }
+  ]
+}

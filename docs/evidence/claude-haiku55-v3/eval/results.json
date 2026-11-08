@@ -1,0 +1,33 @@
+[
+  {
+    "id": "E16",
+    "status": "completed",
+    "started_at": "2026-11-08T15:23:03.487904+00:00",
+    "response": {
+      "source": "observed_ui",
+      "answer": "{\"schema_version\":\"1\",\"groups\":[{\"id\":\"g1\",\"label\":\"작년 항구 나들이\",\"place_label\":\"항구\",\"date\":null,\"time_relation\":\"occurred\",\"needs_review\":false,\"statements\":[{\"text\":\"보호자는 작년에 항구에서 배를 보았다.\",\"audience\":\"member\",\"member_id\":\"parent\",\"source_spans\":[{\"utterance_id\":\"E16-u1\",\"start_ms\":0,\"end_ms\":15000}]},{\"text\":\"보호자는 배 옆에 등대도 있었다고 말했다.\",\"audience\":\"member\",\"member_id\":\"parent\",\"source_spans\":[{\"utterance_id\":\"E16-u1\",\"start_ms\":0,\"end_ms\":15000}]},{\"text\":\"보호자는 바람이 시원해서 오래 서 있었다고 말했다.\",\"audience\":\"member\",\"member_id\":\"parent\",\"source_spans\":[{\"utterance_id\":\"E16-u1\",\"start_ms\":0,\"end_ms\":15000}]},{\"text\":\"보호자는 그 이름은 잘 모르겠다고 말했다.\",\"audience\":\"member\",\"member_id\":\"parent\",\"source_spans\":[{\"utterance_id\":\"E16-u1\",\"start_ms\":0,\"end_ms\":15000}]},{\"text\":\"아이는 그때 항구 바람이 너무 세서 추웠다고 말했다.\",\"audience\":\"member\",\"member_id\":\"child\",\"source_spans\":[{\"utterance_id\":\"E16-u2\",\"start_ms\":15000,\"end_ms\":30000}]}]},{\"id\":\"g2\",\"label\":\"내년 봄 수목원 계획\",\"place_label\":\"수목원\",\"date\":null,\"time_relation\":\"planned\",\"needs_review\":false,\"statements\":[{\"text\":\"보호자는 내년 봄에 수목원에 가고 싶다고 말했다.\",\"audience\":\"member\",\"member_id\":\"parent\",\"source_spans\":[{\"utterance_id\":\"E16-u3\",\"start_ms\":30000,\"end_ms\":45000}]},{\"text\":\"보호자는 아직 어느 날 갈지는 정하지 않았다고 말했다.\",\"audience\":\"member\",\"member_id\":\"parent\",\"source_spans\":[{\"utterance_id\":\"E16-u3\",\"start_ms\":30000,\"end_ms\":45000}]}]},{\"id\":\"g3\",\"label\":\"과자 먹은 개수 이야기\",\"place_label\":null,\"date\":null,\"time_relation\":\"occurred\",\"needs_review\":true,\"statements\":[{\"text\":\"아이는 자신이 과자를 세 개 먹었다고 말했다.\",\"audience\":\"member\",\"member_id\":\"child\",\"source_spans\":[{\"utterance_id\":\"E16-u4\",\"start_ms\":45000,\"end_ms\":60000}]}]}],\"excluded_spans\":[],\"review_items\":[{\"message\":\"아이가 ‘아까 과자를 네 개 먹었다고 했나?’라고 물은 앞선 말은 이 입력에 없고 누가 했는지도 확인되지 않는다. 아이가 말한 과자 개수(세 개)와 충돌할 수 있으니 확인이 필요하다.\",\"utterance_ids\":[\"E16-u4\"]}]}",
+      "chat_url": "https://claude.ai/chat/c680b813-12f7-4c3d-883b-d23a66492a11",
+      "model_ui_label": "Haiku 5.5 중간",
+      "observed_at": "2026-11-08T15:24:09.629409+00:00",
+      "ui_settings": {
+        "project_url": "https://claude.ai/project/01a1bba4-568a-705d-a60b-00c1e9c4b0f1",
+        "private": true,
+        "incognito": false,
+        "memory_creation": false,
+        "chat_search_reference": true,
+        "profile_instructions": "unverified",
+        "research": false,
+        "connectors": {
+          "Notion": false,
+          "Slack": false,
+          "Claude in Chrome": false
+        },
+        "effort": "중간",
+        "project_instructions": "neutral experiment isolation guidance"
+      },
+      "tool_use": "none_observed",
+      "notes": "Full answer copied via native Chrome UI into unsent composer and read through accessibility; trailing clipboard whitespace omitted, no content corrected. Input became a pasted text attachment. Project requested by user; chat search remains enabled globally, memory creation off. Not API-equivalent."
+    },
+    "input_sha256": "912594f93f5a3fb5f61bcd36314ed933891aa4308d6818949e06235ff500b8a0"
+  }
+]

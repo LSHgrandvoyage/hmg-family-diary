@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { validateDiary, type GenerationInput, type DiaryOutput } from "./diary";
 import { parseRange } from "./http";
+import baseline from "../../../docs/evidence/claude-haiku55/eval/results.json";
+import longFixture from "../../../tests/fixtures/freeform/E09.json";
 const input: GenerationInput = {
   schema_version: "1",
   session_id: "test",
@@ -118,6 +120,55 @@ describe("provenance boundary", () => {
     expect(validateDiary(d, input)).toBe(d);
     d.groups[0].date = "2025-02-29";
     expect(() => validateDiary(d, input)).toThrow("INVALID_GROUP");
+  });
+});
+describe("review state consistency", () => {
+  it("rejects the observed Haiku v1 response with a hidden group review", () => {
+    const response = baseline.find((row) => row.id === "E09")!;
+    expect(() =>
+      validateDiary(
+        JSON.parse(response.response.answer),
+        longFixture.input as GenerationInput,
+      ),
+    ).toThrow("INCONSISTENT_REVIEW_STATE");
+  });
+  it("requires a linked reason for a flagged group", () => {
+    const d = draft();
+    d.groups[0].needs_review = true;
+    expect(() => validateDiary(d, input)).toThrow("INCONSISTENT_REVIEW_STATE");
+    d.review_items = [
+      { message: "방문 시점을 확인해 주세요.", utterance_ids: ["u1"] },
+    ];
+    expect(validateDiary(d, input)).toBe(d);
+    d.review_items[0].message = " ";
+    expect(() => validateDiary(d, input)).toThrow("EMPTY_REVIEW_MESSAGE");
+  });
+  it("flags every group sharing reviewed evidence, but not unrelated groups", () => {
+    const d = draft();
+    const [a, b] = d.groups[0].statements;
+    const group = d.groups[0];
+    d.groups = [
+      { ...group, id: "g1", statements: [a], needs_review: true },
+      { ...group, id: "g2", statements: [a], needs_review: false },
+      { ...group, id: "g3", statements: [b], needs_review: false },
+    ];
+    d.review_items = [{ message: "시점 확인", utterance_ids: ["u1"] }];
+    expect(() => validateDiary(d, input)).toThrow("INCONSISTENT_REVIEW_STATE");
+    d.groups[1].needs_review = true;
+    expect(validateDiary(d, input)).toBe(d);
+    d.groups[2].needs_review = true;
+    expect(() => validateDiary(d, input)).toThrow("INCONSISTENT_REVIEW_STATE");
+  });
+  it("keeps excluded-only questions without flagging unrelated events", () => {
+    const d = draft();
+    const removed = d.groups[0].statements.pop()!;
+    d.excluded_spans = [
+      { source_span: removed.source_spans[0], reason: "unclear" },
+    ];
+    d.review_items = [
+      { message: "이 내용의 의미를 확인해 주세요.", utterance_ids: ["u2"] },
+    ];
+    expect(validateDiary(d, input)).toBe(d);
   });
 });
 describe("HTTP Range", () => {

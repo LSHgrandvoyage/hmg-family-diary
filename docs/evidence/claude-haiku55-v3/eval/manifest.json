@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "prepared_at": "2026-11-08T15:19:00.871693+00:00",
+  "source_sha256": "be00a4aa3cb2c589e4be8a7b8879d0de8649126e07414dde706c665c60f33c31",
+  "route": "Claude web subscription",
+  "inference_scope": "response_only",
+  "requested_model": "Haiku 5.5 중간",
+  "additional_api_calls": 0,
+  "api_equivalent": false,
+  "cases": [
+    {
+      "id": "E16",
+      "packet": "packets/E16.txt",
+      "sha256": "912594f93f5a3fb5f61bcd36314ed933891aa4308d6818949e06235ff500b8a0",
+      "metadata": {
+        "split": "evaluation",
+        "synthetic": true,
+        "prompt_version": "family-diary-v3",
+        "case": "E16",
+        "expected_review": "이름의 대상을 확정하지 않음; 작년/내년 봄은 date:null; 항구·수목원과 반대 감정 유지; 자기 정정 세 개 반영"
+      }
+    }
+  ]
+}

@@ -145,8 +145,19 @@ export function validateDiary(
   }
   for (const excluded of draft.excluded_spans) checkSpan(excluded.source_span);
   for (const item of draft.review_items) {
+    if (!item.message.trim()) throw new ContractError("EMPTY_REVIEW_MESSAGE");
     if (item.utterance_ids.some((id) => !utterances.has(id)))
       throw new ContractError("INVALID_REVIEW_SOURCE");
+  }
+  // v1 wire shape has no group IDs in review_items: conservatively link by source ID.
+  // Reject contradictions instead of silently changing a model's draft or hiding its questions.
+  const reviewIds = new Set(draft.review_items.flatMap((r) => r.utterance_ids));
+  for (const group of draft.groups) {
+    const hasReview = group.statements.some((statement) =>
+      statement.source_spans.some((span) => reviewIds.has(span.utterance_id)),
+    );
+    if (group.needs_review !== hasReview)
+      throw new ContractError("INCONSISTENT_REVIEW_STATE");
   }
   // Every interval must be used or explicitly excluded. Mentioning an ID alone is insufficient.
   for (const u of input.utterances) {

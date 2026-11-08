@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "prepared_at": "2026-11-08T15:10:28.961138+00:00",
+  "source_sha256": "a0a8838377a6eb08835642c3c9f871782665afb0d5edd960aa1f1e99e730c049",
+  "route": "Claude web subscription",
+  "inference_scope": "response_only",
+  "requested_model": "Haiku 5.5 중간",
+  "additional_api_calls": 0,
+  "api_equivalent": false,
+  "cases": [
+    {
+      "id": "E13",
+      "packet": "packets/E13.txt",
+      "sha256": "02cea1b414b3da942c9ca48fbbd4e4ce1d8c8caed2cd24fea7b1cac7dacf0972",
+      "metadata": {
+        "split": "evaluation",
+        "synthetic": true,
+        "prompt_version": "family-diary-v2",
+        "case": "E13",
+        "expected_review": "일반 장소명 연못·빵집 유지, 선택 날짜/상호 누락만으로 질문하지 않음"
+      }
+    },
+    {
+      "id": "E14",
+      "packet": "packets/E14.txt",
+      "sha256": "339004103b21c1bd6cbb8a676ea100d1b3fc16ed2388ef8e929424a56ca07616",
+      "metadata": {
+        "split": "evaluation",
+        "synthetic": true,
+        "prompt_version": "family-diary-v2",
+        "case": "E14",
+        "expected_review": "박물관/미술관 주장은 화자별 보존·충돌 표시, 자기 정정과 오늘/어제/희망은 구별"
+      }
+    },
+    {
+      "id": "E15",
+      "packet": "packets/E15.txt",
+      "sha256": "c264e8c1f5f0328b8b60289fd8904890f35c8e4b77bcb4313eef823b6d909ec3",
+      "metadata": {
+        "split": "evaluation",
+        "synthetic": true,
+        "prompt_version": "family-diary-v2",
+        "case": "E15",
+        "expected_review": "시점이 모호한 한 발화의 두 사건은 모두 검토 연결, 확실한 오늘 사건에는 불필요한 표시 없음"
+      }
+    }
+  ]
+}

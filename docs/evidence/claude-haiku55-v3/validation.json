@@ -1,0 +1,28 @@
+{
+  "validated_at": "2026-11-08T15:24:09.843Z",
+  "validator": "validateDiary plus exact whole-utterance bounds",
+  "checks": [
+    {
+      "id": "E13",
+      "split": "dev",
+      "strict_json": true,
+      "contract": "passed",
+      "whole_utterance_spans": true
+    },
+    {
+      "id": "E14",
+      "split": "dev",
+      "strict_json": true,
+      "contract": "passed",
+      "whole_utterance_spans": true
+    },
+    {
+      "id": "E16",
+      "split": "eval",
+      "strict_json": true,
+      "contract": "passed",
+      "whole_utterance_spans": true
+    }
+  ],
+  "semantic_review": "See ../g3-generation-v2.md"
+}

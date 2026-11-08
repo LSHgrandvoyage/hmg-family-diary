@@ -1,0 +1,51 @@
+{
+  "validated_at": "2026-11-08T15:24:09.839Z",
+  "validator": "validateDiary plus exact whole-utterance bounds",
+  "checks": [
+    {
+      "id": "E06",
+      "split": "dev",
+      "strict_json": true,
+      "contract": "passed",
+      "whole_utterance_spans": true
+    },
+    {
+      "id": "E07",
+      "split": "dev",
+      "strict_json": true,
+      "contract": "passed",
+      "whole_utterance_spans": true
+    },
+    {
+      "id": "E09",
+      "split": "dev",
+      "strict_json": true,
+      "contract": "passed",
+      "whole_utterance_spans": true
+    },
+    {
+      "id": "E13",
+      "split": "eval",
+      "strict_json": true,
+      "contract": "passed",
+      "whole_utterance_spans": true
+    },
+    {
+      "id": "E14",
+      "split": "eval",
+      "strict_json": false,
+      "contract": "invalid_json",
+      "whole_utterance_spans": false,
+      "diagnostic_unfenced_contract": "INVALID_GROUP",
+      "diagnostic_note": "Fence removal only for diagnosis; raw response stays unchanged and strict result stays failed."
+    },
+    {
+      "id": "E15",
+      "split": "eval",
+      "strict_json": true,
+      "contract": "passed",
+      "whole_utterance_spans": true
+    }
+  ],
+  "semantic_review": "See ../g3-generation-v2.md"
+}

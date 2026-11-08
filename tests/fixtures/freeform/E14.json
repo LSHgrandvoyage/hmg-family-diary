@@ -1,0 +1,61 @@
+{
+  "synthetic": true,
+  "case_id": "E14",
+  "expected_review": "박물관/미술관 주장은 화자별 보존·충돌 표시, 자기 정정과 오늘/어제/희망은 구별",
+  "input": {
+    "schema_version": "1",
+    "session_id": "E14",
+    "input_revision": 1,
+    "recorded_at": "2026-11-08T04:00:00Z",
+    "timezone": "Asia/Seoul",
+    "members": [
+      {
+        "id": "parent",
+        "display_name": "보호자"
+      },
+      {
+        "id": "child",
+        "display_name": "아이"
+      }
+    ],
+    "utterances": [
+      {
+        "id": "E14-u1",
+        "member_id": "parent",
+        "text": "오늘 박물관에 갔잖아. 입구에서 기다릴 때 비가 와서 신발이 젖었어. 그래도 커다란 전시물을 보고 나니 오길 잘했다 싶었어.",
+        "start_ms": 0,
+        "end_ms": 15000
+      },
+      {
+        "id": "E14-u2",
+        "member_id": "child",
+        "text": "아니, 오늘 간 데는 미술관이었어. 나는 전시실이 너무 조용해서 말하기가 어려웠어.",
+        "start_ms": 15000,
+        "end_ms": 30000
+      },
+      {
+        "id": "E14-u3",
+        "member_id": "parent",
+        "text": "어제 시장에서 만두 세 개를 먹었어. 잠깐, 내가 먹은 건 두 개였어. 하나는 남겼지.",
+        "start_ms": 30000,
+        "end_ms": 45000
+      },
+      {
+        "id": "E14-u4",
+        "member_id": "child",
+        "text": "어제 시장에서 산 만두는 뜨거웠지만 맛있었어. 다음 달에는 기차를 타 보고 싶어.",
+        "start_ms": 45000,
+        "end_ms": 60000
+      },
+      {
+        "id": "E14-u5",
+        "member_id": "parent",
+        "text": "다음 주에는 도서관에 가고 싶어. 아까 말한 오늘 방문 장소는 나도 확신이 없네. 표를 나중에 보고 확인하자.",
+        "start_ms": 60000,
+        "end_ms": 75000
+      }
+    ],
+    "user_place_corrections": [],
+    "user_group_corrections": []
+  }
+}

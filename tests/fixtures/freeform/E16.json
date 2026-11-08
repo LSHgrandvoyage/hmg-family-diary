@@ -1,0 +1,54 @@
+{
+  "synthetic": true,
+  "case_id": "E16",
+  "expected_review": "이름의 대상을 확정하지 않음; 작년/내년 봄은 date:null; 항구·수목원과 반대 감정 유지; 자기 정정 세 개 반영",
+  "input": {
+    "schema_version": "1",
+    "session_id": "E16",
+    "input_revision": 1,
+    "recorded_at": "2026-11-08T04:00:00Z",
+    "timezone": "Asia/Seoul",
+    "members": [
+      {
+        "id": "parent",
+        "display_name": "보호자"
+      },
+      {
+        "id": "child",
+        "display_name": "아이"
+      }
+    ],
+    "utterances": [
+      {
+        "id": "E16-u1",
+        "member_id": "parent",
+        "text": "작년에 항구에서 배를 봤어. 옆에 등대도 있었고. 이름은 잘 모르겠어. 바람이 시원해서 오래 서 있었어.",
+        "start_ms": 0,
+        "end_ms": 15000
+      },
+      {
+        "id": "E16-u2",
+        "member_id": "child",
+        "text": "나는 그때 항구 바람이 너무 세서 추웠어.",
+        "start_ms": 15000,
+        "end_ms": 30000
+      },
+      {
+        "id": "E16-u3",
+        "member_id": "parent",
+        "text": "내년 봄에는 수목원에 가고 싶어. 아직 어느 날 갈지는 안 정했어.",
+        "start_ms": 30000,
+        "end_ms": 45000
+      },
+      {
+        "id": "E16-u4",
+        "member_id": "child",
+        "text": "아까 과자를 네 개 먹었다고 했나? 내가 먹은 건 세 개였어.",
+        "start_ms": 45000,
+        "end_ms": 60000
+      }
+    ],
+    "user_place_corrections": [],
+    "user_group_corrections": []
+  }
+}

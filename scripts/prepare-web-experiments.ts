@@ -8,16 +8,31 @@ import {
 
 // No model/network calls. Evaluation metadata is kept out of messages.
 const destination = process.argv[2];
+const suite = process.argv[3] ?? "baseline";
+if (!["baseline", "prompt-v2", "prompt-v3"].includes(suite))
+  throw new Error("Unknown suite");
 if (!destination)
   throw new Error(
-    "Usage: tsx scripts/prepare-web-experiments.ts <new-directory>",
+    "Usage: tsx scripts/prepare-web-experiments.ts <new-directory> [baseline|prompt-v2|prompt-v3]",
   );
 await mkdir(destination, { recursive: false });
 const { $schema, $id, title, ...schema } = diaryOutputSchema;
-for (const [split, cases] of [
-  ["development", ["E01", "E02", "E03", "E06"]],
-  ["evaluation", ["E07", "E09"]],
-] as const) {
+const suites =
+  suite === "prompt-v3"
+    ? ([
+        ["development", ["E13", "E14"]],
+        ["evaluation", ["E16"]],
+      ] as const)
+    : suite === "prompt-v2"
+      ? ([
+          ["development", ["E06", "E07", "E09"]],
+          ["evaluation", ["E13", "E14", "E15"]],
+        ] as const)
+      : ([
+          ["development", ["E01", "E02", "E03", "E06"]],
+          ["evaluation", ["E07", "E09"]],
+        ] as const);
+for (const [split, cases] of suites) {
   const rows = [];
   for (const id of cases) {
     const fixture = JSON.parse(

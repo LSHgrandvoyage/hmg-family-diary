@@ -1,0 +1,47 @@
+{
+  "synthetic": true,
+  "case_id": "E13",
+  "expected_review": "일반 장소명 연못·빵집 유지, 선택 날짜/상호 누락만으로 질문하지 않음",
+  "input": {
+    "schema_version": "1",
+    "session_id": "E13",
+    "input_revision": 1,
+    "recorded_at": "2026-11-08T04:00:00Z",
+    "timezone": "Asia/Seoul",
+    "members": [
+      {
+        "id": "parent",
+        "display_name": "보호자"
+      },
+      {
+        "id": "child",
+        "display_name": "아이"
+      }
+    ],
+    "utterances": [
+      {
+        "id": "E13-u1",
+        "member_id": "parent",
+        "text": "연못에서 올챙이를 한참 봤어. 이름은 모르겠네. 물결이 햇빛에 반짝이는 게 좋았어. 차에 돌아오니 배가 고프더라.",
+        "start_ms": 0,
+        "end_ms": 15000
+      },
+      {
+        "id": "E13-u2",
+        "member_id": "child",
+        "text": "나는 올챙이가 너무 빨리 도망가서 아쉬웠어.",
+        "start_ms": 15000,
+        "end_ms": 30000
+      },
+      {
+        "id": "E13-u3",
+        "member_id": "parent",
+        "text": "빵집에서는 소보로를 샀어. 아니, 소보로가 아니라 단팥빵이었지. 가게 이름은 생각이 안 나.",
+        "start_ms": 30000,
+        "end_ms": 45000
+      }
+    ],
+    "user_place_corrections": [],
+    "user_group_corrections": []
+  }
+}

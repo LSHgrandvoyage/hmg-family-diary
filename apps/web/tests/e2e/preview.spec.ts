@@ -1,8 +1,52 @@
 import { test, expect } from "@playwright/test";
 
-test("find a diary, inspect sources, replay a segment and release media", async ({
+test("archive groups by year and month and combines period with search", async ({
   page,
 }, info) => {
+  await page.goto("/demo");
+  await expect(
+    page.getByRole("heading", { name: "함께한 날을 다시 꺼내 봐요" }),
+  ).toBeVisible();
+  await expect(page.locator(".month-group")).toHaveCount(2);
+  await expect(page.locator(".month-group").first()).toContainText(
+    "2026년 11월",
+  );
+  await expect(
+    page.getByRole("button", { name: "바다", exact: true }),
+  ).toHaveCount(0);
+  await page
+    .getByRole("combobox", { name: "기록 기간" })
+    .selectOption("2026-10");
+  await expect(page.locator(".story-row")).toHaveCount(1);
+  await expect(page.locator(".story-row")).toContainText(
+    "비를 기다리며 나눈 이야기",
+  );
+  await page.getByRole("searchbox").fill("연을");
+  await expect(
+    page.getByRole("heading", { name: "찾는 이야기가 없어요" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "검색 초기화" }).click();
+  await expect(page.getByRole("combobox")).toHaveValue("all");
+  await expect(page.locator(".story-row")).toHaveCount(3);
+  await page.screenshot({
+    path: `docs/evidence/timeline-${info.project.name}-archive.png`,
+    fullPage: true,
+  });
+  await page.getByRole("searchbox").fill("2026-11-01");
+  await page.locator(".story-row").click();
+  await expect(
+    page.getByRole("heading", { level: 1, name: "연을 따라 걷던 오후" }),
+  ).toBeVisible();
+});
+
+test("one full recording seeks from transcript, crosses segment boundaries and releases on exit", async ({
+  page,
+}, info) => {
+  let fetches = 0;
+  await page.route("**/demo/synthetic-signal.wav", (route) => {
+    fetches++;
+    return route.continue();
+  });
   await page.addInitScript(() => {
     const original = URL.revokeObjectURL;
     (window as unknown as { revoked: number }).revoked = 0;
@@ -11,71 +55,58 @@ test("find a diary, inspect sources, replay a segment and release media", async 
       original.call(URL, url);
     };
   });
-  await page.goto("/demo");
-  await expect(
-    page.getByRole("heading", { name: "함께한 날을 다시 꺼내 봐요" }),
-  ).toBeVisible();
-  await page.screenshot({
-    path: `docs/evidence/kstyle-${info.project.name}-archive.png`,
-    fullPage: true,
-  });
-  await page.getByRole("searchbox").fill("없는 장소");
-  await expect(
-    page.getByRole("heading", { name: "찾는 이야기가 없어요" }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "검색 초기화" }).click();
-  await expect(page.locator(".story-row")).toHaveCount(3);
-  await page.getByRole("button", { name: "바다", exact: true }).click();
-  await expect(page.locator(".story-row")).toHaveCount(1);
-  await page.locator(".story-row").click();
-  await expect(
-    page.getByRole("heading", { name: "같은 바다, 서로 다른 마음", level: 1 }),
-  ).toBeVisible();
-  await page.screenshot({
-    path: `docs/evidence/kstyle-${info.project.name}-detail.png`,
-    fullPage: true,
-  });
+  await page.goto("/demo/sea");
   await page.getByRole("button", { name: "원래 이야기", exact: true }).click();
-  await expect(page.locator(".transcript")).toContainText("바다가 좋았어.");
-  const trigger = page.getByRole("button", {
-    name: "아이 이야기 듣기",
-    exact: true,
-  });
-  await trigger.click();
-  const dialog = page.getByRole("dialog");
   const audio = page.locator("audio");
-  await expect(dialog).toBeVisible();
-  await expect
-    .poll(() => audio.evaluate((el: HTMLAudioElement) => el.readyState))
-    .toBeGreaterThanOrEqual(1);
-  await expect
-    .poll(() => audio.evaluate((el: HTMLAudioElement) => el.currentTime))
-    .toBe(4);
-  expect(await audio.evaluate((el: HTMLAudioElement) => el.duration)).toBe(8);
-  await page.getByRole("button", { name: "재생", exact: true }).click();
+  const slider = page.getByRole("slider", { name: "전체 녹음 재생 위치" });
+  await expect(
+    page.getByRole("button", { name: "재생", exact: true }),
+  ).toBeEnabled();
+  expect(await audio.evaluate((el: HTMLAudioElement) => el.paused)).toBe(true);
+  await expect(slider).toHaveAttribute("min", "0");
+  await expect(slider).toHaveAttribute("max", "8");
+  const child = page.getByRole("button", { name: "아이 0:04부터 재생" });
+  await child.click();
   await expect
     .poll(() => audio.evaluate((el: HTMLAudioElement) => el.currentTime))
     .toBeGreaterThan(4);
+  await expect(child).toHaveAttribute("aria-current", "true");
   await page.getByRole("button", { name: "일시 정지" }).click();
-  expect(await audio.evaluate((el: HTMLAudioElement) => el.paused)).toBe(true);
-  await page.getByRole("slider", { name: "재생 위치" }).fill("6");
+  const parent = page.getByRole("button", { name: "보호자 0:00부터 재생" });
+  await parent.focus();
+  await page.keyboard.press("Enter");
   await expect
     .poll(() => audio.evaluate((el: HTMLAudioElement) => el.currentTime))
-    .toBe(6);
+    .toBeLessThan(2);
+  await expect(parent).toHaveAttribute("aria-current", "true");
+  await slider.fill("3.8");
+  await expect
+    .poll(() => audio.evaluate((el: HTMLAudioElement) => el.currentTime))
+    .toBeGreaterThan(4);
+  expect(await audio.evaluate((el: HTMLAudioElement) => el.paused)).toBe(false);
+  await expect(child).toHaveAttribute("aria-current", "true");
+  await page.getByRole("button", { name: "일시 정지" }).click();
+  await slider.fill("6");
+  expect(fetches).toBe(1);
+  await page.locator(".recording-controls").scrollIntoViewIfNeeded();
   await page.screenshot({
-    path: `docs/evidence/kstyle-${info.project.name}-player.png`,
-    fullPage: false,
+    path: `docs/evidence/timeline-${info.project.name}-player.png`,
+    fullPage: true,
   });
-  await page.keyboard.press("Escape");
-  await expect(dialog).toHaveCount(0);
+  await slider.fill("7.8");
+  await page.getByRole("button", { name: "재생", exact: true }).click();
+  await expect(page.getByRole("button", { name: "다시 재생" })).toBeVisible();
+  expect(await audio.evaluate((el: HTMLAudioElement) => el.ended)).toBe(true);
+  await page.getByRole("button", { name: "정리된 일기", exact: true }).click();
   await expect(audio).toHaveCount(0);
-  await expect(trigger).toBeFocused();
+  await expect(
+    page.getByRole("button", { name: "정리된 일기", exact: true }),
+  ).toBeFocused();
   expect(
     await page.evaluate(
       () => (window as unknown as { revoked: number }).revoked,
     ),
   ).toBe(1);
-  await page.evaluate(() => (document.documentElement.style.fontSize = "24px"));
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
@@ -83,34 +114,50 @@ test("find a diary, inspect sources, replay a segment and release media", async 
   ).toBe(true);
 });
 
-test("media failure can be retried and playback stops at the segment boundary", async ({
+test("media retry and memory shortcuts use the same full timeline", async ({
   page,
 }) => {
   await page.route("**/demo/synthetic-signal.wav", (route) =>
     route.fulfill({ status: 503 }),
   );
   await page.goto("/demo/sea");
-  await page
-    .getByRole("button", { name: "보호자 이야기 듣기", exact: true })
-    .click();
+  await page.getByRole("button", { name: "원래 이야기", exact: true }).click();
   await expect(page.getByRole("button", { name: "다시 시도" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "아이 0:04부터 재생" }),
+  ).toBeDisabled();
   await page.unroute("**/demo/synthetic-signal.wav");
   await page.getByRole("button", { name: "다시 시도" }).click();
   await expect(
     page.getByRole("button", { name: "재생", exact: true }),
   ).toBeEnabled();
-  await page.getByRole("slider").fill("3.8");
-  await page.getByRole("button", { name: "재생", exact: true }).click();
-  const audio = page.locator("audio");
-  await expect
-    .poll(() => audio.evaluate((el: HTMLAudioElement) => el.currentTime))
-    .toBe(4);
-  expect(await audio.evaluate((el: HTMLAudioElement) => el.paused)).toBe(true);
   await page.getByRole("button", { name: "재생 종료" }).click();
-  await expect(audio).toHaveCount(0);
+  await expect(page.locator("audio")).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "아이 이야기 듣기", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "원래 이야기", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect
+    .poll(() =>
+      page.locator("audio").evaluate((el: HTMLAudioElement) => el.currentTime),
+    )
+    .toBeGreaterThan(4);
+  await expect(page.getByRole("slider")).toHaveAttribute("max", "8");
+  await page.getByRole("button", { name: "전체 녹음 듣기" }).click();
+  await expect
+    .poll(() =>
+      page.locator("audio").evaluate((el: HTMLAudioElement) => el.currentTime),
+    )
+    .toBeLessThan(2);
+  await expect(page.locator("audio")).toHaveCount(1);
+  await page.getByRole("button", { name: "재생 종료" }).click();
+  await expect(page.locator("audio")).toHaveCount(0);
 });
 
-test("palette choice persists and the other sample diaries have distinct contents", async ({
+test("palette remains available and timeline fits with enlarged text", async ({
   page,
 }) => {
   await page.goto("/");
@@ -119,18 +166,17 @@ test("palette choice persists and the other sample diaries have distinct content
   await page.getByRole("button", { name: "닫기", exact: true }).click();
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-palette", "coral");
-  await page.getByRole("searchbox").fill("공원");
-  await expect(page.locator(".story-row")).toHaveCount(1);
+  await page.getByRole("searchbox").fill("카페");
   await page.locator(".story-row").click();
   await expect(
-    page.getByRole("heading", { name: "연을 따라 걷던 오후" }),
+    page.getByRole("heading", { level: 1, name: "비를 기다리며 나눈 이야기" }),
   ).toBeVisible();
-  await page.getByRole("link", { name: "보관함", exact: true }).click();
-  await page.getByRole("button", { name: "카페", exact: true }).click();
-  await page.locator(".story-row").click();
-  await expect(
-    page.getByRole("heading", { name: "비를 기다리며 나눈 이야기" }),
-  ).toBeVisible();
+  await page.getByRole("button", { name: "원래 이야기", exact: true }).click();
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.evaluate(() => {
+    document.documentElement.style.setProperty("--fs-body", "24px");
+    document.documentElement.style.setProperty("--fs-sub", "20px");
+  });
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,

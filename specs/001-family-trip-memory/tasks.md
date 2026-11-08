@@ -62,7 +62,7 @@ G1/G2에 의존하지 않는 구현은 mock 포트로 시작하되 실제 경로
 - [ ] T023 [US2] `apps/web/src/app/login/page.tsx`, `apps/web/src/app/devices/page.tsx`에 보호자 인증·차량 이름 확인·연결/해제·pending 표시를 구현한다. 보호자 인증 쿠키·자격 증명을 차량에 전달하지 않는다. 선행 T012,T022. FR-007,012.
 - [ ] T024 [US2] `apps/vehicle/app/src/main/java/io/hmg/familydiary/pairing/PairingScreen.kt`에 code 표시·승인 대기·token 교환·안전한 저장을 구현한다. 초과/만료·재사용 실패가 구분돼야 한다. 선행 T008,T022. FR-007.
 - [ ] T025 [US2] `apps/web/src/server/library.ts`, `apps/web/src/server/media.ts`에 날짜/장소 목록·세션 읽기·인증된 Range 미디어 프록시를 구현한다. 기본20/최대50, 비삭제 vault 필터, private no-store, partial 상태, 공개 URL 없음. 선행 T009,T016. FR-008,009.
-- [ ] T026 [US2] `apps/web/src/app/library/page.tsx`, `apps/web/src/app/library/[id]/page.tsx`, `apps/web/src/components/AudioPlayer.tsx`에 읽기·근거 구간/전체 재생·일시정지·탐색·종료·재시도를 구현한다. blob은 종료/로그아웃 때 해제하고 영구 음성 캐시를 만들지 않는다. 선행 T023,T025. FR-008,009,012.
+- [ ] T026 [US2] `apps/web/src/app/library/page.tsx`, `apps/web/src/app/library/[id]/page.tsx`, `apps/web/src/components/AudioPlayer.tsx`에 연월별 보관함·기간 선택·읽기·전체 녹음과 원문 타임라인·구간 선택 시 해당 시점부터 연속 재생·현재 구간 표시·일시정지·탐색·종료·재시도를 구현한다. blob은 종료/로그아웃 때 해제하고 영구 음성 캐시를 만들지 않는다. 선행 T023,T025. FR-008,009,012.
 - [ ] T027 [US2] `apps/vehicle/app/src/main/java/io/hmg/familydiary/ui/LibraryScreen.kt`, `playback/AudioPlayer.kt`에 같은 기록 읽기·manifest 재생·source span 탐색을 구현한다. UNKNOWN/출발/focus loss 중단, 자동 재개 없음. 선행 T006,T024,T025. FR-001,009.
 - [ ] T028 [US2] `apps/web/tests/api/access.test.ts`, `apps/web/tests/e2e/library.spec.ts`에 A/B 보관함·무인증·해제 token·Range 재사용 차단과 모바일 화면의 부분 전송/재생을 검증한다. 선행 T022~T027. SC-003,005,006.
 

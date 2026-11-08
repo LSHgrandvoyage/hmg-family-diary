@@ -70,3 +70,12 @@ export const records = [
   },
 ] as const;
 export type DiaryRecord = (typeof records)[number];
+
+// Synthetic recording metadata, shared by every preview diary. Not an STT result.
+export const demoRecording = {
+  src: "/demo/synthetic-signal.wav",
+  spans: [
+    { start: 0, end: 4 },
+    { start: 4, end: 8 },
+  ],
+} as const;

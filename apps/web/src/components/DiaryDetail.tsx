@@ -1,16 +1,34 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { AppShell } from "./AppShell";
 import { Icon } from "./Icon";
-import { Sheet } from "./Sheet";
-import { AudioPlayer } from "./AudioPlayer";
-import { members, type DiaryRecord } from "../demo/records";
+import { AudioPlayer, type PlaybackRequest, stamp } from "./AudioPlayer";
+import { members, demoRecording, type DiaryRecord } from "../demo/records";
 export function DiaryDetail({ record }: { record: DiaryRecord }) {
-  const [selection, setSelection] = useState<number | null>(null);
+  const [request, setRequest] = useState<PlaybackRequest | null>(null);
   const [tab, setTab] = useState<"diary" | "source">("diary");
-  const member =
-    selection !== null && selection >= 0 ? members[selection] : null;
+  const sequence = useRef(0);
+  const diaryTab = useRef<HTMLButtonElement>(null);
+  const sourceTab = useRef<HTMLButtonElement>(null);
+  const segments = record.memories.map((m, i) => ({
+    id: m.member,
+    ...demoRecording.spans[i],
+    name: members[i].name,
+    avatar: members[i].avatar,
+    source: m.source,
+  }));
+  function listen(position: number) {
+    setRequest({ position, id: ++sequence.current });
+    setTab("source");
+    sourceTab.current?.focus();
+    sourceTab.current?.scrollIntoView({ block: "start", behavior: "instant" });
+  }
+  function closePlayer() {
+    setTab("diary");
+    setRequest(null);
+    diaryTab.current?.focus();
+  }
   return (
     <AppShell>
       <main id="main" className="detail-layout">
@@ -48,16 +66,21 @@ export function DiaryDetail({ record }: { record: DiaryRecord }) {
               aria-label="읽기 방식"
             >
               <button
+                ref={diaryTab}
                 className={`seg-item ${tab === "diary" ? "is-selected" : ""}`}
                 aria-pressed={tab === "diary"}
-                onClick={() => setTab("diary")}
+                onClick={closePlayer}
               >
                 정리된 일기
               </button>
               <button
+                ref={sourceTab}
                 className={`seg-item ${tab === "source" ? "is-selected" : ""}`}
                 aria-pressed={tab === "source"}
-                onClick={() => setTab("source")}
+                onClick={() => {
+                  setRequest(null);
+                  setTab("source");
+                }}
               >
                 원래 이야기
               </button>
@@ -72,30 +95,12 @@ export function DiaryDetail({ record }: { record: DiaryRecord }) {
                 </div>
               </section>
             ) : (
-              <section
-                className="transcript"
-                data-anchor
-                aria-label="원래 이야기"
-              >
-                {record.memories.map((m, i) => (
-                  <div key={m.member} className="source-row">
-                    <p className="row-sub">
-                      {members[i].name} · {i * 4}–{i * 4 + 4}초
-                    </p>
-                    <p>{m.source}</p>
-                    <button
-                      className="btn small tint"
-                      onClick={() => setSelection(i)}
-                    >
-                      <Icon name="play" />
-                      구간 듣기
-                    </button>
-                  </div>
-                ))}
-                <p className="preview-footnote">
-                  인식문 예시예요. 시험음에서 변환한 문장은 아니에요.
-                </p>
-              </section>
+              <AudioPlayer
+                src={demoRecording.src}
+                segments={segments}
+                request={request}
+                onClose={closePlayer}
+              />
             )}
           </article>
           <aside className="memory-panel">
@@ -117,22 +122,19 @@ export function DiaryDetail({ record }: { record: DiaryRecord }) {
                     <button
                       className="btn small tint"
                       aria-label={`${members[i].name} 이야기 듣기`}
-                      onClick={() => setSelection(i)}
+                      onClick={() => listen(segments[i].start)}
                     >
                       <Icon name="play" />
                       이야기 듣기
                       <span className="clip-time">
-                        {i * 4}–{i * 4 + 4}초
+                        {stamp(segments[i].start)}부터
                       </span>
                     </button>
                   </div>
                 ))}
               </div>
             </section>
-            <button
-              className="whole-recording"
-              onClick={() => setSelection(-1)}
-            >
+            <button className="whole-recording" onClick={() => listen(0)}>
               <span className="recording-icon">
                 <Icon name="volume" />
               </span>
@@ -149,37 +151,6 @@ export function DiaryDetail({ record }: { record: DiaryRecord }) {
             </p>
           </aside>
         </div>
-        {selection !== null && (
-          <Sheet
-            title={member ? `${member.name}의 이야기` : "전체 녹음"}
-            onClose={() => setSelection(null)}
-          >
-            <p className="row-sub">
-              {record.day} · {record.place}
-            </p>
-            <div className="audio-source">
-              {member ? (
-                <>
-                  <span className="avatar">
-                    <img src={member.avatar} alt="" />
-                  </span>
-                  <blockquote>{record.memories[selection].source}</blockquote>
-                </>
-              ) : (
-                <blockquote>보호자와 아이의 이야기를 이어 들어요.</blockquote>
-              )}
-            </div>
-            <AudioPlayer
-              src="/demo/synthetic-signal.wav"
-              selection={{
-                start: selection < 0 ? 0 : selection * 4,
-                end: selection < 0 ? 8 : selection * 4 + 4,
-                label: member ? `${member.name} 이야기` : "전체 녹음",
-              }}
-              onClose={() => setSelection(null)}
-            />
-          </Sheet>
-        )}
       </main>
     </AppShell>
   );

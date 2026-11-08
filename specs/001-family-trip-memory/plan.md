@@ -145,3 +145,12 @@ US1만 구현한 상태는 전체 MVP 완료가 아니다. US1·US2·US3 모두 
 별도 큐 제품 대신 Postgres의 작업 행·lease·재시도를 사용한다.
 근거·설계 결정은 [research.md](research.md), 필드와 전이는 [data-model.md](data-model.md),
 실행 검증 절차는 [quickstart.md](quickstart.md)를 따른다.
+
+## UI revision — 2026-11-08
+
+FR-009/US2-2의 탐색은 기록 연월별 묶음·기간 선택·검색으로 구성한다. 날짜/장소 API 계약의
+기존 date_from/date_to 범위를 활용할 수 있으며 장소는 메타데이터와 검색에 남긴다.
+원문과 전체 녹음은 하나의 재생 상태를 공유한다. 구간 선택은 session 시각으로 seek 후
+재생을 시작하고 구간 끝에서 중단하지 않는다. manifest 경계도 전체 녹음의 연속 재생으로
+다룬다. 웹 합성 미리 보기에는 단일 8초 시험음으로 UI 동작만 반영했으며 실제 다중 chunk
+연결·권한·Safari/차량 재생은 T025~T028/G4에서 따로 검증한다.

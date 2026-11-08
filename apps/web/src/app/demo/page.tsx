@@ -6,10 +6,15 @@ import { Icon } from "../../components/Icon";
 import { members, records } from "../../demo/records";
 export default function Archive() {
   const [query, setQuery] = useState("");
-  const [place, setPlace] = useState("전체");
+  const [month, setMonth] = useState("all");
+  const months = [...new Set(records.map((r) => r.date.slice(0, 7)))]
+    .sort()
+    .reverse();
+  const monthLabel = (key: string) =>
+    `${key.slice(0, 4)}년 ${Number(key.slice(5))}월`;
   const filtered = records.filter(
     (r) =>
-      (place === "전체" || r.place === place) &&
+      (month === "all" || r.date.startsWith(month)) &&
       `${r.title} ${r.place} ${r.date} ${r.day}`.includes(query.trim()),
   );
   const recent = records[0];
@@ -85,37 +90,65 @@ export default function Archive() {
               onChange={(e) => setQuery(e.target.value)}
             />
           </label>
-          <div className="chips" aria-label="장소 필터">
-            {["전체", "바다", "공원", "카페"].map((p) => (
-              <button
-                key={p}
-                className={`chip ${place === p ? "is-selected" : ""}`}
-                aria-pressed={place === p}
-                onClick={() => setPlace(p)}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
+          <label className="period-filter">
+            기록 기간
+            <select
+              value={month}
+              onChange={(e) => setMonth(e.target.value)}
+              aria-label="기록 기간"
+            >
+              <option value="all">전체 기간</option>
+              {months.map((m) => (
+                <option key={m} value={m}>
+                  {monthLabel(m)}
+                </option>
+              ))}
+            </select>
+          </label>
           <p className="result-count" role="status">
             {filtered.length}개의 이야기
           </p>
-          <div className="block is-list story-list">
-            {filtered.map((r) => (
-              <Link href={`/demo/${r.id}`} className="row story-row" key={r.id}>
-                <span className="row-art">
-                  <img src={`/design/${r.art}.svg`} alt="" />
-                </span>
-                <div className="row-main">
-                  <p className="row-sub">{r.day}</p>
-                  <h3 className="row-title">{r.title}</h3>
-                  <p className="row-sub">{r.place} · 보호자, 아이</p>
-                </div>
-                <span className="row-trail">
-                  <Icon name="chevron" />
-                </span>
-              </Link>
-            ))}
+          <div className="month-groups">
+            {months
+              .filter((m) => filtered.some((r) => r.date.startsWith(m)))
+              .map((m) => (
+                <section
+                  className="month-group"
+                  key={m}
+                  aria-label={monthLabel(m)}
+                >
+                  <h3 className="month-title">
+                    {monthLabel(m)}{" "}
+                    <span>
+                      {filtered.filter((r) => r.date.startsWith(m)).length}개의
+                      이야기
+                    </span>
+                  </h3>
+                  <div className="block is-list story-list">
+                    {filtered
+                      .filter((r) => r.date.startsWith(m))
+                      .map((r) => (
+                        <Link
+                          href={`/demo/${r.id}`}
+                          className="row story-row"
+                          key={r.id}
+                        >
+                          <span className="row-art">
+                            <img src={`/design/${r.art}.svg`} alt="" />
+                          </span>
+                          <div className="row-main">
+                            <p className="row-sub">{r.day}</p>
+                            <h4 className="row-title">{r.title}</h4>
+                            <p className="row-sub">{r.place} · 보호자, 아이</p>
+                          </div>
+                          <span className="row-trail">
+                            <Icon name="chevron" />
+                          </span>
+                        </Link>
+                      ))}
+                  </div>
+                </section>
+              ))}
             {filtered.length === 0 && (
               <div className="empty">
                 <Icon name="search" />
@@ -125,7 +158,7 @@ export default function Archive() {
                   className="btn secondary"
                   onClick={() => {
                     setQuery("");
-                    setPlace("전체");
+                    setMonth("all");
                   }}
                 >
                   검색 초기화

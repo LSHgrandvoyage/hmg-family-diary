@@ -43,3 +43,18 @@ G1 원본 파일 저장·재생 및 합성 PCM의 한국어 인식 콜백은 [�
 | iPad | Safari 태블릿 웹 읽기·재생 | 실제 기기 미검증, APK 직접 실행 불가 |
 
 공식 출처: [Pleos 설치 안내](https://document.pleos.ai/en/docs/connect/guide/getting-started/application-development/setup-connect-sdk-emulator), [Mac Pleos 이미지 저장소](https://nexus-playground.pleos.ai/repository/raw-releases/connect-avd/2.x/crp-arm64-sys-img.xml), [Android SDK 저장소](https://dl.google.com/android/repository/repository2-3.xml).
+
+## 그래픽 충돌 복구 — 2026-11-08
+
+19:52 macOS 종료 기록에서 SwiftShader 실행의 `EglConfig::compatibleWith` → `eglMakeCurrent` →
+gfxstream RenderThread 경로에 SIGSEGV가 확인됐다. 이어진 실행에는 `libandroid-emu-tracing.dylib`
+로딩 실패도 있었다. 로컬 종료 기록 원문은 저장소에 넣지 않는다.
+
+실행 스크립트의 기본 그래픽 모드를 `swiftshader`에서 `host`로 바꿨다.
+공식 emulator launcher를 통해 시작하며 `-no-metrics -crash-report-mode never`로 원격 보고를 끈다.
+필요하면 `HMG_EMULATOR_GPU=software ./scripts/run-vehicle-emulator.sh`처럼 모드를 명시할 수 있다.
+
+변경 후 부팅 완료와 probe Activity COLD 실행(Status ok, TotalTime279ms)을 확인했다.
+사용자가 이전의 팬 소음·발열·느린 동작이 해소됐다고 확인했다. 장시간 무충돌을 보증하는 검증은 아니다.
+AVD 초기화나 앱 데이터 삭제는 하지 않았다.
+[Android 공식 그래픽 모드 설명](https://developer.android.com/studio/run/emulator-acceleration)을 참고한다.

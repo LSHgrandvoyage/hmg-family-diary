@@ -8,4 +8,5 @@ if [[ ! -f "$ANDROID_AVD_HOME/hmg_pleos_arm64.ini" ]]; then
   echo 'This checkout has no hmg_pleos_arm64 AVD. Follow docs/evidence/g0-environment.md and the official Pleos setup guide.' >&2
   exit 1
 fi
-exec "$ANDROID_HOME/emulator/emulator" -avd hmg_pleos_arm64 -no-snapshot -gpu swiftshader -port 5580 "$@"
+exec "$ANDROID_HOME/emulator/emulator" -avd hmg_pleos_arm64 -no-snapshot \
+  -gpu "${HMG_EMULATOR_GPU:-host}" -no-metrics -crash-report-mode never -port 5580 "$@"

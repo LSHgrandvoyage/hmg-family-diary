@@ -3,7 +3,8 @@
 차에서 자유롭게 풀어놓은 가족 이야기를 LLM이 분류·정제해 **일기와 실제 목소리**로 남겨,
 차량과 휴대폰에서 다시 읽고 듣는 가족 여행 기록 서비스.
 
-현재는 제품 정의와 기능 명세 단계다. 앱·SDK 실행·사용자 인터뷰 결과는 아직 없다.
+현재는 기능 명세에 따른 구현 계획·데이터 모델·계약·38개 작업을 작성한 단계다.
+앱·SDK 실행·모델 평가·사용자 인터뷰 결과는 아직 없다.
 
 ## 먼저 읽을 문서
 
@@ -13,6 +14,9 @@
 4. [구현 전 기술 근거](docs/technical-evidence.md): 실제 검증이 필요한 차량 기능
 5. [헌장](.specify/memory/constitution.md): 개발·기록·검증 원칙
 6. [명세 품질 점검](specs/001-family-trip-memory/checklists/requirements.md)
+7. [구현 계획](specs/001-family-trip-memory/plan.md) · [조사·기술 결정](specs/001-family-trip-memory/research.md)
+8. [작업 목록](specs/001-family-trip-memory/tasks.md) · [검증 절차](specs/001-family-trip-memory/quickstart.md)
+9. [데이터 모델](specs/001-family-trip-memory/data-model.md) · [API 계약](specs/001-family-trip-memory/contracts/http-api.md)
 
 ## Spec Kit
 
@@ -33,8 +37,10 @@ uvx --from specify-cli==1.3.2 specify integration status
 - `$speckit-constitution`: 현재 헌장 1.1.0. 원칙 변경이 있을 때 갱신
 - `$speckit-specify`: 현재 `specs/001-family-trip-memory/spec.md` 기준선 작성 완료
 - `$speckit-clarify`: 추가 제품 판단이 필요할 때 사용
-- `$speckit-plan`: 기술 검증 결과를 반영해 구현 계획 작성 — 다음 단계
-- `$speckit-tasks` → `$speckit-analyze` → `$speckit-implement`
+- `$speckit-plan`: 기술 조사·조건부 구현 계획 작성 완료. 실제 차량 G0~G2는 미통과
+- `$speckit-tasks`: 38개 작업 작성 완료, 전부 미실행
+- `$speckit-analyze`: spec·plan·tasks 정합성 읽기 검토
+- `$speckit-implement`: 다음 단계. T001~T006 환경·캡처·주차 검증부터 시작
 
 새 체크아웃의 기능 선택은 다음과 같이 지정한다. `.specify/feature.json`은
 spec-kit이 관리하는 기기별 상태여서 Git에 포함하지 않는다.

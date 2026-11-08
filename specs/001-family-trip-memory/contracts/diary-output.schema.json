@@ -1,0 +1,196 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hmg-family-diary.invalid/contracts/diary-output.schema.json",
+  "title": "Diary organization draft v1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "enum": [
+        "1"
+      ]
+    },
+    "groups": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "place_label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "date": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "time_relation": {
+            "type": "string",
+            "enum": [
+              "occurred",
+              "planned",
+              "unclear"
+            ]
+          },
+          "needs_review": {
+            "type": "boolean"
+          },
+          "statements": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "audience": {
+                  "type": "string",
+                  "enum": [
+                    "member",
+                    "shared"
+                  ]
+                },
+                "member_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "source_spans": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "utterance_id": {
+                        "type": "string"
+                      },
+                      "start_ms": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "end_ms": {
+                        "type": "integer",
+                        "minimum": 1
+                      }
+                    },
+                    "required": [
+                      "utterance_id",
+                      "start_ms",
+                      "end_ms"
+                    ]
+                  },
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "text",
+                "audience",
+                "member_id",
+                "source_spans"
+              ]
+            },
+            "minItems": 1
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "place_label",
+          "date",
+          "time_relation",
+          "needs_review",
+          "statements"
+        ]
+      }
+    },
+    "excluded_spans": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "source_span": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "utterance_id": {
+                "type": "string"
+              },
+              "start_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "end_ms": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "required": [
+              "utterance_id",
+              "start_ms",
+              "end_ms"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "unrelated",
+              "repetition",
+              "unclear",
+              "user_excluded"
+            ]
+          }
+        },
+        "required": [
+          "source_span",
+          "reason"
+        ]
+      }
+    },
+    "review_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "utterance_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          }
+        },
+        "required": [
+          "message",
+          "utterance_ids"
+        ]
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "groups",
+    "excluded_spans",
+    "review_items"
+  ]
+}

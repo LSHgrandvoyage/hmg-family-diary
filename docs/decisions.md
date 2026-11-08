@@ -26,6 +26,16 @@
   발화 종료 후 사용자의 정리·검토 조작 시간을 본다. 생성 대기는 별도로 보고한다.
 - 헌장: 원칙 VI 추가로 1.1.0. 아직 모델 실행·긴 음성 처리 검증을 수행하지 않았다.
 
+## 2026-11-08 — 구현 계획과 작업 목록
+
+- 다음 단계 요청에 따라 plan·research·data-model·contracts·quickstart·38개 tasks를 작성했다.
+- 차량은 Kotlin Android, 휴대폰은 Next.js 모바일 웹으로 계획한다. 첫 범위의 읽기·듣기를 모두 유지한다.
+- 보관은 Supabase Auth/Postgres/private Storage, 생성은 별도 작업자의 구조화 출력으로 계획한다.
+- OpenAI Responses 초기 평가 후보는 gpt-5.6-terra이며 실제 계정 접근·품질·비용은 미검증이다.
+- 차량 원본 녹음·검증된 주차 상태는 실제 G0~G2 통과 조건이다. 원본 캡처 경로를 확인하지 못했다고
+  텍스트 전용으로 범위를 축소하지 않는다.
+- 앱 코드·실제 SDK 실행·유료 자원 생성·배포는 이 단계에서 수행하지 않았다.
+
 ## 문서 정본
 
 제품 판단은 `docs/product-brief.md`, 기능 요구사항은 `specs/001-family-trip-memory/spec.md`,

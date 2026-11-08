@@ -2,7 +2,8 @@
 
 **G1 전체 통과 아님.** 별도 `probeDebug`에서 원본 파일 입출력과 SDK 인식 콜백을 확인했다.
 사용자가 맥북 마이크로 직접 녹음하고 원본을 정상 청취했다고 확인했다.
-20분 입력·구간 정합성·누락 없는 최종 인식은 남아 있다. T005는 미완료로 유지한다.
+20분 입력·구간 정합성·실제 자유 발화의 전사 정확도는 남아 있다. T005는 미완료로 유지한다.
+같은 날 host GPU에서 수행한 [후속 STT 분리 검증](stt-validation.md)을 최신 결과로 참고한다.
 
 ## 구현
 
@@ -33,19 +34,21 @@
 | 입력 내용 | peak8, RMS약4.72/32768의 미세한 기저 신호 | 완전한 0 신호나 실제 발화라고 표시하지 않음 |
 | 동일 파일 재생 | MediaPlayer 준비·재생 상태와 duration117초 화면 확인 | 재생 경로 확인. 사람이 목소리를 들었다는 증거 아님 |
 | 실제 발화 수동 확인 | host GPU 설정으로 복구 후 사용자가 “녹음 잘 되고 잘 들려”라고 보고 | 맥북 마이크 입력·앱 녹음·원본 청취의 사용자 확인. 녹음 길이·전사 정확도·실차 검증은 포함하지 않음 |
-| 합성 한국어 STT | macOS Yuna로 생성한 4.984625초 문장. 앞0.5초/뒤2초 무음 포함 파일에서 completed 콜백 | PCM 파일→한국어 인식 콜백 확인. 전체 문장 누락/중복 관측으로 품질 통과 아님 |
+| 초기 합성 한국어 STT | macOS Yuna로 생성한 4.984625초 문장. 앞0.5초/뒤2초 무음 포함 파일에서 completed 콜백 | 초기 실행에서 문장 누락/중복 관측. host GPU 후속 실행에서는 같은 파일의 전체 문장 인식 확인 |
 | 언어 오류 재현 | Locale.KOREAN(ko)에서 ON_DEVICE_ENGINE_ERROR, Locale.KOREA(ko-KR)로 수정 후 인식 결과 | 공식 지원 지역 코드 필요 |
 | 기기 테스트 | 30초 대기 후 녹음 정상 마침, 실제 시작·종료 시각 대비 PCM 길이 확인, 재생 시작, 모의 P 해제 중단, 재주차 자동 재개 없음, 다음3초 녹음 중단, 이전 원본 checksum 불변 | Instrumentation 1개 시나리오 통과. 실제 차량 P 이벤트 검증 아님 |
 | JVM 테스트 | CaptureCoordinator4 + PcmWave5 + SpeechTranscript3 | 12개 통과 |
 | APK | assembleProbeDebug / assemblePleosRelease | 성공. pleos release는 여전히 주차 불명 잠금·서명 전 APK |
 
 합성 STT 입력: “오늘 가족과 바다에 갔어요. 아이는 파도가 무서웠고 저는 바다가 좋았어요.”
-현재 실행에서 최종 콜백은 돌아왔지만 문장 일부만 포함하거나 단어가 반복됐다. 앱은 이를 일기 완료로 처리하지 않는다.
-이 결과만으로 실제 자유 발화 STT·G1 성공을 선언하지 않는다. 파일 전송 종료/EPD·모델 동작을 추가로 분리 검증해야 한다.
+초기 실행에서는 최종 콜백이 돌아왔지만 문장 일부만 포함하거나 단어가 반복됐다.
+후속 실행에서는 같은 입력의 전체 문장을 인식했다. 전송 방식·콜백 순서를 분리한 결과는 별도 문서에 기록한다.
+합성 문장의 성공으로 실제 자유 발화 STT·G1 전체 성공을 선언하지 않는다.
 
 ![합성 음성 인식 실험 화면 — 실제 가족 음성 아님](pleos-capture-probe.png)
 
-원본·합성 음원·인식 로그는 커밋하지 않는다. 스크린샷은 위 합성 문장과 가상 차량 화면만 포함한다.
+사용자 원본·개인 인식문과 음원 바이너리는 커밋하지 않는다. 후속 STT 진단은 테스트 APK의 합성 asset만 사용하며,
+검토한 합성 인식 이벤트 JSON을 별도 증거로 보관한다. 스크린샷은 위 합성 문장과 가상 차량 화면만 포함한다.
 UI 클릭 주입은 차량 시스템 화면 전환 중 누락된 경우가 있어, 녹음 종료·P 해제의 재현 가능한 판정은
 실제 Activity 컨트롤을 실행하는 기기 테스트로 확인했다.
 
@@ -69,7 +72,7 @@ UI 호출 지연으로 30초 sleep 뒤 실제 녹음 길이가 36.405초였던 �
 .tools/android-sdk/platform-tools/adb -s emulator-5580 install -r apps/vehicle/app/build/outputs/apk/androidTest/probe/debug/app-probe-debug-androidTest.apk
 # 현재 사용자10인 이 AVD 기준. 다른 AVD는 am get-current-user로 확인한다.
 .tools/android-sdk/platform-tools/adb -s emulator-5580 shell pm grant --user 10 io.hmg.familydiary.probe android.permission.RECORD_AUDIO
-.tools/android-sdk/platform-tools/adb -s emulator-5580 shell am instrument --user 10 -w io.hmg.familydiary.probe.test/androidx.test.runner.AndroidJUnitRunner
+.tools/android-sdk/platform-tools/adb -s emulator-5580 shell am instrument --user 10 -w -e class io.hmg.familydiary.CaptureProbeDeviceTest io.hmg.familydiary.probe.test/androidx.test.runner.AndroidJUnitRunner
 ```
 
 실제 발화 수동 테스트는 [README](../../README.md)의 맥북 녹음 절차를 따른다.
@@ -78,7 +81,7 @@ UI 호출 지연으로 30초 sleep 뒤 실제 녹음 길이가 36.405초였던 �
 ## 다음 통과 조건
 
 1. 사용자 직접 녹음·원본 청취는 확인했다. 동일 입력 STT의 내용 보존과 정확도는 추가 확인한다.
-2. 같은 합성 문장으로 전송 방식·EPD/최종 이벤트와 누락 원인을 비교한다. 텍스트가 일부 돌아온 것을 전체 인식으로 처리하지 않는다.
+2. 합성 입력의 전송 방식·EPD/최종 이벤트 비교는 후속 검증에 기록했다. 실제 발화·잡음·긴 입력으로 검증 범위를 넓힌다.
 3. 30초/3분/10분/20분의 실제 입력, 침묵·말끝·문장 사이 정지·긴 이야기의 전체 보존, 구간 탐색 오차를 측정한다.
 4. T006 실제 Vehicle 주차/UX 신호, T008 암호화·복구 및 원본 구간·화자 매핑을 연결한 뒤 제품 경로를 활성화한다.
 

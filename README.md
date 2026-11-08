@@ -9,7 +9,8 @@
 차량 정보·녹음 시작 위치·이 차의 추억 모아보기도 합성 자료로 제공한다. [차량 기능 설계](docs/research/vehicle-memory.md) · [차량 화면 검증](docs/evidence/vehicle-context-validation.md)
 별도 에뮬레이터 실험 앱에 AudioRecord 녹음·원본 저장·재생과 Pleos ON_DEVICE STT를 연결했다.
 무음 입력 저장·재생과 합성 음성의 인식 콜백을 확인했고, 사용자가 맥북 마이크의 실제 녹음·원본 청취도 확인했다.
-STT의 문장 누락·반복 해소와 긴 입력의 정확도는 아직 미검증이다.
+host GPU 환경에서 이전에 실패했던 합성 문장 전체 인식과 반복 발화·말끝 보존을 확인했다.
+실제 자유 발화와 장시간 입력의 정확도는 별도 검증 대상이다. [STT 분리 검증](docs/evidence/stt-validation.md)
 제품의 실제 녹음/STT/LLM/인증/동기화 및 차량/위치 자동 수집은 아직 미완료이며 전체 MVP 완료가 아니다.
 [현재 구현·미구현 범위](docs/evidence/implementation-progress.md) · [기기·APK 검증](docs/evidence/g0-environment.md)
 

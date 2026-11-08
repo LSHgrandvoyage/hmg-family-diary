@@ -4,7 +4,12 @@
 휴대폰: 보호자 인증 세션 쿠키 + 변경 요청의 Origin/CSRF 검증.
 차량: `Authorization: Bearer <opaque-device-token>`. 서버에 hash만 저장하고 매 요청 활성 여부 확인. 차량 token은 발급 후30일 만료이며 최초 버전은
 자동 연장 없이 보호자와 재연결한다. 차량은 로컬 만료도 검사하고 만료 시 보관함 사용을 잠근다.
-보호자 로그인·가입·재설정은 Supabase Auth를 사용한다. 로컬 테스트 메일은 Mailpit로 확인한다.
+보호자 가입·로그인·로그아웃·이메일 검증·비밀번호 재설정은 웹 내부 Better Auth의 `/api/auth/*`를 사용한다.
+Postgres DB 세션을 매 요청 검증하고 cookieCache를 끈다. 쿠키는 HttpOnly·Secure·SameSite=Lax,
+웹의 HTTPS origin과 trustedOrigins를 명시하며 CSRF 검증을 비활성화하지 않는다.
+이메일 검증을 요구하고 로컬 합성 계정 메일은 Mailpit, 실제 메일은 SMTP로 보낸다.
+비밀번호 재설정 완료 시 기존 보호자 세션을 모두 폐기한다. 차량 토큰 해제는 별도 연결 관리 동작이다.
+인증 수명·DB 역할·메일 경계는 [실행 계약](runtime-and-storage.md)을 따른다.
 모든 데이터 조회는 인증 주체의 vault 범위로 제한한다. UUID를 알아도 타 보관함 자료는404다.
 
 ## Common rules
@@ -16,7 +21,7 @@
 - 오류: `{error:{code,message,retryable},request_id}`. 민감한 원문·토큰은 오류에 담지 않는다.
 - 401 인증 실패, 403 허용되지 않은 동작, 404 없음/타 보관함, 409 충돌,
   410 삭제·소비된 객체, 413 입력 한도, 422 검증 실패, 429 제한, 503 의존 서비스 실패.
-- 민감 응답·오디오는 `Cache-Control: private, no-store`. 공개 URL·Storage 키를 클라이언트에 반환하지 않는다.
+- 민감 응답·오디오는 `Cache-Control: private, no-store`. 공개 URL·서버 파일 경로·storage_key를 클라이언트에 반환하지 않는다.
 - session/member/audio/utterance 모든 참조의 vault·session 일치 검사.
 - 응답의 capability에 최대 파일 bytes·세션 용량과 지원 포맷을 제공한다. 실제 값은 G1에서 정한다.
 
@@ -51,7 +56,7 @@
 
 ## Media and revocation details
 
-고정 short-lived 다운로드 링크도 클라이언트에 배포하지 않는다. 서버 프록시가 private Storage를 읽는다.
+고정 short-lived 다운로드 링크도 클라이언트에 배포하지 않는다. 서버 프록시가 `AudioStore`를 통해 비공개 파일 볼륨을 읽는다. 정적 파일 경로를 만들지 않는다.
 차량은 다음 chunk 요청·sync에서 폐기 여부를 확인하고 재생·로컬 접근을 중단한다.
 이미 전달된 바이트를 회수할 수는 없으며 오프라인 원격 삭제 완료를 주장하지 않는다.
 웹은 인증된 fetch로 작은 chunk를 가져와 메모리 blob으로 재생하고 종료·로그아웃 시 해제한다.
@@ -63,8 +68,10 @@
 작업자는 DB lease를 가진 queued job을 획득한다. 네트워크 일시 오류만 최대3회 재시도한다.
 거절·스키마/근거 오류는 원본을 남기고 사용자 재시도 가능한 실패로 기록한다.
 완료 반영 시 session revision·deleted_at을 다시 검사한다. 삭제 후 늦은 생성 결과·업로드는 무시/거부한다.
-이 API가 앱 수준에서 기기를 신뢰하더라도 privileged server key 사용은 모든 경로의 명시적 vault 검사와
-교차 보관함 테스트를 필요로 한다. 클라이언트 직접 DB/Storage 쓰기는 허용하지 않는다.
+API는 인증된 주체로 보관함을 결정하고 모든 경로에서 vault를 검사한다. 앱 DB 역할은 테이블 소유자·
+superuser·BYPASSRLS가 아니며 트랜잭션별 vault context와 RLS를 함께 사용한다.
+인증·보관함 조회·기기 인증·작업 획득은 실행 계약의 제한된 경로를 사용하고 교차 보관함 테스트를 수행한다.
+클라이언트 직접 DB/파일 볼륨 접근은 허용하지 않는다.
 
 ## Upload metadata and list filtering
 

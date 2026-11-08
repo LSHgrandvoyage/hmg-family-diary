@@ -36,6 +36,19 @@
   텍스트 전용으로 범위를 축소하지 않는다.
 - 앱 코드·실제 SDK 실행·유료 자원 생성·배포는 이 단계에서 수행하지 않았다.
 
+## 2026-11-08 — Docker Compose 프로토타입으로 전환
+
+- 사용자 결정: Supabase를 사용하지 않고 Docker로 구성하며 이후 클라우드로 이전한다.
+- 이전 Supabase Auth/Postgres/private Storage 선택을 대체한다. 첫 제품 범위와 헌장은 유지한다.
+- 실행: 단일 호스트의 Compose web·worker·Postgres·Caddy, 개발용 Mailpit, 일회성 migrate.
+- 인증: Better Auth의 이메일·비밀번호·검증·재설정·DB 세션. 차량 토큰은 기존 별도 연결 방식 유지.
+- 저장: DB와 원본을 영속 볼륨에 두고 AudioStore 인터페이스로 로컬 파일 구현을 분리한다.
+- 이전: 같은 이미지의 클라우드 실행, 필요 시 관리형 PostgreSQL·객체 저장 adapter 전환.
+  데이터·인증 ID·원본 checksum·삭제 표식의 백업/복원·이전 검증을 포함하며 자동 이전을 주장하지 않는다.
+- 영향: plan/research/data-model/HTTP·runtime 계약/quickstart/tasks와 도식3종을 갱신한다.
+  T039 실행 환경과 T040 복원 검증을 추가해 총40개 작업, 전부 미실행이다.
+- 이번 작업은 설계 변경이다. Compose 파일·컨테이너·앱 구현이나 배포는 아직 하지 않았다.
+
 ## 문서 정본
 
 제품 판단은 `docs/product-brief.md`, 기능 요구사항은 `specs/001-family-trip-memory/spec.md`,

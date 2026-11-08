@@ -2,7 +2,8 @@
 
 2026-11-08 작성. [구현 계획](../../specs/001-family-trip-memory/plan.md),
 [데이터 모델](../../specs/001-family-trip-memory/data-model.md),
-[API 계약](../../specs/001-family-trip-memory/contracts/http-api.md)의 계획 기준선 `a92e9f1`을 시각화했다.
+[API 계약](../../specs/001-family-trip-memory/contracts/http-api.md)및 [실행·저장 계약](../../specs/001-family-trip-memory/contracts/runtime-and-storage.md)의
+Docker Compose 변경 기준선을 시각화했다. 이전 Supabase 계획(`a92e9f1`)은 사용자 결정으로 대체했다.
 아래는 구현·배포 전 설계다. 실제 차량 원본 캡처(G1)와 주차 판정(G2)은 미검증이다.
 
 ## 1. 시스템 — 무엇이 어디에서 실행되는가
@@ -14,8 +15,16 @@
 차량은 Kotlin/Pleos 앱, 휴대폰은 Next.js 모바일 웹이다. 둘 다 인증된 API로 같은 가족 보관함에 접근한다.
 서버는 보관함 권한을 검사하고 원본 음성을 중계한다. 일기 생성·삭제 작업자는 API와 별도 프로세스이며
 Postgres 작업 행을 획득해 처리한다. API와 작업자는 TypeScript 계약·일기 도메인 코드를 공유한다.
-Supabase는 로그인·메타데이터·비공개 음성 저장을 맡고, 외부 LLM에는 텍스트와 근거 ID를 전달한다.
+단일 호스트에서 Compose로 Caddy·Next.js API·Node 작업자·PostgreSQL을 운영한다.
+로그인은 웹 내부 Better Auth 라이브러리와 PostgreSQL DB 세션을 사용한다.
+원본은 API·작업자가 공유하는 비공개 파일 볼륨에 두고 AudioStore를 통해 읽거나 지운다.
+외부 LLM에는 텍스트와 근거 ID를 전달한다.
 원본 음성과 정밀 좌표는 생성 모델에 전송하지 않는다.
+
+실기기는 같은 HTTPS origin으로 접속한다. Caddy만 외부 포트를 열고 DB·음성 볼륨은 직접 공개하지 않는다.
+그림에서는 일회성 migrate와 개발용 Mailpit, 인증서 보관 볼륨을 생략했다.
+DB 준비와 SQL 적용이 성공한 뒤 앱을 시작한다. 향후 같은 이미지를 클라우드 VM으로 옮길 수 있으며,
+DB와 원본 데이터 이전은 별도 백업·복사·검증이 필요하다.
 
 차량의 암호화 파일·Room outbox는 일시적인 통신 실패를 처리한다. 휴대폰은 온라인 읽기·재생을 제공한다.
 휴대폰 웹의 JavaScript는 브라우저에서 실행되고 같은 Next.js 서비스가 페이지와 API를 제공한다.
@@ -27,6 +36,7 @@ Supabase는 로그인·메타데이터·비공개 음성 저장을 맡고, 외�
 
 [확대용 SVG](data.svg) · [편집용 Mermaid](data.mmd)
 
+- **AuthUser**는 Better Auth의 보호자 계정이다. auth 스키마의 인증 세션·자격·검증 토큰은 도식에서 생략했다.
 - **Vault**는 한 보호자가 관리하는 가족 보관함이다. Member는 선택한 이름이며 별도 계정·자동 음성 신원이 아니다.
 - **Session**은 자유롭게 말한 하나의 이야기 세션이다. **AudioChunk**는 내부 처리용 음성 조각이며 사용자에게 짧게 말하도록 요구하지 않는다.
 - **Utterance**에는 원래 인식문과 수정문을 구분해 보관한다. 수정문이 바뀌어도 원본 녹음은 바뀌지 않는다.
@@ -57,6 +67,8 @@ Supabase는 로그인·메타데이터·비공개 음성 저장을 맡고, 외�
 | 삭제 작업자 | 관련 일기·발화·음성 제거, 실패 재시도, 삭제 표식 유지 |
 
 웹 안의 네 기능은 같은 API 프로세스의 논리 모듈이다. 각각을 독립 서비스로 배포하는 계획이 아니다.
+Better Auth는 API 내부 라이브러리이고, AudioStore는 공유 코드의 저장 인터페이스다.
+초기 구현은 파일 볼륨이며 나중에 객체 저장 adapter로 교체한다. 별도 파일 서버 컨테이너를 추가하지 않는다.
 그림의 Postgres와 Postgres Jobs도 **같은 데이터베이스**이며 책임을 구분해 그렸다.
 생성 요청과 삭제 요청은 DB 작업 행에 남는다. 작업자는 lease를 획득하고 실패 시 재시도한다.
 생성 완료 시 입력이 수정되었거나 삭제되었다면 이전 결과로 덮어쓰지 않는다.

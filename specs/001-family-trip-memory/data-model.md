@@ -4,11 +4,19 @@
 공통 ID는 UUID, 시각은 UTC ISO8601이며 사건의 해석에는 세션의 IANA timezone을 함께 사용한다.
 모든 보관 데이터는 `vault_id`로 격리한다. 서버는 요청 본문의 vault_id 대신 인증 주체의 보관함을 사용한다.
 
+## Authentication boundary
+
+인증은 Better Auth의 User/Account/AuthSession/Verification 모델을 `auth` 스키마에서 관리한다.
+이 표기의 AuthSession은 이야기 `Session`과 다르다. auth user ID는 UUID로 생성하도록 설정하고,
+`Vault.owner_user_id`가 이를 참조한다. 인증 테이블의 물리 구조는 고정된 라이브러리 버전에서 생성한
+SQL을 검토해 `db/migrations/0001_auth.sql`로 관리한다. 비밀번호 hash·인증 토큰은 로그에 남기지 않는다.
+기록 삭제는 인증 계정 삭제와 구분한다. 계정·비밀번호 구현을 자체 암호화 규칙으로 대체하지 않는다.
+
 ## Entities and constraints
 
 | 모델 | 핵심 필드 | 불변식·검증 |
 |---|---|---|
-| Vault | id, owner_user_id, created_at | owner_user_id unique; 보호자1명 |
+| Vault | id, owner_user_id, created_at | owner_user_id unique + AuthUser FK; 보호자1명 |
 | Device | id, vault_id, token_hash, expires_at, revoked_at, last_seen_cursor, purge_ack_at | token은 원문 저장 금지; 발급 후30일 만료·재연결 필요; 보관함별 활성 차량1대; 폐기된 ID 재활성화 금지 |
 | Pairing | id, secret_hash, user_code_hash, expires_at, attempts, approved_owner_id, consumed_at | 5분 만료·한 번 교환·코드 확인 최대5회; IP/기기 속도 제한 |
 | Member | id, vault_id, display_name | 이름 1~40자; 음성 신원·개별 계정 없음 |
@@ -66,3 +74,11 @@ DiaryVersions / Jobs. EventGroup의 문장·사람별 기억은 SourceSpan을 �
 기기별 오프라인 사본과 실패한 정리는 삭제 대기로 표시한다.
 백업 복원 시 tombstone을 먼저 재적용한다. 운영 저장·백업 서비스의 실제 보존 설정은
 실제 사용자 자료 수집 전에 기록하고 안내한다. 개발 단계는 합성 데이터만 사용한다.
+
+## Physical persistence boundary
+
+PostgreSQL은 인증·도메인·작업을 같은 DB의 분리된 스키마에 보관한다.
+앱별 DB 역할과 RLS 컨텍스트, 인증/작업 획득의 제한된 경로는 [실행 계약](contracts/runtime-and-storage.md)을 따른다.
+`storage_key`는 서버가 만든 논리 키이며 호스트 절대 경로나 URL이 아니다. 초기에는
+비공개 `audio_data` 볼륨의 파일로 해석하고 이후 객체 저장소로 옮겨도 키·checksum·근거 구간을 유지한다.
+파일 확정과 DB 갱신은 하나의 원자적 트랜잭션이 아니므로 임시 파일·누락·고아 파일·삭제 경합을 복구한다.

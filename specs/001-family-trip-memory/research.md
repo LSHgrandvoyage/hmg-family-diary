@@ -55,16 +55,22 @@ Node24는 Next 공식 최소20.9를 충족한다. 브라우저 음성·Range·�
 네트워크 종료·재시도와 긴 입력에 취약하므로 durable job을 사용한다.
 [Next 설치·지원](https://nextjs.org/docs/app/getting-started/installation)
 
-## R6. 보관함·인증·미디어
+## R6. Docker 기반 보관함·인증·미디어 — 사용자 결정으로 대체
 
-**Decision:** Supabase Auth의 보호자 로그인, Postgres, private Storage.
-휴대폰은 검증된 사용자 세션, 차량은 연결 절차에서 발급한 별도 폐기 가능한 기기 토큰을 사용한다.
-서버가 보관함·삭제·기기 상태를 검사한 뒤 음성을 인증 프록시로 제공한다.
-**Rationale:** Private bucket도 서명 URL을 외부에 내주면 만료 전 사용될 수 있다.
-즉시 연결 해제와의 충돌을 피하려고 클라이언트에 직접 Storage URL·관리 키를 제공하지 않는다.
-**Alternatives:** 공개 URL·공유 보호자 refresh token·차량 내 service key는 채택하지 않는다.
-**Gate:** 두 보관함 간 접근 차단, URL 재사용, Range 요청, 해제 후 캐시 정리를 시험한다.
-[인증](https://supabase.com/docs/guides/auth/quickstarts/nextjs) · [비밀번호 인증·로컬 메일](https://supabase.com/docs/guides/auth/passwords) · [private bucket](https://supabase.com/docs/guides/storage/buckets/fundamentals) · [다운로드](https://supabase.com/docs/guides/storage/serving/downloads)
+**Decision:** Supabase 의존성을 제거한다. Docker Compose 단일 호스트에 웹/API·작업자·PostgreSQL18·Caddy를 둔다.
+Better Auth를 웹 내부 라이브러리로 사용하고 인증 데이터를 Postgres에 저장한다.
+음성은 `AudioStore`의 로컬 파일 adapter와 영속 볼륨에 보관하며 인증된 API로만 읽는다.
+**Rationale:** 프로토타입에서는 직접 운영 가능한 작은 구성을 사용하고 이후 클라우드로 이전한다는 사용자 방향이다.
+인증을 직접 새로 만들지 않고 기존 라이브러리의 이메일/비밀번호·검증·재설정·DB 세션을 사용한다.
+라이브러리는 Next.js·Postgres·UUID와 DB 세션을 지원한다. 패치 버전은 구현 시 고정·검증한다.
+**Alternatives:** Supabase 관리형/자체 호스팅, 별도 객체 저장 서버는 현재 채택하지 않는다.
+원본 API·storage_key를 안정적으로 유지해 향후 객체 저장소를 추가한다. JWT만으로 보호자 세션을 대체하지 않는다.
+**Gate:** 인증 캐시를 끈 DB 세션 검증·로그아웃·이메일 검증·재설정, 서로 다른 보관함의 접근 차단,
+파일 Range·경로 탈출·디스크 부족·컨테이너 재생성·백업 복원·삭제 경합을 시험한다.
+Compose 파일과 이미지가 현재 존재하거나 실행됐다는 뜻은 아니다.
+[Docker 배포](https://docs.docker.com/compose/how-tos/production/) · [볼륨](https://docs.docker.com/engine/storage/volumes/) · [시작 순서](https://docs.docker.com/compose/how-tos/startup-order/)
+[Better Auth Postgres](https://better-auth.com/docs/adapters/postgresql) · [Next 연동](https://better-auth.com/docs/integrations/next) · [인증](https://better-auth.com/docs/authentication/email-password)
+[DB와 UUID](https://better-auth.com/docs/concepts/database) · [세션](https://better-auth.com/docs/concepts/session-management)
 
 ## R7. 자유 발화 정리
 
@@ -87,3 +93,18 @@ LLM에는 텍스트·선택된 발화자 ID·세션 날짜와 근거 ID만 전�
 **Alternatives:** 저장 행만 지우면 미전송 기기가 기록을 다시 만들 수 있다.
 **Gate:** 삭제/업로드/생성 작업의 경합과 해제된 기기의 재업로드를 검증한다.
 이는 프로젝트 설계 결정이며 특정 서비스가 자동으로 제공한다고 가정하지 않는다.
+
+## R9. 단일 호스트에서 클라우드로 이전
+
+**Decision:** 첫 배포는 같은 Compose 구성을 실행할 수 있는 호스트를 사용한다.
+Caddy에서 TLS를 종료하고 web으로 전달하며, DB·음성 볼륨을 외부에 직접 노출하지 않는다.
+개발 메일은 Mailpit, 실제 사용자 메일은 별도 SMTP 설정으로 분리한다.
+**Rationale:** 차량·휴대폰은 서로 다른 기기이므로 localhost를 공용 접속 주소로 사용할 수 없다.
+공개 도메인은 인증서 발급 조건을 충족해야 하고 LAN 개발 CA는 각 기기에서 신뢰 설정이 필요하다.
+외부 LLM을 호출하는 실제 생성에는 인터넷 연결이 필요하다.
+**Migration:** 먼저 같은 이미지·설정을 VM에 배포하고, 필요하면 관리형 Postgres와 객체 저장소로 이전한다.
+DB dump/restore, 파일 checksum manifest와 삭제 표식 대조, 원본 재생을 검증해야 한다.
+인증 ID·보관함 ID·storage_key는 유지하며 무중단/자동 이전을 약속하지 않는다.
+**Gate:** HTTPS 인증서·허용 origin·두 기기의 접근, DB 준비 상태·마이그레이션 실패 시 시작 차단,
+DB와 파일의 일관된 백업·복원을 T039/T040에서 검증한다. 실제 이전 작업은 향후 배포 범위다.
+[HTTPS](https://caddyserver.com/docs/automatic-https) · [Postgres RLS](https://www.postgresql.org/docs/current/ddl-rowsecurity.html)

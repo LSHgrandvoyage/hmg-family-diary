@@ -1,28 +1,26 @@
 flowchart TB
-  accTitle: 가족 여행일기 시스템 아키텍처
-  accDescr: 계획상의 차량 앱과 휴대폰 웹이 인증 API를 통해 보관함을 사용하고 작업자가 텍스트를 정리한다. 차량 원본 캡처와 주차 신호는 미검증이다.
+  accTitle: Docker Compose 기반 가족 여행일기 시스템 아키텍처
+  accDescr: 차량 앱과 휴대폰 웹이 HTTPS 프록시로 단일 호스트의 API에 접속한다. 앱 내부 Better Auth와 PostgreSQL, 비공개 음성 볼륨을 사용한다. 실제 차량 캡처와 주차 신호는 미검증이다.
   subgraph clients["사용 기기"]
     car["차량 Android 앱<br/>Kotlin · Pleos<br/>녹음 / STT / 읽기 / 재생"]
     phone["휴대폰 모바일 웹<br/>Next.js · React<br/>연결 / 읽기 / 재생 / 삭제"]
   end
-  subgraph service["애플리케이션 운영 영역 — 배포 전"]
-    api["웹 · API 서버<br/>Next.js / Node<br/>권한 확인 · 동기화<br/>원본 미디어 프록시"]
-    worker["일기 작업자<br/>Node · lease / 재시도<br/>생성 작업 · 삭제 작업"]
-  end
-  subgraph managed["Supabase — 도입 계획"]
-    auth["Auth<br/>보호자 로그인"]
-    db[("Postgres<br/>보관함 · 일기 · 기기<br/>작업 · 삭제 상태")]
-    files[("Private Storage<br/>원본 음성 조각")]
+  subgraph host["단일 호스트 · Compose"]
+    proxy["proxy · Caddy<br/>HTTPS 접속 / 인증서"]
+    api["web · Next.js API<br/>Better Auth 로그인·세션<br/>보관함 권한 / 음성 중계"]
+    worker["worker · Node<br/>일기 생성 / 삭제·복구<br/>DB 작업 획득·재시도"]
+    db[("db · PostgreSQL<br/>인증 / 보관함 / 일기 / 작업<br/>pg_data 영속 볼륨")]
+    files[("audio_data 영속 볼륨<br/>비공개 원본 파일<br/>AudioStore로 접근")]
   end
   model["외부 LLM<br/>OpenAI Responses<br/>구조화된 일기 초안"]
-  gate["G1 / G2 미검증<br/>허용된 원본 캡처<br/>확인 가능한 주차 신호"]
-  car <-->|"HTTPS · 기기 토큰"| api
-  phone <-->|"HTTPS · 보호자 세션"| api
-  api -->|"로그인 · 세션 검증"| auth
-  api <-->|"기록 · 작업"| db
-  api <-->|"원본 업로드 / 재생"| files
-  worker <-->|"작업 · 결과"| db
-  worker -->|"삭제 작업"| files
+  gate["G1 / G2 미검증<br/>원본 캡처 / 주차 신호"]
+  car <-->|"HTTPS · 기기 토큰"| proxy
+  phone <-->|"HTTPS · 보호자 쿠키"| proxy
+  proxy <-->|"내부 HTTP"| api
+  api <-->|"인증·기록·작업"| db
+  api <-->|"업로드·Range 읽기"| files
+  worker <-->|"작업·결과"| db
+  worker -->|"삭제·복구"| files
   worker <-->|"텍스트 + 근거 ID / 초안"| model
   gate -.->|"실차 활성화 조건"| car
   classDef pending fill:#fff4db,stroke:#a15c00,color:#543000,stroke-dasharray:5 4;

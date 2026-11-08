@@ -2,7 +2,7 @@
 
 **Input**: `specs/001-family-trip-memory/`의 spec·plan·research·data-model·contracts.
 
-**Status**: 계획 작성 완료. 아래 구현·실행 작업은 모두 미실행이다.
+**Status**: Docker Compose 변경 반영, 총40개. 추가 ID T039는 공통 기반 단계에 배치하며 번호보다 선행 조건이 실행 순서를 결정한다. 계획 작성 완료. 아래 구현·실행 작업은 모두 미실행이다.
 
 **Tests**: spec SC-002/004/005/006/007과 헌장의 원본·권한·삭제·충실도 검증을 구현 작업에 포함한다.
 문서 편집만 확인하는 앱 테스트는 만들지 않는다. 경계·오류 테스트는 해당 구현과 함께 작성하고 실패/통과를 확인한다.
@@ -11,7 +11,7 @@
 
 ## Phase 1: Setup and platform evidence
 
-- [ ] T001 pnpm workspace와 `apps/web/package.json`, `workers/diary/package.json`, `packages/{contracts,diary}/package.json`, `.env.example`를 만들고 Node24·Next16·TypeScript 의존성을 lockfile에 고정한다. quickstart의 dev/test/eval 명령을 실제 script로 연결한다. 비밀키는 서버 전용으로 검증한다.
+- [ ] T001 pnpm workspace와 `apps/web/package.json`, `workers/diary/package.json`, `packages/{contracts,diary,storage}/package.json`, `.env.example`를 만들고 Node24·Next16·TypeScript·Better Auth·pg 의존성을 lockfile에 고정한다. quickstart의 dev/test/eval 및 db:migrate:status 명령을 실제 script로 연결한다. 비밀키는 서버 전용으로 검증한다.
 - [ ] T002 [P] `apps/vehicle/settings.gradle.kts`, `apps/vehicle/build.gradle.kts`, `apps/vehicle/app/build.gradle.kts`에 JDK17·제품 min28과 plan의 공식 샘플 조합을 검증해 고정한다. demo/pleos flavor·Gradle wrapper를 제공하고 mock 상태가 pleos release에서 켜지지 않게 한다. 선행 T001.
 - [ ] T003 [P] `tests/fixtures/freeform/`에 E01~E12의 합성 텍스트·정정·기대 사건/화자/구간 자료와 음성 fixture 생성 절차를 만든다. 실제 가족 자료는 넣지 않는다. 선행 T001.
 - [ ] T004 `docs/evidence/g0-environment.md`에 JDK·Android SDK·Pleos AVD·의존성·권한 초기화의 실제 결과를 기록한다. `apps/vehicle/app/src/main/java/io/hmg/familydiary/platform/CapabilityProbe.kt`에서 지원 여부를 확인한다. 일반 AVD를 Pleos 성공으로 기록하지 않는다. 선행 T002.
@@ -24,12 +24,14 @@
 
 ## Phase 2: Foundational
 
-- [ ] T007 `supabase/migrations/0001_core.sql`에 data-model의 모델·관계·vault 격리·FK·unique·RLS를 구현한다. `owner_user_id unique`, 이름 `1~40자`, title/label `1~120자`, `sequence≥0`, `duration_ms>0`, `bytes>0`, `sha256 64자리 hex`, `(session_id,sequence) unique`, `0≤start_ms<end_ms`, 유효 IANA timezone, 같은 session/vault 참조를 강제한다. 삭제된 ID 재생성 금지도 포함한다. 선행 T001.
+- [ ] T007 `db/migrations/0001_auth.sql`, `0002_core.sql`에 UUID 기반 인증 스키마와 data-model의 모델·관계·vault 격리·FK·unique·RLS를 구현한다. migrate/auth/domain 역할을 분리하고 런타임은 비소유자·non-BYPASSRLS, 트랜잭션별 vault context를 사용한다. 사전 vault 조회·기기 인증·job claim의 제한 함수 경로와 고정 search_path/호출 권한을 구현한다. `owner_user_id unique`, 이름 `1~40자`, title/label `1~120자`, `sequence≥0`, `duration_ms>0`, `bytes>0`, `sha256 64자리 hex`, `(session_id,sequence) unique`, `0≤start_ms<end_ms`, 유효 IANA timezone, 같은 session/vault 참조를 강제한다. 삭제된 ID 재생성 금지도 포함한다. 선행 T001.
 - [ ] T008 `apps/vehicle/app/src/main/java/io/hmg/familydiary/data/LocalStore.kt`에 불변 AudioChunk·원문·수정문·revision·outbox를 구현한다. 암호화 파일과 키 관리, atomic finalize/checksum, 재시작 복구를 제공한다. 불완전 tail은 완료로 표시하지 않는다. 선행 T002,T003.
-- [ ] T009 `apps/web/src/server/auth.ts`, `apps/web/src/server/vault.ts`에 보호자 세션 검증과 차량 토큰 hash/만료/폐기 검증, 모든 참조의 vault 검사를 공통화한다. client 직접 DB/Storage 쓰기를 막고 private bucket만 생성한다. 선행 T007.
+- [ ] T009 `apps/web/src/server/auth.ts`, `apps/web/src/server/vault.ts`에 Better Auth의 `/api/auth/*` 가입·검증·재설정·DB 세션(cookieCache off) 및 Origin/CSRF 검사와 차량 토큰 hash/만료/폐기 검증, 모든 참조의 vault 검사를 공통화한다. client 직접 DB/볼륨 접근을 막는다. 라이브러리 생성 SQL은 T007과 맞추고 웹 세션 폐기·재설정 후 전체 세션 폐기를 시험한다. 선행 T007.
 - [ ] T010 `packages/contracts/src/diary.ts`, `packages/contracts/src/http.ts`에 JSON Schema·HTTP 계약 검증을 구현한다. 같은 입력 source ID·member·시간 범위, member audience의 ID/shared의 null, 유효 YYYY-MM-DD, 모든 입력의 사용/제외 추적을 검증한다. 선행 T001,T003.
 - [ ] T011 `workers/diary/src/runner.ts`, `apps/web/src/server/jobs.ts`에 queued/running/succeeded/failed/cancelled·lease·최대3회 재시도·멱등성·revision 재검사를 구현한다. 재시작 후 작업을 잃지 않고 삭제된 세션의 결과를 반영하지 않는다. 선행 T007,T009,T010.
-- [ ] T012 `apps/web/src/server/config.ts`, `supabase/tests/isolation.sql`, `docs/evidence/storage-policy.md`에 공급자·모델·용량 설정과 데이터 수집 안내 기준을 준비한다. 정상 삭제 목표24시간·미반영 기기 pending·백업/tombstone 재적용을 기록한다. 실제 사용자 자료 수집 전 운영 설정 검증; 개발은 합성 자료만 사용한다. 선행 T007,T009.
+- [ ] T012 `apps/web/src/server/config.ts`, `db/tests/isolation.sql`, `docs/evidence/storage-policy.md`에 공급자·모델·용량 설정과 데이터 수집 안내 기준을 준비한다. 정상 삭제 목표24시간·미반영 기기 pending·백업/tombstone 재적용을 기록한다. 실제 사용자 자료 수집 전 SMTP·백업·삭제 저널 설정 검증; 개발은 합성 자료만 사용한다. 선행 T007,T009,T039.
+
+- [ ] T039 `compose.yaml`, `infra/{web.Dockerfile,worker.Dockerfile,Caddyfile}`, `docs/evidence/compose-runtime.md`에 runtime-and-storage 계약의 web/worker/db/proxy·dev Mailpit·migrate를 구성한다. 이미지 digest/lockfile·비루트 실행·영속 볼륨·healthcheck·SQL 성공 후 시작·HTTPS origin·서버 전용 비밀을 검증한다. 인증 API의 가입/메일 검증/로그아웃/재설정 및 테스트 클라이언트·휴대폰의 HTTPS 통신, DB 비공개·재시작 복구를 기록한다. 선행 T001,T007,T009,T011.
 
 **Checkpoint:** 데이터·인증·계약·로컬 저장·작업 복구를 공통 기반으로 둔다.
 G1/G2에 의존하지 않는 구현은 mock 포트로 시작하되 실제 경로의 성공과 구분한다.
@@ -44,7 +46,7 @@ G1/G2에 의존하지 않는 구현은 mock 포트로 시작하되 실제 경로
 - [ ] T013 [US1] `packages/diary/src/organizer.test.ts`, `apps/vehicle/app/src/test/java/io/hmg/familydiary/CaptureCoordinatorTest.kt`에 반대 감정·정정·시점·없는 ID·늦은 인식 결과·UNKNOWN 중단의 실패 사례를 작성한다. 선행 T003,T008,T010. FR-001~006,013~015.
 - [ ] T014 [US1] `apps/vehicle/app/src/main/java/io/hmg/familydiary/capture/CaptureCoordinator.kt`에 수동 화자 선택, 연속 세션·조각 저장, 명시 시작/종료·중단을 구현한다. 주제별 재녹음 금지, 선택 화자 generation ID 고정, 주차/focus 상실 즉시 입력·재생 중단. 실제 포트는 G1/G2 통과 후 활성화. 선행 T008,T013. FR-001~003,013.
 - [ ] T015 [US1] `apps/vehicle/app/src/main/java/io/hmg/familydiary/platform/PleosSpeechAdapter.kt`에 검증된 PCM 포맷·ON_DEVICE 전송·완료 이벤트·구간 시간축을 연결한다. 중간 결과 표시와 완료 저장을 분리하고 STT 실패 시 원본을 보존한다. 선행 T005,T014. FR-003,010.
-- [ ] T016 [US1] `apps/web/src/server/capture.ts`, `apps/web/src/app/api/v1/sessions/route.ts`에 session/utterance/audio/finish endpoint를 구현한다. binary checksum·불변 파일·같은 ID 다른 bytes409·manifest 누락409·사전 장소 입력 없음. 선행 T007,T009,T010. FR-003,004,008.
+- [ ] T016 [US1] `packages/storage/src/{audio-store,local-audio-store}.ts`, `apps/web/src/server/capture.ts`, `apps/web/src/app/api/v1/sessions/route.ts`에 session/utterance/audio/finish endpoint를 구현한다. binary checksum·불변 파일·같은 ID 다른 bytes409·manifest 누락409·사전 장소 입력 없음. AudioStore의 경로 제한·불변 쓰기·임시 파일·삭제 경합 잠금·중단 복구를 포함한다. 선행 T007,T009,T010,T039. FR-003,004,008.
 - [ ] T017 [US1] `packages/diary/src/generator.ts`, `packages/diary/src/evidence.ts`에 Responses adapter, strict schema, store:false, 거절/불완전/범위 오류 처리, 원본 근거 검증을 구현한다. 원본 음성·정밀 좌표는 생성 공급자에 전송하지 않는다. 선행 T010,T011,T013. FR-005,013,014.
 - [ ] T018 [US1] `packages/diary/src/organizer.ts`, `packages/diary/src/prompts.ts`에 사건·시점·정정·충돌·제외 내용 정리와 긴 입력 window 사실 추출→전체 재정리를 구현한다. 뒤쪽 정정이 앞 사건에 반영되고 원본 ID를 보존해야 한다. 선행 T017. FR-013~015.
 - [ ] T019 [US1] `apps/web/src/server/drafts.ts`에 expected_revision 편집·분리/병합/이동·excluded_spans 재포함·확정 버전을 구현한다. 수정문은 새 버전이며 원본 불변, source 연결 유지. 선행 T010,T016,T018. FR-004~006,015.
@@ -57,7 +59,7 @@ G1/G2에 의존하지 않는 구현은 mock 포트로 시작하되 실제 경로
 **Independent test:** 준비된 합성 저장본으로 새 녹음 없이 검증한다.
 
 - [ ] T022 [US2] `apps/web/src/server/pairing.ts`, `apps/web/tests/api/pairing.test.ts`에 보호자 승인·차량 교환·해제·purge receipt 계약을 구현한다. secret256bit, code8자리,5분 만료, 최대5회, 한 번 교환, 활성 차량1대, token_hash만 저장, 발급 후30일 만료·재연결 필요, rate limit 적용. 선행 T009. FR-007.
-- [ ] T023 [US2] `apps/web/src/app/login/page.tsx`, `apps/web/src/app/devices/page.tsx`에 보호자 인증·차량 이름 확인·연결/해제·pending 표시를 구현한다. 보호자 refresh token을 차량에 전달하지 않는다. 선행 T012,T022. FR-007,012.
+- [ ] T023 [US2] `apps/web/src/app/login/page.tsx`, `apps/web/src/app/devices/page.tsx`에 보호자 인증·차량 이름 확인·연결/해제·pending 표시를 구현한다. 보호자 인증 쿠키·자격 증명을 차량에 전달하지 않는다. 선행 T012,T022. FR-007,012.
 - [ ] T024 [US2] `apps/vehicle/app/src/main/java/io/hmg/familydiary/pairing/PairingScreen.kt`에 code 표시·승인 대기·token 교환·안전한 저장을 구현한다. 초과/만료·재사용 실패가 구분돼야 한다. 선행 T008,T022. FR-007.
 - [ ] T025 [US2] `apps/web/src/server/library.ts`, `apps/web/src/server/media.ts`에 날짜/장소 목록·세션 읽기·인증된 Range 미디어 프록시를 구현한다. 기본20/최대50, 비삭제 vault 필터, private no-store, partial 상태, 공개 URL 없음. 선행 T009,T016. FR-008,009.
 - [ ] T026 [US2] `apps/web/src/app/library/page.tsx`, `apps/web/src/app/library/[id]/page.tsx`, `apps/web/src/components/AudioPlayer.tsx`에 읽기·근거 구간/전체 재생·일시정지·탐색·종료·재시도를 구현한다. blob은 종료/로그아웃 때 해제하고 영구 음성 캐시를 만들지 않는다. 선행 T023,T025. FR-008,009,012.
@@ -79,14 +81,18 @@ G1/G2에 의존하지 않는 구현은 mock 포트로 시작하되 실제 경로
 ## Phase 6: Cross-cutting validation and delivery
 
 - [ ] T035 `scripts/eval-diary.ts`, `docs/evidence/g3-generation.md`에 E01~E12 실제 모델 평가와 schema/근거/의미 검토를 기록한다. model·prompt/schema 버전·시간·비용과 20회 지연 p95를 보고한다. 원본 ID/시점/정정 누락 사례는 수정 후 재평가한다. 선행 T018,T021. SC-002,007.
-- [ ] T036 `docs/evidence/g4-cross-device.md`, `apps/vehicle/app/src/androidTest/java/io/hmg/familydiary/ReplayTest.kt`에 실제 차량 환경·모바일 Safari/Chrome의 동일 원본·탐색 오차·partial·권한·삭제·주차 중단을 검증한다. 선행 T028,T034,T035, G0~G2 통과. SC-003~006.
+- [ ] T036 `docs/evidence/g4-cross-device.md`, `apps/vehicle/app/src/androidTest/java/io/hmg/familydiary/ReplayTest.kt`에 실제 차량 환경·모바일 Safari/Chrome의 동일 원본·탐색 오차·partial·권한·삭제·주차 중단을 검증한다. 선행 T028,T034,T035,T040, G0~G2 통과. SC-003~006.
 - [ ] T037 `docs/evidence/usability.md`에 문제 인터뷰3가족·사용성5가족의 관찰 양식과 실제 관측을 구분해 기록한다. 연락·모집은 사용자 지시가 있을 때만 수행한다. 발화·능동 조작·생성 대기를 따로 측정하고 스마트폰 대안과 비교한다. 선행 T036. SC-001,003.
-- [ ] T038 `.github/workflows/verify.yml`, `README.md`, `docs/evidence/release.md`에 계약/도메인/API/빌드 검사와 quickstart 재현 결과를 연결한다. 자격 증명이 필요한 검사·미실행 실차 검사는 별도 표시하고 성공으로 건너뛰지 않는다. APK·시연 자료의 실제/합성 범위와 알려진 제한을 기록한다. 선행 T034~T037.
+- [ ] T038 `.github/workflows/verify.yml`, `README.md`, `docs/evidence/release.md`에 계약/도메인/API/빌드 검사와 quickstart 재현 결과를 연결한다. 자격 증명이 필요한 검사·미실행 실차 검사는 별도 표시하고 성공으로 건너뛰지 않는다. APK·시연 자료의 실제/합성 범위와 알려진 제한을 기록한다. 선행 T034~T037,T039,T040.
+
+- [ ] T040 `packages/storage/src/local-audio-store.test.ts`, `scripts/{backup,restore-verify}.ts`, `docs/evidence/backup-restore.md`에 실제 파일 Range/416·checksum·경로 탈출·disk-full·원자 확정 중단·고아 파일·삭제 경합 검증을 추가한다. 컨테이너 재생성 후 영속성, 쓰기 중단 구간의 DB/파일 백업과 별도 임시 프로젝트 복원, 최신 삭제/기기 폐기 표식 우선 적용과 같은 ID/원본 재생을 확인한다. 현재 볼륨을 덮어쓰지 않는다. 선행 T016,T025,T031,T034,T039. FR-003,008~011; SC-004,005.
 
 ## Dependencies & Execution Order
 
 `T001 → (T002 → T004 → T005/T006, T003)`.
-공통 기반 `T007~T012`는 해당 경로의 선행 조건대로 진행한다.
+공통 기반 `T007~T012`와 T039는 해당 경로의 선행 조건대로 진행한다.
+`T007 → T009 → T011 → T039 → T012/T016`으로 인증·DB·Compose 실행 경계를 갖춘다.
+T040은 복구 구현 이후, 최종 기기 검증 T036 이전에 완료한다.
 G1/G2 실패 시 서버·웹·합성 포트 개발은 가능하지만 실제 캡처 T015·실차 재생 T027·종단 검증 T036은 조건을 충족해야 한다.
 
 US1은 기반 위에서 작성→정리→검토를 연결한다.
@@ -109,15 +115,15 @@ US3는 기반 모델과 API를 사용해 오류 복구를 검증하며 최종 �
 |---|---|
 | FR-001 | T006,T013,T014,T027,T036 |
 | FR-002 | T014,T020 |
-| FR-003 | T005,T008,T014~T016,T021 |
+| FR-003 | T005,T008,T014~T016,T021,T040 |
 | FR-004 | T016,T019,T020 |
 | FR-005 | T010,T017~T021,T035 |
 | FR-006 | T019,T020,T021 |
-| FR-007 | T009,T022~T024,T028,T032 |
-| FR-008 | T016,T025,T026,T029,T030,T033 |
-| FR-009 | T025~T028,T036 |
-| FR-010 | T008,T011,T015,T029,T030,T034 |
-| FR-011 | T029,T031~T034 |
+| FR-007 | T009,T022~T024,T028,T032,T039 |
+| FR-008 | T016,T025,T026,T029,T030,T033,T040 |
+| FR-009 | T025~T028,T036,T040 |
+| FR-010 | T008,T011,T015,T029,T030,T034,T040 |
+| FR-011 | T029,T031~T034,T040 |
 | FR-012 | T012,T020,T023,T026,T033 |
 | FR-013 | T003,T014,T017,T018,T020,T035 |
 | FR-014 | T003,T013,T018,T035 |
@@ -125,8 +131,8 @@ US3는 기반 모델과 API를 사용해 오류 복구를 검증하며 최종 �
 | SC-001 | T020,T037 |
 | SC-002 | T003,T013,T021,T035 |
 | SC-003 | T026~T028,T036,T037 |
-| SC-004 | T008,T029~T034,T036 |
-| SC-005 | T009,T028,T032,T034,T036 |
+| SC-004 | T008,T029~T034,T036,T040 |
+| SC-005 | T009,T028,T032,T034,T036,T039,T040 |
 | SC-006 | T006,T013,T027,T028,T036 |
 | SC-007 | T003,T013,T018,T019,T035 |
 

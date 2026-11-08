@@ -3,8 +3,11 @@
 차에서 자유롭게 풀어놓은 가족 이야기를 LLM이 분류·정제해 **일기와 실제 목소리**로 남겨,
 차량과 휴대폰에서 다시 읽고 듣는 가족 여행 기록 서비스.
 
-현재는 기능 명세에 따른 구현 계획·데이터 모델·계약·38개 작업을 작성한 단계다.
+현재는 기능 명세에 따른 구현 계획·데이터 모델·계약·40개 작업을 작성한 단계다.
 앱·SDK 실행·모델 평가·사용자 인터뷰 결과는 아직 없다.
+실행 계획은 Docker Compose 단일 호스트(web·worker·PostgreSQL·Caddy)이며
+인증은 Better Auth, 원본은 비공개 파일 볼륨을 사용한다. 향후 클라우드 이전을 위한 저장 인터페이스를 분리한다.
+Compose 파일과 앱 이미지는 아직 구현하지 않았다.
 
 ## 먼저 읽을 문서
 
@@ -17,7 +20,8 @@
 7. [구현 계획](specs/001-family-trip-memory/plan.md) · [조사·기술 결정](specs/001-family-trip-memory/research.md)
 8. [작업 목록](specs/001-family-trip-memory/tasks.md) · [검증 절차](specs/001-family-trip-memory/quickstart.md)
 9. [데이터 모델](specs/001-family-trip-memory/data-model.md) · [API 계약](specs/001-family-trip-memory/contracts/http-api.md)
-10. [시스템·데이터·서비스 아키텍처](docs/architecture/README.md): 도식 3종, SVG·PNG·Mermaid 원본
+10. [Docker 실행·음성 저장·클라우드 이전 계약](specs/001-family-trip-memory/contracts/runtime-and-storage.md)
+11. [시스템·데이터·서비스 아키텍처](docs/architecture/README.md): 도식 3종, SVG·PNG·Mermaid 원본
 
 ## Spec Kit
 
@@ -39,7 +43,7 @@ uvx --from specify-cli==1.3.2 specify integration status
 - `$speckit-specify`: 현재 `specs/001-family-trip-memory/spec.md` 기준선 작성 완료
 - `$speckit-clarify`: 추가 제품 판단이 필요할 때 사용
 - `$speckit-plan`: 기술 조사·조건부 구현 계획 작성 완료. 실제 차량 G0~G2는 미통과
-- `$speckit-tasks`: 38개 작업 작성 완료, 전부 미실행
+- `$speckit-tasks`: 40개 작업 작성 완료, 전부 미실행
 - `$speckit-analyze`: spec·plan·tasks 정합성 읽기 검토
 - `$speckit-implement`: 다음 단계. T001~T006 환경·캡처·주차 검증부터 시작
 

@@ -4,6 +4,9 @@
 
 **Input**: `specs/001-family-trip-memory/spec.md` · 헌장 1.1.0
 
+**Revision**: 2026-11-08 사용자 결정으로 Supabase 계획을 Docker Compose 단일 호스트 구성으로 대체했다.
+앱·컨테이너는 아직 구현·실행하지 않았다. [실행·저장 계약](contracts/runtime-and-storage.md)을 따른다.
+
 ## Summary
 
 차량 Android 앱이 가족의 자유 발화 원본과 인식문을 보존한다. 서버는 발화의 사건·시점·장소를
@@ -21,23 +24,29 @@ AGP8.8.2, Gradle8.10.2, compile/target35 조합을 시험한다. 버전표의 �
 서버·웹은 TypeScript, Node24, pnpm11, Next.js16 App Router. 설치 시 패치 버전과 lockfile을 고정한다.
 
 **Primary Dependencies**: Pleos STT/Vehicle(필수), FusedLocation(선택 capability; 없으면 위치 관측 null), Android 오디오·Room·WorkManager,
-Next.js/React, Supabase Auth/Postgres/Storage, OpenAI Responses와 JSON Schema 검증.
+Next.js/React, Better Auth + pg, PostgreSQL18, Docker Compose v2, Caddy, 로컬 파일 저장 adapter,
+개발용 Mailpit, OpenAI Responses와 JSON Schema 검증. 라이브러리 패치와 컨테이너 digest는 구현 시 검증·고정한다.
 모델 초기 평가 후보는 `gpt-5.6-terra`; 계정 사용 가능성·한국어 품질·비용은 G3에서 확인한다.
 공급자 호출은 `DiaryGenerator` 인터페이스 뒤에 두고 클라이언트에 비밀키를 넣지 않는다.
 
 **Storage**: 차량 앱 전용 영역의 암호화된 원본 파일과 Room outbox,
-Supabase Postgres의 보관함·기록·작업·삭제 상태, private Storage의 원본 조각.
+PostgreSQL의 인증·보관함·기록·작업·삭제 상태(`pg_data` 볼륨),
+API와 작업자가 공유하는 비공개 원본 파일(`audio_data` 볼륨).
+`AudioStore` 인터페이스로 파일 경로와 제품 로직을 분리한다. 볼륨은 백업을 대신하지 않는다.
 휴대폰은 첫 버전에서 인증된 온라인 읽기·재생을 제공하고 음성 영구 캐시를 만들지 않는다.
 
 **Testing**: Kotlin 단위/기기 테스트, Vitest 계약·도메인·API 검증,
-로컬 Supabase 통합 검증, Playwright 휴대폰 흐름, 합성 한국어 LLM 평가 fixture.
+Compose PostgreSQL·파일 저장·인증·볼륨 복원 통합 검증, Playwright 휴대폰 흐름, 합성 한국어 LLM 평가 fixture.
 앱 테스트는 아직 실행하지 않았다. 위험도가 높은 원본 연결·권한·삭제·생성 충실도를 우선 검증한다.
 
 **Target Platform**: Pleos 전용 AVD/API34와 지원 차량, 모바일 Safari16.4+·Chrome111+ 웹.
 브라우저 최소 버전은 프레임워크 지원 기준이며 실제 음성 재생·탐색 호환성을 별도 시험한다.
 
 **Project Type**: Android 차량 앱 + 모바일 웹/API + 동일 코드베이스의 Node 작업자.
-로컬에서 먼저 동작시킨다. 배포 공급자·유료 자원 생성은 이번 계획에서 실행하지 않는다.
+Docker Compose의 web·worker·db·proxy를 단일 호스트에서 실행하는 프로토타입을 먼저 만든다.
+Mailpit는 개발 프로필, migrate는 일회성 실행이다. 실기기에는 신뢰되는 HTTPS origin을 사용한다.
+이후 같은 이미지를 클라우드 VM에 배포하고 DB·파일 저장소를 단계적으로 이전한다.
+배포 공급자·유료 자원 생성은 이번 계획에서 실행하지 않는다.
 
 **Performance Goals**: spec의 SC-001~007을 유지한다. 추가 엔지니어링 목표는 10분 합성 입력의
 초안 생성 대기 p95 45초 이내(20회 평가, 입력 크기·모델·비용 기록), 원본 탐색 오차 1초 이내다.
@@ -79,7 +88,8 @@ specs/001-family-trip-memory/
 ├── contracts/
 │   ├── http-api.md
 │   ├── capture-and-generation.md
-│   └── diary-output.schema.json
+│   ├── diary-output.schema.json
+│   └── runtime-and-storage.md
 ├── checklists/requirements.md
 └── tasks.md
 ```
@@ -97,9 +107,12 @@ apps/
     └── tests/{api,e2e}/
 packages/
 ├── contracts/src/                   # JSON Schema validation/types
-└── diary/src/                       # generation, evidence validation, jobs
+├── diary/src/                       # generation, evidence validation, jobs
+└── storage/src/                     # AudioStore + local filesystem adapter
 workers/diary/src/                   # durable DB job runner
-supabase/{migrations,tests}/
+db/{migrations,tests}/               # auth/core SQL, roles and isolation
+infra/{web.Dockerfile,worker.Dockerfile,Caddyfile}
+compose.yaml                        # prototype runtime, not yet created
 tests/fixtures/                     # synthetic data only
 scripts/                            # contract checks and evaluation commands
 docs/evidence/                      # actual environment/experiment results

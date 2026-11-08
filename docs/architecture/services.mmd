@@ -3,7 +3,7 @@ flowchart TB
   accDescr: 단일 웹 API 안의 논리 모듈을 구분한다. 기록 수집, 일기 검토, 조회와 원본 프록시, 동기화와 삭제가 공통 권한 검사를 거치며 긴 생성과 삭제는 별도 작업자가 담당한다.
   clients["차량 앱 / 보호자 휴대폰"]
   subgraph web["하나의 웹 · API 프로세스 — 논리 모듈"]
-    guard["접근 제어 · 기기 연결<br/>보관함 격리 / 폐기 토큰 검사"]
+    guard["접근 제어 · 기기 연결<br/>Better Auth / 기기 토큰<br/>보관함 격리"]
     capture["기록 수집 — 차량만<br/>세션 / 발화 / 음성 checksum"]
     diary["일기 편집 · 확정<br/>분리 / 병합 / 재포함 / revision"]
     library["보관함 조회 · 미디어 프록시<br/>날짜 · 장소 / 근거 구간 / Range"]
@@ -15,7 +15,7 @@ flowchart TB
   end
   records[("Postgres<br/>메타데이터 · 버전 · 동기화 상태")]
   queue[("Postgres Jobs<br/>작업 행 · lease · 재시도")]
-  audio[("Private Storage<br/>원본 음성")]
+  audio[("AudioStore · 로컬 파일<br/>audio_data 영속 볼륨")]
   llm["LLM<br/>텍스트 → 구조화된 초안"]
   clients -->|"인증된 요청"| guard
   guard --> capture

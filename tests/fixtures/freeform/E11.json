@@ -1,0 +1,33 @@
+{
+  "synthetic": true,
+  "case_id": "E11",
+  "expected_review": "없는 utterance ID/범위 밖 시각 출력 거부",
+  "input": {
+    "schema_version": "1",
+    "session_id": "E11",
+    "input_revision": 1,
+    "recorded_at": "2026-11-08T04:00:00Z",
+    "timezone": "Asia/Seoul",
+    "members": [
+      {
+        "id": "parent",
+        "display_name": "보호자"
+      },
+      {
+        "id": "child",
+        "display_name": "아이"
+      }
+    ],
+    "utterances": [
+      {
+        "id": "E11-u1",
+        "member_id": "parent",
+        "text": "해변에서 모래성을 만들었어.",
+        "start_ms": 0,
+        "end_ms": 5000
+      }
+    ],
+    "user_place_corrections": [],
+    "user_group_corrections": []
+  }
+}

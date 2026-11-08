@@ -2,7 +2,7 @@
 
 **Input**: `specs/001-family-trip-memory/`의 spec·plan·research·data-model·contracts.
 
-**Status**: Docker Compose 변경 반영, 총40개. 추가 ID T039는 공통 기반 단계에 배치하며 번호보다 선행 조건이 실행 순서를 결정한다. 계획 작성 완료. 아래 구현·실행 작업은 모두 미실행이다.
+**Status**: Docker Compose 변경 반영, 총40개. 추가 ID T039는 공통 기반 단계에 배치하며 번호보다 선행 조건이 실행 순서를 결정한다. 구현 진행 중. 현재 완료/부분 구현은 `docs/evidence/implementation-progress.md`를 참조한다. 실제 플랫폼 G0~G2는 전체 통과 전이다.
 
 **Tests**: spec SC-002/004/005/006/007과 헌장의 원본·권한·삭제·충실도 검증을 구현 작업에 포함한다.
 문서 편집만 확인하는 앱 테스트는 만들지 않는다. 경계·오류 테스트는 해당 구현과 함께 작성하고 실패/통과를 확인한다.
@@ -11,9 +11,9 @@
 
 ## Phase 1: Setup and platform evidence
 
-- [ ] T001 pnpm workspace와 `apps/web/package.json`, `workers/diary/package.json`, `packages/{contracts,diary,storage}/package.json`, `.env.example`를 만들고 Node24·Next16·TypeScript·Better Auth·pg 의존성을 lockfile에 고정한다. quickstart의 dev/test/eval 및 db:migrate:status 명령을 실제 script로 연결한다. 비밀키는 서버 전용으로 검증한다.
-- [ ] T002 [P] `apps/vehicle/settings.gradle.kts`, `apps/vehicle/build.gradle.kts`, `apps/vehicle/app/build.gradle.kts`에 JDK17·제품 min28과 plan의 공식 샘플 조합을 검증해 고정한다. demo/pleos flavor·Gradle wrapper를 제공하고 mock 상태가 pleos release에서 켜지지 않게 한다. 선행 T001.
-- [ ] T003 [P] `tests/fixtures/freeform/`에 E01~E12의 합성 텍스트·정정·기대 사건/화자/구간 자료와 음성 fixture 생성 절차를 만든다. 실제 가족 자료는 넣지 않는다. 선행 T001.
+- [X] T001 pnpm workspace와 `apps/web/package.json`, `workers/diary/package.json`, `packages/{contracts,diary,storage}/package.json`, `.env.example`를 만들고 Node24·Next16·TypeScript·Better Auth·pg 의존성을 lockfile에 고정한다. 현재 구현된 dev/build/test/fixture 명령을 실제 script로 연결한다. db:migrate/status는 T007, worker는 T011, eval은 T035 구현 때 연결한다. 비밀키는 서버 전용으로 검증한다.
+- [X] T002 [P] `apps/vehicle/settings.gradle.kts`, `apps/vehicle/build.gradle.kts`, `apps/vehicle/app/build.gradle.kts`에 JDK17·제품 min28과 plan의 공식 샘플 조합을 검증해 고정한다. demo/pleos flavor·Gradle wrapper를 제공하고 mock 상태가 pleos release에서 켜지지 않게 한다. 선행 T001.
+- [X] T003 [P] `tests/fixtures/freeform/`에 E01~E12의 합성 텍스트·정정·기대 사건/화자/구간 자료와 음성 fixture 생성 절차를 만든다. 실제 가족 자료는 넣지 않는다. 선행 T001.
 - [ ] T004 `docs/evidence/g0-environment.md`에 JDK·Android SDK·Pleos AVD·의존성·권한 초기화의 실제 결과를 기록한다. `apps/vehicle/app/src/main/java/io/hmg/familydiary/platform/CapabilityProbe.kt`에서 지원 여부를 확인한다. 일반 AVD를 Pleos 성공으로 기록하지 않는다. 선행 T002.
 - [ ] T005 `apps/vehicle/app/src/main/java/io/hmg/familydiary/platform/CaptureProbe.kt`와 `docs/evidence/g1-capture.md`로 허용된 원본 PCM→파일→재생→같은 입력 STT,30초/3분/10분/20분,구간·침묵·종료를 검증한다. 포맷·파일 조각 크기·운영 한도를 기록한다. 원본 접근 실패는 G1 실패이며 텍스트 성공으로 대체하지 않는다. 선행 T004.
 - [ ] T006 `apps/vehicle/app/src/main/java/io/hmg/familydiary/platform/ParkedProbe.kt`와 `docs/evidence/g2-parked.md`에서 허용된 주차 신호·UX restriction·focus loss를 검증한다. P→D·D속도0·UNKNOWN·연결단절 때 중단 증거를 남긴다. 불명은 사용 잠금. 선행 T004.
@@ -27,7 +27,7 @@
 - [ ] T007 `db/migrations/0001_auth.sql`, `0002_core.sql`에 UUID 기반 인증 스키마와 data-model의 모델·관계·vault 격리·FK·unique·RLS를 구현한다. migrate/auth/domain 역할을 분리하고 런타임은 비소유자·non-BYPASSRLS, 트랜잭션별 vault context를 사용한다. 사전 vault 조회·기기 인증·job claim의 제한 함수 경로와 고정 search_path/호출 권한을 구현한다. `owner_user_id unique`, 이름 `1~40자`, title/label `1~120자`, `sequence≥0`, `duration_ms>0`, `bytes>0`, `sha256 64자리 hex`, `(session_id,sequence) unique`, `0≤start_ms<end_ms`, 유효 IANA timezone, 같은 session/vault 참조를 강제한다. 삭제된 ID 재생성 금지도 포함한다. 선행 T001.
 - [ ] T008 `apps/vehicle/app/src/main/java/io/hmg/familydiary/data/LocalStore.kt`에 불변 AudioChunk·원문·수정문·revision·outbox를 구현한다. 암호화 파일과 키 관리, atomic finalize/checksum, 재시작 복구를 제공한다. 불완전 tail은 완료로 표시하지 않는다. 선행 T002,T003.
 - [ ] T009 `apps/web/src/server/auth.ts`, `apps/web/src/server/vault.ts`에 Better Auth의 `/api/auth/*` 가입·검증·재설정·DB 세션(cookieCache off) 및 Origin/CSRF 검사와 차량 토큰 hash/만료/폐기 검증, 모든 참조의 vault 검사를 공통화한다. client 직접 DB/볼륨 접근을 막는다. 라이브러리 생성 SQL은 T007과 맞추고 웹 세션 폐기·재설정 후 전체 세션 폐기를 시험한다. 선행 T007.
-- [ ] T010 `packages/contracts/src/diary.ts`, `packages/contracts/src/http.ts`에 JSON Schema·HTTP 계약 검증을 구현한다. 같은 입력 source ID·member·시간 범위, member audience의 ID/shared의 null, 유효 YYYY-MM-DD, 모든 입력의 사용/제외 추적을 검증한다. 선행 T001,T003.
+- [X] T010 `packages/contracts/src/diary.ts`, `packages/contracts/src/http.ts`에 JSON Schema·HTTP 계약 검증을 구현한다. 같은 입력 source ID·member·시간 범위, member audience의 ID/shared의 null, 유효 YYYY-MM-DD, 모든 입력의 사용/제외 추적을 검증한다. 선행 T001,T003.
 - [ ] T011 `workers/diary/src/runner.ts`, `apps/web/src/server/jobs.ts`에 queued/running/succeeded/failed/cancelled·lease·최대3회 재시도·멱등성·revision 재검사를 구현한다. 재시작 후 작업을 잃지 않고 삭제된 세션의 결과를 반영하지 않는다. 선행 T007,T009,T010.
 - [ ] T012 `apps/web/src/server/config.ts`, `db/tests/isolation.sql`, `docs/evidence/storage-policy.md`에 공급자·모델·용량 설정과 데이터 수집 안내 기준을 준비한다. 정상 삭제 목표24시간·미반영 기기 pending·백업/tombstone 재적용을 기록한다. 실제 사용자 자료 수집 전 SMTP·백업·삭제 저널 설정 검증; 개발은 합성 자료만 사용한다. 선행 T007,T009,T039.
 

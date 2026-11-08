@@ -1,0 +1,17 @@
+.git
+.tools
+node_modules
+**/node_modules
+**/.next
+**/build
+.env
+.env.*
+!.env.example
+private-data
+recordings
+coverage
+playwright-report
+test-results
+*.log
+*.pem
+*.key

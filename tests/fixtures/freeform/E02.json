@@ -1,0 +1,40 @@
+{
+  "synthetic": true,
+  "case_id": "E02",
+  "expected_review": "아침으로 명시 정정, 두 원본 참조 유지",
+  "input": {
+    "schema_version": "1",
+    "session_id": "E02",
+    "input_revision": 1,
+    "recorded_at": "2026-11-08T04:00:00Z",
+    "timezone": "Asia/Seoul",
+    "members": [
+      {
+        "id": "parent",
+        "display_name": "보호자"
+      },
+      {
+        "id": "child",
+        "display_name": "아이"
+      }
+    ],
+    "utterances": [
+      {
+        "id": "E02-u1",
+        "member_id": "parent",
+        "text": "식당에서 점심을 먹었어.",
+        "start_ms": 0,
+        "end_ms": 5000
+      },
+      {
+        "id": "E02-u2",
+        "member_id": "parent",
+        "text": "아니, 점심이 아니라 아침이었어.",
+        "start_ms": 5000,
+        "end_ms": 10000
+      }
+    ],
+    "user_place_corrections": [],
+    "user_group_corrections": []
+  }
+}

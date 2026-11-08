@@ -1,0 +1,40 @@
+{
+  "synthetic": true,
+  "case_id": "E04",
+  "expected_review": "동일 사건 통합, 우유 메모 제외 후 재포함 가능",
+  "input": {
+    "schema_version": "1",
+    "session_id": "E04",
+    "input_revision": 1,
+    "recorded_at": "2026-11-08T04:00:00Z",
+    "timezone": "Asia/Seoul",
+    "members": [
+      {
+        "id": "parent",
+        "display_name": "보호자"
+      },
+      {
+        "id": "child",
+        "display_name": "아이"
+      }
+    ],
+    "utterances": [
+      {
+        "id": "E04-u1",
+        "member_id": "parent",
+        "text": "공원에서 연을 날렸어.",
+        "start_ms": 0,
+        "end_ms": 5000
+      },
+      {
+        "id": "E04-u2",
+        "member_id": "parent",
+        "text": "공원에서 연을 날린 게 좋았어. 우유도 사야 해.",
+        "start_ms": 5000,
+        "end_ms": 10000
+      }
+    ],
+    "user_place_corrections": [],
+    "user_group_corrections": []
+  }
+}

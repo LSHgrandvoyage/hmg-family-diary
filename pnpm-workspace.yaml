@@ -1,0 +1,13 @@
+packages:
+  - apps/web
+  - packages/*
+  - workers/*
+
+enableGlobalVirtualStore: false
+
+allowBuilds:
+  esbuild: true
+  sharp: true
+
+minimumReleaseAgeExclude:
+  - nodemailer@10.4.0

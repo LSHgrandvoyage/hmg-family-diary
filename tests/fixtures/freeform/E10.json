@@ -1,0 +1,33 @@
+{
+  "synthetic": true,
+  "case_id": "E10",
+  "expected_review": "분리/병합/제외/재포함 뒤 source와 화자 유지",
+  "input": {
+    "schema_version": "1",
+    "session_id": "E10",
+    "input_revision": 1,
+    "recorded_at": "2026-11-08T04:00:00Z",
+    "timezone": "Asia/Seoul",
+    "members": [
+      {
+        "id": "parent",
+        "display_name": "보호자"
+      },
+      {
+        "id": "child",
+        "display_name": "아이"
+      }
+    ],
+    "utterances": [
+      {
+        "id": "E10-u1",
+        "member_id": "parent",
+        "text": "산책하고 카페에서 쉬었어. 영수증도 정리해야 해.",
+        "start_ms": 0,
+        "end_ms": 5000
+      }
+    ],
+    "user_place_corrections": [],
+    "user_group_corrections": []
+  }
+}

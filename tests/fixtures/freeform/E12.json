@@ -1,0 +1,33 @@
+{
+  "synthetic": true,
+  "case_id": "E12",
+  "expected_review": "침묵/거절/불완전 응답에서 허구 일기 생성 금지",
+  "input": {
+    "schema_version": "1",
+    "session_id": "E12",
+    "input_revision": 1,
+    "recorded_at": "2026-11-08T04:00:00Z",
+    "timezone": "Asia/Seoul",
+    "members": [
+      {
+        "id": "parent",
+        "display_name": "보호자"
+      },
+      {
+        "id": "child",
+        "display_name": "아이"
+      }
+    ],
+    "utterances": [
+      {
+        "id": "E12-u1",
+        "member_id": "parent",
+        "text": "",
+        "start_ms": 0,
+        "end_ms": 5000
+      }
+    ],
+    "user_place_corrections": [],
+    "user_group_corrections": []
+  }
+}

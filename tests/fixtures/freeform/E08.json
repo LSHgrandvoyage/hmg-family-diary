@@ -1,0 +1,40 @@
+{
+  "synthetic": true,
+  "case_id": "E08",
+  "expected_review": "화자 전환 이전의 늦은 STT 결과는 이전 발화자 유지",
+  "input": {
+    "schema_version": "1",
+    "session_id": "E08",
+    "input_revision": 1,
+    "recorded_at": "2026-11-08T04:00:00Z",
+    "timezone": "Asia/Seoul",
+    "members": [
+      {
+        "id": "parent",
+        "display_name": "보호자"
+      },
+      {
+        "id": "child",
+        "display_name": "아이"
+      }
+    ],
+    "utterances": [
+      {
+        "id": "E08-u1",
+        "member_id": "parent",
+        "text": "바다 냄새가 좋았어.",
+        "start_ms": 0,
+        "end_ms": 5000
+      },
+      {
+        "id": "E08-u2",
+        "member_id": "child",
+        "text": "나는 파도가 무서웠어.",
+        "start_ms": 5000,
+        "end_ms": 10000
+      }
+    ],
+    "user_place_corrections": [],
+    "user_group_corrections": []
+  }
+}

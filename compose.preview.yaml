@@ -1,0 +1,19 @@
+# Public synthetic data only. This is not the T039 authenticated service runtime.
+name: hmg-family-diary-preview
+services:
+  preview:
+    build:
+      context: .
+      dockerfile: infra/preview.Dockerfile
+    ports:
+      - "${PREVIEW_BIND:-127.0.0.1}:3018:3000"
+    read_only: true
+    tmpfs:
+      - /tmp:size=32M,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 5

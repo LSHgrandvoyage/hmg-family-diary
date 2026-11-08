@@ -1,7 +1,23 @@
 # Quickstart and Validation
 
-현재 실행 가능한 것은 Spec Kit의 문서·경로 검사다. 앱 코드·Gradle wrapper·pnpm workspace·로컬
-Docker Compose 설정은 후속 작업에서 생성한다. 아래 앱 실행 명령은 해당 작업 완료 후의 목표 인터페이스다.
+첫 구현에서는 [README의 실행 명령](../../README.md)으로 합성 웹 미리 보기·APK 빌드·계약/파일 테스트를 실행할 수 있다.
+실제 플랫폼과 전체 서비스는 아직 미완성이다. 아래 전체 서비스 명령은 해당 후속 작업의 목표다.
+
+## 현재 구현 검증
+
+```sh
+pnpm install --frozen-lockfile
+pnpm test
+pnpm typecheck
+pnpm build
+pnpm test:e2e
+docker compose -f compose.preview.yaml up -d --build
+```
+
+39개 TS 테스트,4개 Android JVM 테스트,4개 Chrome 화면·재생 테스트 결과를
+[실행 증거](../../docs/evidence/preview-validation.md)에 기록했다.
+실제 iPhone/iPad/Safari·Speech/Vehicle SDK·LLM·인증·삭제 종단 검증은 별도이며 아직 통과하지 않았다.
+`db:migrate/status`, `dev:worker`, `eval:diary`, 서비스 `test:integration`은 구현할 때 추가하며 현재 script에 없다.
 
 ## 지금 확인할 수 있는 것
 

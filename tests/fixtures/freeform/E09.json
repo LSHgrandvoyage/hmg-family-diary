@@ -1,0 +1,320 @@
+{
+  "synthetic": true,
+  "case_id": "E09",
+  "expected_review": "뒤 window의 정정이 첫 window에 반영",
+  "input": {
+    "schema_version": "1",
+    "session_id": "E09",
+    "input_revision": 1,
+    "recorded_at": "2026-11-08T04:00:00Z",
+    "timezone": "Asia/Seoul",
+    "members": [
+      {
+        "id": "parent",
+        "display_name": "보호자"
+      },
+      {
+        "id": "child",
+        "display_name": "아이"
+      }
+    ],
+    "utterances": [
+      {
+        "id": "E09-u1",
+        "member_id": "parent",
+        "text": "첫날 점심으로 국수를 먹었어.",
+        "start_ms": 0,
+        "end_ms": 5000
+      },
+      {
+        "id": "E09-u2",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 5000,
+        "end_ms": 10000
+      },
+      {
+        "id": "E09-u3",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 10000,
+        "end_ms": 15000
+      },
+      {
+        "id": "E09-u4",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 15000,
+        "end_ms": 20000
+      },
+      {
+        "id": "E09-u5",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 20000,
+        "end_ms": 25000
+      },
+      {
+        "id": "E09-u6",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 25000,
+        "end_ms": 30000
+      },
+      {
+        "id": "E09-u7",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 30000,
+        "end_ms": 35000
+      },
+      {
+        "id": "E09-u8",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 35000,
+        "end_ms": 40000
+      },
+      {
+        "id": "E09-u9",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 40000,
+        "end_ms": 45000
+      },
+      {
+        "id": "E09-u10",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 45000,
+        "end_ms": 50000
+      },
+      {
+        "id": "E09-u11",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 50000,
+        "end_ms": 55000
+      },
+      {
+        "id": "E09-u12",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 55000,
+        "end_ms": 60000
+      },
+      {
+        "id": "E09-u13",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 60000,
+        "end_ms": 65000
+      },
+      {
+        "id": "E09-u14",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 65000,
+        "end_ms": 70000
+      },
+      {
+        "id": "E09-u15",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 70000,
+        "end_ms": 75000
+      },
+      {
+        "id": "E09-u16",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 75000,
+        "end_ms": 80000
+      },
+      {
+        "id": "E09-u17",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 80000,
+        "end_ms": 85000
+      },
+      {
+        "id": "E09-u18",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 85000,
+        "end_ms": 90000
+      },
+      {
+        "id": "E09-u19",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 90000,
+        "end_ms": 95000
+      },
+      {
+        "id": "E09-u20",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 95000,
+        "end_ms": 100000
+      },
+      {
+        "id": "E09-u21",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 100000,
+        "end_ms": 105000
+      },
+      {
+        "id": "E09-u22",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 105000,
+        "end_ms": 110000
+      },
+      {
+        "id": "E09-u23",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 110000,
+        "end_ms": 115000
+      },
+      {
+        "id": "E09-u24",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 115000,
+        "end_ms": 120000
+      },
+      {
+        "id": "E09-u25",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 120000,
+        "end_ms": 125000
+      },
+      {
+        "id": "E09-u26",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 125000,
+        "end_ms": 130000
+      },
+      {
+        "id": "E09-u27",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 130000,
+        "end_ms": 135000
+      },
+      {
+        "id": "E09-u28",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 135000,
+        "end_ms": 140000
+      },
+      {
+        "id": "E09-u29",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 140000,
+        "end_ms": 145000
+      },
+      {
+        "id": "E09-u30",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 145000,
+        "end_ms": 150000
+      },
+      {
+        "id": "E09-u31",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 150000,
+        "end_ms": 155000
+      },
+      {
+        "id": "E09-u32",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 155000,
+        "end_ms": 160000
+      },
+      {
+        "id": "E09-u33",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 160000,
+        "end_ms": 165000
+      },
+      {
+        "id": "E09-u34",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 165000,
+        "end_ms": 170000
+      },
+      {
+        "id": "E09-u35",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 170000,
+        "end_ms": 175000
+      },
+      {
+        "id": "E09-u36",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 175000,
+        "end_ms": 180000
+      },
+      {
+        "id": "E09-u37",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 180000,
+        "end_ms": 185000
+      },
+      {
+        "id": "E09-u38",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 185000,
+        "end_ms": 190000
+      },
+      {
+        "id": "E09-u39",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 190000,
+        "end_ms": 195000
+      },
+      {
+        "id": "E09-u40",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 195000,
+        "end_ms": 200000
+      },
+      {
+        "id": "E09-u41",
+        "member_id": "parent",
+        "text": "전망대에서 구름을 봤어.",
+        "start_ms": 200000,
+        "end_ms": 205000
+      },
+      {
+        "id": "E09-u42",
+        "member_id": "parent",
+        "text": "처음에 말한 국수는 점심이 아니라 첫날 아침이야.",
+        "start_ms": 205000,
+        "end_ms": 210000
+      }
+    ],
+    "user_place_corrections": [],
+    "user_group_corrections": []
+  }
+}

@@ -31,3 +31,9 @@ private-data/
 .agents/*
 !.agents/skills/
 .codex/
+# Local build toolchains and execution state
+.tools/
+.next/
+playwright-report/
+test-results/
+*.tsbuildinfo

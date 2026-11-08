@@ -1,0 +1,40 @@
+{
+  "synthetic": true,
+  "case_id": "E07",
+  "expected_review": "서로 다른 화자 충돌 유지 및 검토",
+  "input": {
+    "schema_version": "1",
+    "session_id": "E07",
+    "input_revision": 1,
+    "recorded_at": "2026-11-08T04:00:00Z",
+    "timezone": "Asia/Seoul",
+    "members": [
+      {
+        "id": "parent",
+        "display_name": "보호자"
+      },
+      {
+        "id": "child",
+        "display_name": "아이"
+      }
+    ],
+    "utterances": [
+      {
+        "id": "E07-u1",
+        "member_id": "parent",
+        "text": "우리는 동물원에 갔어.",
+        "start_ms": 0,
+        "end_ms": 5000
+      },
+      {
+        "id": "E07-u2",
+        "member_id": "child",
+        "text": "아니, 수족관에 갔어.",
+        "start_ms": 5000,
+        "end_ms": 10000
+      }
+    ],
+    "user_place_corrections": [],
+    "user_group_corrections": []
+  }
+}

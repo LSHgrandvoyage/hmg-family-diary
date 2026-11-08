@@ -1,0 +1,33 @@
+{
+  "synthetic": true,
+  "case_id": "E05",
+  "expected_review": "날짜/장소 null, 검토 필요",
+  "input": {
+    "schema_version": "1",
+    "session_id": "E05",
+    "input_revision": 1,
+    "recorded_at": "2026-11-08T04:00:00Z",
+    "timezone": "Asia/Seoul",
+    "members": [
+      {
+        "id": "parent",
+        "display_name": "보호자"
+      },
+      {
+        "id": "child",
+        "display_name": "아이"
+      }
+    ],
+    "utterances": [
+      {
+        "id": "E05-u1",
+        "member_id": "parent",
+        "text": "그때 거기서 재미있었어.",
+        "start_ms": 0,
+        "end_ms": 5000
+      }
+    ],
+    "user_place_corrections": [],
+    "user_group_corrections": []
+  }
+}

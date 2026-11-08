@@ -3,11 +3,56 @@
 차에서 자유롭게 풀어놓은 가족 이야기를 LLM이 분류·정제해 **일기와 실제 목소리**로 남겨,
 차량과 휴대폰에서 다시 읽고 듣는 가족 여행 기록 서비스.
 
-현재는 기능 명세에 따른 구현 계획·데이터 모델·계약·40개 작업을 작성한 단계다.
-앱·SDK 실행·모델 평가·사용자 인터뷰 결과는 아직 없다.
-실행 계획은 Docker Compose 단일 호스트(web·worker·PostgreSQL·Caddy)이며
-인증은 Better Auth, 원본은 비공개 파일 볼륨을 사용한다. 향후 클라우드 이전을 위한 저장 인터페이스를 분리한다.
-Compose 파일과 앱 이미지는 아직 구현하지 않았다.
+첫 구현을 시작했다. Mac ARM64의 **Pleos Connect2.1.0 에뮬레이터에 demo APK를 설치·실행**했고,
+일기·원문·구간 재생을 확인하는 합성 모바일 웹 미리 보기를 Docker로 실행했다.
+실제 녹음/STT/LLM/인증/동기화는 아직 미연결이며 전체 MVP 완료가 아니다.
+[현재 구현·미구현 범위](docs/evidence/implementation-progress.md) · [기기·APK 검증](docs/evidence/g0-environment.md)
+
+## 지금 실행하기
+
+Docker만 있다면 합성 화면을 빌드해 볼 수 있다. 실제 가족 자료를 입력하는 기능은 없다.
+
+```sh
+docker compose -f compose.preview.yaml up -d --build
+# http://localhost:3018/demo
+```
+
+아이폰·아이패드에서는 APK를 실행할 수 없지만 같은 Wi-Fi의 Safari로 웹 미리 보기를 볼 수 있다.
+LAN에 합성 미리 보기를 열 때는 `PREVIEW_BIND=0.0.0.0 docker compose -f compose.preview.yaml up -d`를 실행하고
+`http://<맥북의 LAN IP>:3018/demo`에 접속한다. 현재 HTTP 공개 합성 미리 보기이며,
+개인 기록용 서비스는 후속 작업에서 HTTPS·인증·비공개 미디어로 구성한다.
+종료는 `docker compose -f compose.preview.yaml down`이다.
+
+Node24/pnpm11.13.1 로컬 개발:
+
+```sh
+pnpm install --frozen-lockfile
+pnpm fixture:audio
+pnpm dev:web
+# http://localhost:3000/demo
+pnpm test
+pnpm typecheck
+pnpm build
+pnpm test:e2e # 설치된 Chrome 사용
+```
+
+Android(JDK17 + SDK35/build-tools35.0.0):
+
+```sh
+cd apps/vehicle
+./gradlew :app:assembleDemoDebug :app:testDemoDebugUnitTest
+# app/build/outputs/apk/demo/debug/app-demo-debug.apk
+adb install -r app/build/outputs/apk/demo/debug/app-demo-debug.apk
+```
+
+`demo`는 합성 정책 확인용, `pleos`는 실제 주차 확인 전 잠기는 별도 소스다.
+일반 AVD에서도 demo 설치는 가능하지만 실제 차량 API 검증에는 공식 Pleos 환경이 필요하다.
+현재 체크아웃의 SDK는 `.tools/android-sdk`, Gradle 캐시는 `.tools/gradle`이며 필요하면
+`ANDROID_HOME`/`GRADLE_USER_HOME`에 지정한다. 개발 도구·AVD·음원은 Git에서 제외한다.
+이 맥북의 준비된 Pleos 창을 다시 열려면 저장소 루트에서 `./scripts/run-vehicle-emulator.sh`를 실행한다.
+
+전체 서버 목표는 Docker Compose의 web·worker·PostgreSQL·Caddy, Better Auth와 비공개 AudioStore다.
+`compose.preview.yaml`은 화면 확인 전용이며 T039 운영 계약을 충족하는 구성이 아니다.
 
 ## 먼저 읽을 문서
 
@@ -43,9 +88,9 @@ uvx --from specify-cli==1.3.2 specify integration status
 - `$speckit-specify`: 현재 `specs/001-family-trip-memory/spec.md` 기준선 작성 완료
 - `$speckit-clarify`: 추가 제품 판단이 필요할 때 사용
 - `$speckit-plan`: 기술 조사·조건부 구현 계획 작성 완료. 실제 차량 G0~G2는 미통과
-- `$speckit-tasks`: 40개 작업 작성 완료, 전부 미실행
+- `$speckit-tasks`: 40개 작업 중 setup·Android 골격·합성 사례·계약 검증 완료; 나머지는 작업 목록 참조
 - `$speckit-analyze`: spec·plan·tasks 정합성 읽기 검토
-- `$speckit-implement`: 다음 단계. T001~T006 환경·캡처·주차 검증부터 시작
+- `$speckit-implement`: 진행 중. 실제 캡처·주차 포트와 서버 기반 구현이 남음
 
 새 체크아웃의 기능 선택은 다음과 같이 지정한다. `.specify/feature.json`은
 spec-kit이 관리하는 기기별 상태여서 Git에 포함하지 않는다.
@@ -54,7 +99,7 @@ spec-kit이 관리하는 기기별 상태여서 Git에 포함하지 않는다.
 export SPECIFY_FEATURE_DIRECTORY=specs/001-family-trip-memory
 ```
 
-에이전트에는 위 기능 디렉터리를 명시해도 된다. 현재 코드가 없으므로 빌드·앱 실행 명령은 없다.
+에이전트에는 위 기능 디렉터리를 명시해도 된다. 현재 실행 명령은 위의 합성 미리 보기와 Android 빌드 절을 따른다.
 명세 수정 뒤 제품 정의·수용 조건·체크리스트를 같이 검토한다.
 
 ## 출처와 초기화

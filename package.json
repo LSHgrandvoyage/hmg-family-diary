@@ -1,0 +1,39 @@
+{
+  "name": "hmg-family-diary",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.13.1",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "dev:web": "pnpm --filter @diary/web dev",
+    "build": "pnpm --filter @diary/web build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:contracts": "vitest run packages/contracts",
+    "test:e2e": "playwright test",
+    "fixture:audio": "tsx scripts/generate-audio-fixture.ts",
+    "test:storage": "vitest run packages/storage",
+    "prebuild": "pnpm fixture:audio",
+    "format:check": "prettier --check \"apps/web/src/**/*.{ts,tsx,css}\" \"apps/web/tests/**/*.ts\" \"packages/**/*.ts\" \"scripts/*.{ts,mjs}\""
+  },
+  "dependencies": {
+    "ajv": "8.20.0",
+    "better-auth": "1.7.18",
+    "nodemailer": "10.4.0",
+    "pg": "8.23.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0",
+    "@types/node": "^24.0.0",
+    "@types/nodemailer": "^7.0.0",
+    "@types/pg": "^8.15.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "prettier": "3.9.10",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2",
+    "vitest": "5.1.0"
+  }
+}

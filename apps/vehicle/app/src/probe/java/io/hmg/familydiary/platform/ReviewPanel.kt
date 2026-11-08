@@ -15,27 +15,21 @@ import java.time.format.DateTimeFormatter
 
 /** Sequential bench flow; never claims to be the authenticated family library. */
 class ReviewPanel(private val activity: Activity, parent: LinearLayout, private val allowed: () -> Boolean,
-    private val audioIdle: () -> Boolean, private val canReview: () -> Boolean, private val onChange: () -> Unit) {
+    private val audioIdle: () -> Boolean, private val canReview: () -> Boolean, private val onChange: () -> Unit,
+    private val onSaved: () -> Unit = {}) {
+    private val ui = VehicleTheme(activity)
     private val store = ReviewStore(File(activity.filesDir, "capture-review"))
     private val generator = DiaryProbe(activity)
     private val root = LinearLayout(activity).apply {
-        orientation = LinearLayout.VERTICAL; setPadding(dp(24), dp(24), dp(24), dp(24)); setBackgroundColor(Color.WHITE)
+        orientation = LinearLayout.VERTICAL; setPadding(dp(24), dp(24), dp(24), dp(24)); background = ui.shape()
     }
     private fun dp(value: Int) = (value * activity.resources.displayMetrics.density).toInt()
-    private fun label(value: String, size: Float = 20f) = TextView(activity).apply {
-        text = value; textSize = size; setTextColor(Color.rgb(30, 38, 48)); setPadding(0, dp(8), 0, dp(8)); root.addView(this)
+    private fun label(value: String, size: Float = 20f) = ui.text(value, size, size >= 24f).also {
+        ui.add(root, it, 16)
     }
-    private fun editor(name: String, multiline: Boolean = false) = EditText(activity).apply {
-        id = View.generateViewId(); contentDescription = name; textSize = 20f; minHeight = dp(56)
-        inputType = android.text.InputType.TYPE_CLASS_TEXT or if (multiline) android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE else 0
-        if (multiline) { minLines = 4; gravity = android.view.Gravity.TOP }
-        root.addView(this, LinearLayout.LayoutParams(-1, -2))
-    }
-    private fun button(title: String, action: () -> Unit) = Button(activity).apply {
-        text = title; textSize = 20f; minHeight = dp(56); isAllCaps = false
-        root.addView(this, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(8) })
-        setOnClickListener { action() }
-    }
+    private fun editor(name: String, multiline: Boolean = false) = ui.input(name, multiline).also { ui.add(root, it, 8) }
+    private fun button(title: String, action: () -> Unit) = ui.button(title,
+        title == "일기 초안 만들기" || title == "검토한 일기 이 기기에 저장", action).also { ui.add(root, it, 16) }
     private val raw: TextView
     private val speaker: EditText
     private val recordedAt: EditText
@@ -53,6 +47,7 @@ class ReviewPanel(private val activity: Activity, parent: LinearLayout, private 
     private var dirty = false
     val busy get() = generator.busy
     val fileId get() = selectedId
+    val record get() = current
     private val dateFormat = DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm").withResolverStyle(java.time.format.ResolverStyle.STRICT)
     private val zone = ZoneId.of("Asia/Seoul")
     private fun displayDate(value: String) = runCatching { Instant.parse(value).atZone(zone).format(dateFormat) }.getOrDefault(value)
@@ -83,7 +78,7 @@ class ReviewPanel(private val activity: Activity, parent: LinearLayout, private 
         sendConsent = CheckBox(activity).apply {
             text = if (generator.mode == "mock") "확인문·별칭·녹음 시각을 맥북의 목업 서버로 보내겠습니다. 외부 AI와 음성 파일 전송은 사용하지 않습니다."
                 else "확인문·별칭·녹음 시각을 OpenAI에 보내 일기를 만들겠습니다. 음성 파일은 보내지 않습니다."
-            textSize = 20f; minHeight = dp(56); root.addView(this)
+            textSize = 20f; setTextColor(ui.ink); buttonTintList = android.content.res.ColorStateList.valueOf(ui.blue); minHeight = dp(64); root.addView(this)
         }
         generate = button("일기 초안 만들기") { generate() }
         cancelGeneration = button("초안 생성 중단") { cancel(); onChange() }
@@ -95,7 +90,7 @@ class ReviewPanel(private val activity: Activity, parent: LinearLayout, private 
         accept = button("검토한 일기 이 기기에 저장") {
             val r = current ?: return@button
             if (!allowed() || busy || dirty || r.draft == null || r.draftRevision != r.revision || r.confirmed != r.revision) return@button
-            persist(r.copy(accepted = r.revision), "${if (r.generationMode == "mock") "목업 " else ""}일기 저장 완료 · 이 실험 앱에만 보관됨. 휴대폰 동기화는 아직 없어요.")
+            if (persist(r.copy(accepted = r.revision), "${if (r.generationMode == "mock") "목업 " else ""}일기 저장 완료 · 이 실험 앱에만 보관됨. 휴대폰 동기화는 아직 없어요.")) onSaved()
         }
         val watcher = object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
@@ -108,12 +103,12 @@ class ReviewPanel(private val activity: Activity, parent: LinearLayout, private 
         sendConsent.setOnCheckedChangeListener { _, checked -> if (!checked && busy) cancel(); render() }
         render()
     }
-    fun select(file: File?): Boolean {
+    fun select(file: File?, loaded: ReviewRecord? = null): Boolean {
         if (file?.name == selectedId) return true
         if (!save(false)) return false // Never silently replace unsaved edits after a disk failure.
         cancel(); selectedId = file?.name; current = null; sendConsent.isChecked = false
         if (file != null) {
-            try { current = store.load(file) }
+            try { current = loaded ?: store.load(file) }
             catch (_: Exception) { feedback.text = "검토 기록을 열지 못했어요. 원본 변경·저장 오류를 확인해 주세요." }
         }
         bind()
@@ -169,6 +164,9 @@ class ReviewPanel(private val activity: Activity, parent: LinearLayout, private 
         render(); onChange()
     }
     fun cancel() { if (busy) feedback.text = "생성을 중단했어요. 원본·확인문·이전 초안은 보관했어요."; generator.cancel(); render() }
+    fun forgetDeleted() {
+        cancel(); current = null; selectedId = null; dirty = false; bind()
+    }
     fun clear(): Boolean {
         cancel()
         val success = store.clear()
@@ -208,7 +206,7 @@ class ReviewPanel(private val activity: Activity, parent: LinearLayout, private 
             val reviews = d.getJSONArray("review_items")
             for (i in 0 until reviews.length()) append("확인: ").append(reviews.getJSONObject(i).getString("message")).append('\n')
             append("제외된 근거: ${d.getJSONArray("excluded_spans").length()}개 · 전체 원본에서 확인할 수 있어요.\n")
-            append("근거 듣기: 위 ‘선택한 원본 듣기’ · 전체 녹음 연결 (세부 구간 미검증)\n")
+            append("근거 듣기: 위 ‘원본 재생’ · 전체 녹음 연결 (세부 구간 미검증)\n")
             append(if (r.generationMode == "mock") "목업 응답이에요. AI 생성 품질을 검증한 결과가 아니에요." else "AI가 만든 초안이에요. 원래 이야기와 비교해 주세요.")
         }
     } catch (_: Exception) { "초안을 표시할 수 없어요. 이전 저장본은 유지됩니다." }

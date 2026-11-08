@@ -39,7 +39,8 @@ class CaptureProbeDeviceTest {
             var stoppedAt = 0L
             ui {
                 assertFalse(button("녹음 시작").isEnabled)
-                checkboxes().forEach { it.isChecked = true }
+                checkboxes().take(2).forEach { it.isChecked = true }
+                button("새 이야기").performClick()
                 assertTrue(button("녹음 시작").isEnabled)
                 button("녹음 시작").performClick()
                 startedAt = SystemClock.elapsedRealtime()
@@ -48,7 +49,7 @@ class CaptureProbeDeviceTest {
             Thread.sleep(30_000)
             ui {
                 stoppedAt = SystemClock.elapsedRealtime()
-                button("녹음 마침 / 재생 중지").performClick()
+                button("녹음 마치기").performClick()
             }
             awaitFinals(1)
             val original = finals().single()
@@ -58,12 +59,13 @@ class CaptureProbeDeviceTest {
             // UI dispatch can lag on the emulator: compare PCM time to the actual stop action.
             assertTrue("duration=$duration, elapsed=$elapsed", duration >= 28 && kotlin.math.abs(duration - elapsed) < 2)
             val checksum = PcmWave.sha256(original)
-            ui { button("선택한 원본 듣기").performClick() }
+            ui { button("원본 재생").performClick() }
             Thread.sleep(1_000)
             ui { checkboxes().first().isChecked = false }
             ui {
-                assertFalse(button("선택한 원본 듣기").isEnabled)
+                assertFalse(button("원본 재생").isEnabled)
                 checkboxes().first().isChecked = true
+                button("새 이야기").performClick()
                 assertTrue(button("녹음 시작").isEnabled) // Playback did not auto-resume.
                 button("녹음 시작").performClick()
             }
@@ -80,7 +82,11 @@ class CaptureProbeDeviceTest {
         } finally {
             ui { activity.finish() }
             // Only this test's files; never delete existing user recordings.
-            directory.listFiles()?.filter { it !in before }?.forEach { it.delete() }
+            directory.listFiles()?.filter { it !in before }?.forEach {
+                io.hmg.familydiary.platform.ReviewStore(File(instrumentation.targetContext.filesDir, "capture-review")).delete(it.name)
+                io.hmg.familydiary.platform.MemoryContextStore(File(instrumentation.targetContext.filesDir, "memory-context")).delete(it.name)
+                it.delete()
+            }
         }
     }
 }

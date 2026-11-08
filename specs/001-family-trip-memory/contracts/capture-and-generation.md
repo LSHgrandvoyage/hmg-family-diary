@@ -106,3 +106,13 @@ YYYY-MM-DD 유효 날짜로 검증하며, source span의 end>start와 발화 범
 덮어쓰지 않는다. 녹음 위치와 EventGroup.place_label은 다른 필드다. capability 미지원/거절/null/stale는
 원본 녹음 실패가 아니며 context 상태로 보존한다. 모델/번호 자동 완성 API의 반환 의미는 실제로
 검증하기 전 가정하지 않는다. 번호·VIN·정밀 좌표는 GenerationInput에서 제외한다.
+
+### Local vehicle UI context — 2026-11-09
+
+동일 probe 앱 ID에서 `capture-probe` 원본·`capture-review` revision 저장을 유지한다.
+`memory-context/<original-id>/context.json`에 녹음 시작 시각·수동 차량 복사본·위치 상태를 한번 생성하며 다시 쓰기를 거부한다.
+위치 상태는 현재 unavailable 또는 명시적으로 켠 synthetic이며 실제 좌표 수집 계약을 충족했다고 표시하지 않는다.
+기존 파일에 context가 없으면 없음으로 읽는다. 현재 프로필·열람 시각으로 과거 값을 채우지 않는다.
+사진은 같은 ID 아래 JPG로 디코딩/방향 보정/재인코딩하며 원본 EXIF를 복사하지 않는다.
+기기 전용 프로토타입 저장이며 암호화·공유 보관함·서버 동기화 계약을 대신하지 않는다.
+원문 시간축은 현재 전체 원본 하나이며 단어/문장별 구간을 추측하지 않는다.

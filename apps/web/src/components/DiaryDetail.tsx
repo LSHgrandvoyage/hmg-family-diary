@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useRef, useState } from "react";
+import { RecordingContextCard } from "./RecordingContextCard";
 import { AppShell } from "./AppShell";
 import { Icon } from "./Icon";
 import { AudioPlayer, type PlaybackRequest, stamp } from "./AudioPlayer";
@@ -59,6 +60,12 @@ export function DiaryDetail({ record }: { record: DiaryRecord }) {
                 </span>
                 <span>보호자와 아이의 이야기</span>
               </div>
+              <p className="diary-context-summary">
+                {record.context.vehicle
+                  ? `${record.context.vehicle.model ?? record.context.vehicle.nickname}에서 남긴 기록`
+                  : "차량 정보 없는 기록"}{" "}
+                · 녹음 당시 정보 보관
+              </p>
             </header>
             <div
               className="seg reading-tabs"
@@ -104,6 +111,7 @@ export function DiaryDetail({ record }: { record: DiaryRecord }) {
             )}
           </article>
           <aside className="memory-panel">
+            <RecordingContextCard context={record.context} />
             <section className="block">
               <div className="block-head">
                 <h2 className="h2">각자의 기억</h2>

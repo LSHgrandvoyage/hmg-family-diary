@@ -78,3 +78,11 @@ member audience에는 입력의 member_id가 필수이고 shared는 null이다. 
 YYYY-MM-DD 유효 날짜로 검증하며, source span의 end>start와 발화 범위 포함도 서버에서 검사한다.
 같은 발화 일부만 제외할 수 있도록 excluded_spans를 사용한다. 스키마의 $schema/$id/title은
 로컬 검증 메타데이터이며 모델 요청에는 공급자 지원 subset을 확인해 본문 스키마만 전달한다.
+
+## RecordingContext port (FR-016, FR-017)
+
+녹음 시작 순간 capture generation과 묶인 차량 프로필 복사본 및 LocationObservation을 취한다.
+위치 callback이 늦게 오면 관측 timestamp를 녹음 시작과 비교한다. 후속 위치를 무조건 최신 값으로
+덮어쓰지 않는다. 녹음 위치와 EventGroup.place_label은 다른 필드다. capability 미지원/거절/null/stale는
+원본 녹음 실패가 아니며 context 상태로 보존한다. 모델/번호 자동 완성 API의 반환 의미는 실제로
+검증하기 전 가정하지 않는다. 번호·VIN·정밀 좌표는 GenerationInput에서 제외한다.

@@ -1,3 +1,30 @@
+import {
+  captureRecordingContext,
+  type VehicleProfile,
+} from "../../../../packages/diary/src/recording-context";
+// Entirely fictional family profiles and recording places; never live vehicle observations.
+export const demoVehicles: VehicleProfile[] = [
+  {
+    id: "demo-santafe",
+    nickname: "우리집 붕붕이",
+    manufacturer: "현대",
+    model: "싼타페",
+    bodyType: "SUV",
+    modelYear: 2024,
+    registrationNumber: "샘플 0001",
+    source: "demo",
+  },
+  {
+    id: "demo-avante",
+    nickname: "첫 번째 가족 차",
+    manufacturer: "현대",
+    model: "아반떼",
+    bodyType: "세단",
+    modelYear: 2016,
+    registrationNumber: "샘플 0002",
+    source: "demo",
+  },
+];
 export const members = [
   { id: "parent", name: "보호자", avatar: "/design/avatars/20.png" },
   { id: "child", name: "아이", avatar: "/design/avatars/21.png" },
@@ -5,6 +32,16 @@ export const members = [
 export const records = [
   {
     id: "sea",
+    context: captureRecordingContext({
+      capturedAt: "2026-11-08T07:42:00Z",
+      vehicle: demoVehicles[0],
+      location: {
+        status: "available",
+        label: "강원 강릉시 · 해변 주차장 (예시)",
+        observedAt: "2026-11-08T07:41:55Z",
+        source: "demo",
+      },
+    }),
     title: "같은 바다, 서로 다른 마음",
     date: "2026-11-08",
     day: "11월 8일 일요일",
@@ -24,6 +61,16 @@ export const records = [
   },
   {
     id: "park",
+    context: captureRecordingContext({
+      capturedAt: "2026-11-01T06:20:00Z",
+      vehicle: demoVehicles[0],
+      location: {
+        status: "available",
+        label: "서울 · 공원 주차장 (예시)",
+        observedAt: "2026-11-01T06:19:55Z",
+        source: "demo",
+      },
+    }),
     title: "연을 따라 걷던 오후",
     date: "2026-11-01",
     day: "11월 1일 일요일",
@@ -47,6 +94,11 @@ export const records = [
   },
   {
     id: "cafe",
+    context: captureRecordingContext({
+      capturedAt: "2026-10-25T05:10:00Z",
+      vehicle: demoVehicles[1],
+      location: { status: "unavailable" },
+    }),
     title: "비를 기다리며 나눈 이야기",
     date: "2026-10-25",
     day: "10월 25일 일요일",

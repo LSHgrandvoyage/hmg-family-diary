@@ -5,8 +5,9 @@
 
 첫 구현을 시작했다. Mac ARM64의 **Pleos Connect2.1.0 에뮬레이터에 demo APK를 설치·실행**했고,
 월별 보관함·기간 선택·검색·일기·전체 녹음과 원문 타임라인을 확인하는 합성 모바일 웹 미리 보기를 Docker로 실행했다.
-[k-style-ui-ux 적용 기록](docs/design/k-style-redesign.md)과 [최신 화면 검증](docs/evidence/timeline-validation.md)을 참고한다.
-실제 녹음/STT/LLM/인증/동기화는 아직 미연결이며 전체 MVP 완료가 아니다.
+[k-style-ui-ux 적용 기록](docs/design/k-style-redesign.md)과 [타임라인 검증](docs/evidence/timeline-validation.md)을 참고한다.
+차량 정보·녹음 시작 위치·이 차의 추억 모아보기도 합성 자료로 제공한다. [차량 기능 설계](docs/research/vehicle-memory.md) · [차량 화면 검증](docs/evidence/vehicle-context-validation.md)
+실제 녹음/STT/LLM/인증/동기화 및 차량/위치 자동 수집은 아직 미연결이며 전체 MVP 완료가 아니다.
 [현재 구현·미구현 범위](docs/evidence/implementation-progress.md) · [기기·APK 검증](docs/evidence/g0-environment.md)
 
 ## 지금 실행하기

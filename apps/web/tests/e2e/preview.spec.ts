@@ -26,7 +26,9 @@ test("archive groups by year and month and combines period with search", async (
     page.getByRole("heading", { name: "찾는 이야기가 없어요" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "검색 초기화" }).click();
-  await expect(page.getByRole("combobox")).toHaveValue("all");
+  await expect(page.getByRole("combobox", { name: "기록 기간" })).toHaveValue(
+    "all",
+  );
   await expect(page.locator(".story-row")).toHaveCount(3);
   await page.screenshot({
     path: `docs/evidence/timeline-${info.project.name}-archive.png`,
@@ -177,6 +179,58 @@ test("palette remains available and timeline fits with enlarged text", async ({
     document.documentElement.style.setProperty("--fs-body", "24px");
     document.documentElement.style.setProperty("--fs-sub", "20px");
   });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+});
+
+test("recording context keeps the car and capture place together and links historical car memories", async ({
+  page,
+}, info) => {
+  await page.goto("/demo/sea");
+  const context = page.getByRole("region", { name: "그날의 차와 녹음 장소" });
+  await expect(context).toContainText("현대 싼타페");
+  await expect(context).toContainText("SUV · 2024년형");
+  await expect(context).toContainText("강원 강릉시 · 해변 주차장 (예시)");
+  await expect(context).toContainText("16:42");
+  await expect(context).not.toContainText("샘플 0001");
+  await context.getByRole("button", { name: "번호 보기" }).click();
+  await expect(context).toContainText("샘플 0001");
+  await context.getByRole("button", { name: "번호 가리기" }).click();
+  await expect(context).not.toContainText("샘플 0001");
+  await context.scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: `docs/evidence/vehicle-${info.project.name}-detail.png`,
+    fullPage: true,
+  });
+  await context.getByRole("link", { name: "이 차의 추억 모아보기" }).click();
+  await expect(page.getByRole("combobox", { name: "함께한 차" })).toHaveValue(
+    "demo-santafe",
+  );
+  await expect(page.locator(".story-row")).toHaveCount(2);
+  await page
+    .getByRole("combobox", { name: "함께한 차" })
+    .selectOption("demo-avante");
+  await expect(page.locator(".story-row")).toHaveCount(1);
+  await expect(page.locator(".story-row")).toContainText("아반떼");
+  await expect(page.locator(".recent-story")).toHaveAttribute(
+    "href",
+    "/demo/cafe",
+  );
+  await page.screenshot({
+    path: `docs/evidence/vehicle-${info.project.name}-archive.png`,
+    fullPage: true,
+  });
+  await page.locator(".story-row").click();
+  await expect(context).toContainText("현대 아반떼");
+  await expect(context).toContainText("위치 확인 못함");
+  await expect(context).not.toContainText("강릉");
+  await page.getByRole("button", { name: "원래 이야기", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "재생", exact: true }),
+  ).toBeEnabled();
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,

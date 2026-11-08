@@ -82,3 +82,12 @@ PostgreSQL은 인증·도메인·작업을 같은 DB의 분리된 스키마에 �
 `storage_key`는 서버가 만든 논리 키이며 호스트 절대 경로나 URL이 아니다. 초기에는
 비공개 `audio_data` 볼륨의 파일로 해석하고 이후 객체 저장소로 옮겨도 키·checksum·근거 구간을 유지한다.
 파일 확정과 DB 갱신은 하나의 원자적 트랜잭션이 아니므로 임시 파일·누락·고아 파일·삭제 경합을 복구한다.
+
+## Recording context extension (FR-016, FR-017)
+
+- VehicleProfile: id, vault_id, nickname, manufacturer?, model?, body_type?, model_year?, registration_number?, revision, source. 번호는 선택이며 빈 값을 추정하지 않는다. Device와 차량의 정체성은 분리한다.
+- SessionContext: session_id(unique), captured_at(녹음 시작), vehicle_id?, vehicle_snapshot(JSON), recording_location(JSON), context_revision. 차량 필드는 프로필 참조만 보관하지 않고 값도 복사한다. profile 수정/차 교체가 과거 snapshot에 전파되지 않는다.
+- RecordingLocation: status=available/omitted/denied/unsupported/unavailable/stale, source=vehicle_sdk/user/demo, observed_at?, label?, resolution?. available만 장소를 표시한다. 원본 SDK 시각·신뢰도 단위는 adapter에서 확인하고 정규화한다. 장소명은 별도 변환/사용자 확인이 필요하며 좌표만으로 상호명을 단정하지 않는다.
+- 초기 최신성 정책: 녹음 시작보다 120초 초과 이전의 관측, 5초 초과 미래, 유효하지 않은 시각은 stale로 취급한다. 이는 앱의 초기 기준이며 SDK 보장이나 검증된 정확도 기준이 아니다. G5에서 실제 위치 갱신 주기로 조정한다.
+- 좌표가 필요하면 기존 비공개 보관함 경계 안에서만 취급한다. 웹 fixture는 좌표 없이 가상 장소명만 가진다. 생성 입력에는 번호/VIN/정밀 좌표를 추가하지 않는다.
+- 세션 삭제는 context/번호/장소 사본도 함께 삭제한다. 기록별 명시 수정은 expected_revision으로 새 context_revision을 만들며 차량 프로필 전역 수정과 구분한다.

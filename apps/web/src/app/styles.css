@@ -782,3 +782,80 @@ body {
 .reading-tabs {
   scroll-margin-top: var(--stack-m);
 }
+/* Historical vehicle context, distinct from event places in the diary text. */
+.archive-filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--stack-s);
+}
+.record-car-label {
+  font-size: var(--fs-caption);
+  color: var(--c-text-2);
+}
+.vehicle-memory.block {
+  gap: var(--stack-m);
+}
+.vehicle-identity {
+  display: flex;
+  align-items: center;
+  gap: var(--stack-m);
+}
+.vehicle-identity > img {
+  width: 56px;
+  height: 56px;
+}
+.vehicle-identity .row-sub {
+  margin-top: 4px;
+}
+.vehicle-plate {
+  display: flex;
+  align-items: center;
+  gap: var(--stack-s);
+  flex-wrap: wrap;
+}
+.vehicle-plate strong {
+  font-size: var(--fs-sub);
+  font-variant-numeric: tabular-nums;
+}
+.plate-toggle {
+  margin-left: auto;
+  min-height: 44px;
+  padding: 0 var(--stack-s);
+  font-size: var(--fs-caption);
+  color: var(--c-brand-text);
+  font-weight: var(--fw-strong);
+}
+.context-note {
+  font-size: var(--fs-caption);
+  color: var(--c-text-2);
+  line-height: var(--lh-sub);
+}
+.vehicle-memory-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--stack-s);
+  min-height: 44px;
+  font-size: var(--fs-sub);
+  font-weight: var(--fw-strong);
+  color: var(--c-brand-text);
+}
+.recording-place {
+  border-top: 1px solid var(--c-line);
+  padding-top: var(--stack-m);
+  display: flex;
+  flex-direction: column;
+  gap: var(--stack-s);
+}
+.recording-place-name {
+  font-size: var(--fs-sub);
+  font-weight: var(--fw-strong);
+}
+.vehicle-memory .preview-footnote {
+  margin: 0;
+}
+.diary-context-summary {
+  margin-top: var(--stack-m);
+  font-size: var(--fs-caption);
+  color: var(--c-text-2);
+}

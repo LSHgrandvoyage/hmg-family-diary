@@ -87,3 +87,9 @@ DB format은 검증한 WAV header에서 추출하며 클라이언트 주장을 �
 일회성 `revocation_receipt`를 발급한다. receipt는 보관함 읽기·재연결 권한이 없으며
 해당 device의 purge-ack에만 사용할 수 있다. 새 알 수 없는 token에는 이런 정보를 반환하지 않는다.
 receipt·device_secret·인증 쿠키는 로깅하지 않는다.
+
+## Planned context extension (not implemented)
+
+- POST /sessions의 recording_context는 차량 snapshot 및 녹음 시작 시점의 위치 상태/관측시각을 포함한다. 인증 차량의 동일 vault VehicleProfile만 연결하며 client snapshot의 범위·출처·값을 검증한다.
+- GET /sessions 및 GET /sessions/{id}는 해당 기록의 snapshot을 반환한다. GET /sessions의 vehicle_id 선택 필터는 현재 연결 차량에 한정하지 않고 같은 vault의 과거 기록도 조회한다. 등록번호는 검색/URL에 사용하지 않는다.
+- VehicleProfile 편집/기록별 context 편집 API와 DB 검증은 T041에 추가한다. 현재 public demo는 이 API를 구현한 것이 아니다.

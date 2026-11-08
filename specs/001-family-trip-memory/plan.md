@@ -2,7 +2,7 @@
 
 **Branch**: `main` | **Date**: 2026-11-08 | **Spec**: [spec.md](spec.md)
 
-**Input**: `specs/001-family-trip-memory/spec.md` · 헌장 1.1.0
+**Input**: `specs/001-family-trip-memory/spec.md` · 헌장 1.2.0
 
 **Revision**: 2026-11-08 사용자 결정으로 Supabase 계획을 Docker Compose 단일 호스트 구성으로 대체했다.
 앱·컨테이너는 아직 구현·실행하지 않았다. [실행·저장 계약](contracts/runtime-and-storage.md)을 따른다.
@@ -64,7 +64,7 @@ Mailpit는 개발 프로필, migrate는 일회성 실행이다. 실기기에는 
 
 | 원칙 | 설계 전 판단 | 설계 후 확인 |
 |---|---|---|
-| I 문제에서 시작 | 제품·15개 FR·7개 SC 기준 | [tasks.md](tasks.md)의 커버리지로 추적 |
+| I 문제에서 시작 | 제품·17개 FR·7개 SC 기준 | [tasks.md](tasks.md)의 커버리지로 추적 |
 | II 기억·목소리 보존 | 원본을 같은 입력의 근거로 유지 | 불변 음성·수정 버전·구간 FK 및 의미 검증 |
 | III 주차 맥락 | fail-closed | G2 실제 신호 판정 + UX restriction + focus 중단 |
 | IV 접근·삭제 | 보관함/기기 권한 적용 | 인증 프록시, tombstone, 온라인 해제·오프라인 대기 |
@@ -154,3 +154,14 @@ FR-009/US2-2의 탐색은 기록 연월별 묶음·기간 선택·검색으로 �
 재생을 시작하고 구간 끝에서 중단하지 않는다. manifest 경계도 전체 녹음의 연속 재생으로
 다룬다. 웹 합성 미리 보기에는 단일 8초 시험음으로 UI 동작만 반영했으며 실제 다중 chunk
 연결·권한·Safari/차량 재생은 T025~T028/G4에서 따로 검증한다.
+
+## Vehicle memory revision — 2026-11-08 (constitution 1.2.0)
+
+FR-016/017을 첫 버전 메타데이터로 추가한다. 차 별명·차종·모델·연식·선택적 번호는
+VehicleProfile에서 SessionContext로 복사한다. 녹음 시작 시 차량 위치의 출처·시각·지원 상태를
+고정한다. 조회 시 현재 프로필/현재 위치와 다시 조합하지 않는다. 차량별 과거 기록을 조회하되
+활성 차량 연결은 한 대를 유지한다. 자세한 모델/계약과 [기술 근거](../../docs/research/vehicle-memory.md)를 따른다.
+
+G5는 SDK capability·위치 권한·timestamp 단위/최신성·차량 변경·미지원 환경 검증이다.
+웹은 먼저 가상 snapshot/위치와 미확인 상태로 흐름을 제공한다. 차별 조회/표시와 순수 snapshot
+정책의 단위 검증은 가능하지만 Android 수집·DB 영속·인증된 동기화의 대체 증거가 아니다.

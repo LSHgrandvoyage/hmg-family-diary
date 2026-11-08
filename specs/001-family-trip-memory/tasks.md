@@ -12,6 +12,7 @@
 진행 중인 독립 probe 묶음: T017/T020의 인식문 검토·확인 revision·생성 adapter·실험용 loopback 연결.
 2026-11-09: Haiku 5.5 웹 내용 실험6건을 실행·보존했다. [부분 증거](../../docs/evidence/g3-generation.md). T035/G3 전체 완료가 아니며 체크 상태는 유지한다.
 2026-11-09 보정: 프롬프트 v2/v3·검토 표시 계약과 회귀 검사를 반영했다. [보정 실험9건](../../docs/evidence/g3-generation-v2.md): 형식8/9 통과, 의미 오류 일부 잔존. T018/T035/G3는 미완료 유지.
+2026-11-09 목업: API 연결을 미루고 확인문 기반 목업·모드 불일치 차단·저장본 표식을 구현했다. [로컬 종단 검증](../../docs/evidence/mock-generation.md). 제품 동기화/T018/G3 완료로 간주하지 않는다.
 제품 선행 조건을 통과한 것으로 체크하지 않는다. 실행 범위와 결과는 `docs/evidence/review-generation.md`에 기록한다.
 
 ## Phase 1: Setup and platform evidence

@@ -11,7 +11,8 @@
 무음 입력 저장·재생과 합성 음성의 인식 콜백을 확인했고, 사용자가 맥북 마이크의 실제 녹음·원본 청취도 확인했다.
 host GPU 환경에서 이전에 실패했던 합성 문장 전체 인식과 반복 발화·말끝 보존을 확인했다.
 실제 자유 발화와 장시간 입력의 정확도는 별도 검증 대상이다. [STT 분리 검증](docs/evidence/stt-validation.md)
-실험 앱에는 원본 듣기→인식문 확인·수정→OpenAI 초안 요청→기기 저장 흐름을 연결했다.
+실험 앱에는 원본 듣기→인식문 확인·수정→목업 초안 요청→기기 저장·재열람 흐름을 연결했다.
+현재 기본은 **목업 모드(API 호출 없음)**이며 확인문을 그대로 돌려준다. [목업 연결 검증](docs/evidence/mock-generation.md)
 실제 모델 응답은 키·모델 설정 후 검증해야 하며 내용 품질 실험은 Claude 웹으로 분리한다. [검토·생성 검증](docs/evidence/review-generation.md)
 제품의 실제 녹음/STT/LLM/인증/동기화 및 차량/위치 자동 수집은 아직 미완료이며 전체 MVP 완료가 아니다.
 [현재 구현·미구현 범위](docs/evidence/implementation-progress.md) · [기기·APK 검증](docs/evidence/g0-environment.md)
@@ -90,16 +91,20 @@ adb install -r app/build/outputs/apk/demo/debug/app-demo-debug.apk
 
 ```sh
 # 저장소 루트, Node24. .env.probe는 Git에서 제외된다.
-# .env.probe에 OPENAI_API_KEY와 계정에서 사용 가능한 OPENAI_MODEL을 설정한다.
-# 키가 없어도 서버 실행·확인문 저장은 가능하며 생성은 설정 필요로 표시한다.
+# .env.probe.example을 참고해 .env.probe에 DIARY_GENERATOR=mock을 둔다.
+# 미설정 기본값도 mock이며, 키가 있어도 이 모드에서는 API를 호출하지 않는다.
 pnpm probe:server
 # 별도 터미널: 실행 중인 에뮬레이터를 로컬 서버에 연결 (음성 전송 없음)
 ./scripts/connect-diary-probe.sh
+# 연결 모드가 적용되도록 앱을 다시 연다.
 ```
 
 앱에서 텍스트 전송 안내 확인 → **일기 초안 만들기** → 초안 검토 → **검토한 일기 이 기기에 저장**.
 키는 맥북 서버에만 두며 localhost:4319와 adb reverse·로컬 연결 토큰을 사용한다.
-서버 설정을 바꿨으면 재시작한다. 계정·모델 접근 오류는 기존 초안을 유지한 채 표시한다.
+목업은 원문·화자·근거를 보존하는 시험 응답이며 실제 AI 분류·정제 결과가 아니다. 저장 후에도 목업 표시를 유지한다.
+나중에 실제 연결할 때만 DIARY_GENERATOR=openai와 OPENAI_API_KEY/OPENAI_MODEL을 설정한다.
+모드를 바꾸면 서버 재시작 → 연결 스크립트 → 앱 재실행을 한다. 요청 모드가 다르면 공급자 호출 전에 거부한다.
+OpenAI 모드에서 설정/응답 오류가 나면 기존 초안을 유지하며 목업으로 자동 대체하지 않는다.
 현재 근거 듣기는 전체 원본이며 세부 구간·다중 화자 선택·휴대폰 동기화는 후속 작업이다.
 이 로컬 연결은 인증·DB·작업자·HTTPS를 갖춘 제품용 Compose 서버와 별도인 실험 경로다.
 

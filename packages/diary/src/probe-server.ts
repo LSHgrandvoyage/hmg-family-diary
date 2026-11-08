@@ -7,7 +7,11 @@ import {
 } from "./generator.ts";
 
 /** Local emulator bench only. No cookies, CORS, durable jobs, disk transcripts or public listener. */
-export function createProbeServer(token: string, generator: DiaryGenerator) {
+export function createProbeServer(
+  token: string,
+  generator: DiaryGenerator,
+  mode: "mock" | "openai" = "openai",
+) {
   if (!/^[a-f0-9]{64}$/.test(token)) throw new Error("INVALID_PROBE_TOKEN");
   let busy = false;
   return createServer(async (req, res) => {
@@ -68,6 +72,14 @@ export function createProbeServer(token: string, generator: DiaryGenerator) {
         parsed = JSON.parse(Buffer.concat(chunks).toString("utf8"));
       } catch {
         reply(400, { error: "INVALID_INPUT" });
+        return;
+      }
+      if (
+        !parsed ||
+        typeof parsed !== "object" ||
+        (parsed as { generation_mode?: unknown }).generation_mode !== mode
+      ) {
+        reply(409, { error: "MODE_MISMATCH" });
         return;
       }
       const input = generationInput(parsed);

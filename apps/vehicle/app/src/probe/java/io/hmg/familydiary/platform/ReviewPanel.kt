@@ -60,6 +60,11 @@ class ReviewPanel(private val activity: Activity, parent: LinearLayout, private 
     init {
         parent.addView(root, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(24) })
         label("이야기를 일기로", 28f)
+        label(when(generator.mode) {
+            "mock" -> "목업 모드 · AI 정리 전\n확인한 이야기를 그대로 담아 저장 흐름을 시험해요. 외부 AI를 호출하지 않아요."
+            "openai" -> "OpenAI 생성 모드 · 전송 동의 후 초안을 만들어요."
+            else -> "생성 서버 연결 설정이 필요해요. 연결 후 앱을 다시 열어 주세요."
+        })
         label("원본 듣기 → 인식문 확인 → 일기 초안 검토\n이 실험은 한 녹음의 화자를 직접 지정해요. 여러 사람이 말했으면 화자를 구분해 확인해 주세요.")
         label("1. 원래 인식문", 24f)
         raw = label("같은 원본으로 STT를 실행해 주세요.")
@@ -76,7 +81,8 @@ class ReviewPanel(private val activity: Activity, parent: LinearLayout, private 
         text = editor("확인할 이야기", true); textLabel.labelFor = text.id
         confirm = button("확인문 저장") { save(true) }
         sendConsent = CheckBox(activity).apply {
-            text = "확인문·별칭·녹음 시각을 OpenAI에 보내 일기를 만들겠습니다. 음성 파일은 보내지 않습니다."
+            text = if (generator.mode == "mock") "확인문·별칭·녹음 시각을 맥북의 목업 서버로 보내겠습니다. 외부 AI와 음성 파일 전송은 사용하지 않습니다."
+                else "확인문·별칭·녹음 시각을 OpenAI에 보내 일기를 만들겠습니다. 음성 파일은 보내지 않습니다."
             textSize = 20f; minHeight = dp(56); root.addView(this)
         }
         generate = button("일기 초안 만들기") { generate() }
@@ -89,7 +95,7 @@ class ReviewPanel(private val activity: Activity, parent: LinearLayout, private 
         accept = button("검토한 일기 이 기기에 저장") {
             val r = current ?: return@button
             if (!allowed() || busy || dirty || r.draft == null || r.draftRevision != r.revision || r.confirmed != r.revision) return@button
-            persist(r.copy(accepted = r.revision), "일기 저장 완료 · 이 실험 앱에만 보관됨. 휴대폰 동기화는 아직 없어요.")
+            persist(r.copy(accepted = r.revision), "${if (r.generationMode == "mock") "목업 " else ""}일기 저장 완료 · 이 실험 앱에만 보관됨. 휴대폰 동기화는 아직 없어요.")
         }
         val watcher = object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
@@ -111,6 +117,15 @@ class ReviewPanel(private val activity: Activity, parent: LinearLayout, private 
             catch (_: Exception) { feedback.text = "검토 기록을 열지 못했어요. 원본 변경·저장 오류를 확인해 주세요." }
         }
         bind()
+        current?.let { r ->
+            feedback.text = when {
+                r.draft != null && r.accepted == r.revision -> "저장한 ${if (r.generationMode == "mock") "목업 " else ""}일기를 불러왔어요. 원본도 다시 들을 수 있어요."
+                r.draft != null && r.draftRevision != r.revision -> "수정 전 초안이 남아 있어요. 확인문 저장 후 다시 생성해 주세요."
+                r.draft != null -> "검토 전 초안을 불러왔어요. 원본과 비교한 뒤 저장해 주세요."
+                r.confirmed == r.revision -> "저장한 확인문을 불러왔어요. 생성 안내 확인 후 초안을 만들 수 있어요."
+                else -> "선택한 원본을 들으며 이야기를 확인해 주세요."
+            }
+        }
         return true
     }
     fun speechResult(file: File, value: String) {
@@ -141,11 +156,11 @@ class ReviewPanel(private val activity: Activity, parent: LinearLayout, private 
     }
     private fun generate() {
         val r = current ?: return
-        if (!allowed() || !audioIdle() || busy || dirty || !sendConsent.isChecked || r.confirmed != r.revision) return
+        if (!allowed() || !audioIdle() || busy || dirty || generator.mode == null || !sendConsent.isChecked || r.confirmed != r.revision) return
         feedback.text = "일기 초안을 만들고 있어요. 원본과 확인문은 이 기기에 보관돼 있어요."
         generator.run(r.input()) { response, error ->
             if (current?.id == r.id && current?.revision == r.revision && allowed()) {
-                if (response != null) try { persist(r.adopt(response), "초안이 준비됐어요. 원본과 비교한 뒤 저장해 주세요.") }
+                if (response != null) try { persist(r.adopt(response), if (generator.mode == "mock") "목업 초안이 준비됐어요. AI 정리 없이 확인문을 그대로 담았어요." else "초안이 준비됐어요. 원본과 비교한 뒤 저장해 주세요.") }
                 catch (_: Exception) { feedback.text = "현재 확인문과 맞지 않는 응답이라 반영하지 않았어요." }
                 else feedback.text = error
             }
@@ -167,7 +182,7 @@ class ReviewPanel(private val activity: Activity, parent: LinearLayout, private 
         speaker.isEnabled = editAllowed; text.isEnabled = editAllowed; recordedAt.isEnabled = editAllowed
         confirm.isEnabled = editAllowed
         sendConsent.isEnabled = allowed() && !busy && r != null
-        generate.isEnabled = editAllowed && audioIdle() && !dirty && sendConsent.isChecked && r?.confirmed == r?.revision
+        generate.isEnabled = editAllowed && generator.mode != null && audioIdle() && !dirty && sendConsent.isChecked && r?.confirmed == r?.revision
         accept.isEnabled = editAllowed && !dirty && r?.draft != null && r.draftRevision == r.revision && r.confirmed == r.revision
         cancelGeneration.visibility = if (busy) View.VISIBLE else View.GONE
         draft.text = r?.draft?.let { renderDraft(r, it) } ?: "생성된 내용을 원본과 비교한 뒤 저장해 주세요."
@@ -175,12 +190,13 @@ class ReviewPanel(private val activity: Activity, parent: LinearLayout, private 
     private fun renderDraft(r: ReviewRecord, json: String): String = try {
         val d = JSONObject(json)
         buildString {
+            if (r.generationMode == "mock") append("목업 · AI 정리 전\n확인문을 그대로 담은 시험용 응답이에요. 사건·장소·시점을 분류한 결과가 아니에요.\n\n")
             append(when { dirty || r.draftRevision != r.revision -> "이전 확인문으로 만든 초안 · 다시 생성해 주세요.\n\n"
                 r.accepted == r.revision -> "이 기기에 저장한 일기\n\n"; else -> "검토 전 초안\n\n" })
             val groups = d.getJSONArray("groups")
             for (i in 0 until groups.length()) {
                 val g = groups.getJSONObject(i)
-                append(g.getString("label")).append(" · ").append(when(g.getString("time_relation")) { "planned" -> "계획"; "occurred" -> "지난 이야기"; else -> "시점 확인 필요" }).append('\n')
+                append(g.getString("label")).append(" · ").append(if (r.generationMode == "mock") "확인문 원문" else when(g.getString("time_relation")) { "planned" -> "계획"; "occurred" -> "지난 이야기"; else -> "시점 확인 필요" }).append('\n')
                 if (!g.isNull("date")) append(g.getString("date")).append(' ')
                 if (!g.isNull("place_label")) append(g.getString("place_label"))
                 append('\n')
@@ -192,7 +208,8 @@ class ReviewPanel(private val activity: Activity, parent: LinearLayout, private 
             val reviews = d.getJSONArray("review_items")
             for (i in 0 until reviews.length()) append("확인: ").append(reviews.getJSONObject(i).getString("message")).append('\n')
             append("제외된 근거: ${d.getJSONArray("excluded_spans").length()}개 · 전체 원본에서 확인할 수 있어요.\n")
-            append("근거 듣기: 위 ‘선택한 원본 듣기’ · 전체 녹음 연결 (세부 구간 미검증)\nAI가 만든 초안이에요. 원래 이야기와 비교해 주세요.")
+            append("근거 듣기: 위 ‘선택한 원본 듣기’ · 전체 녹음 연결 (세부 구간 미검증)\n")
+            append(if (r.generationMode == "mock") "목업 응답이에요. AI 생성 품질을 검증한 결과가 아니에요." else "AI가 만든 초안이에요. 원래 이야기와 비교해 주세요.")
         }
     } catch (_: Exception) { "초안을 표시할 수 없어요. 이전 저장본은 유지됩니다." }
 }

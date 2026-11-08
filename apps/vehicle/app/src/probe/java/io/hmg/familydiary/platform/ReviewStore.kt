@@ -12,7 +12,7 @@ data class ReviewRecord(
     val rawHistory: List<String> = emptyList(), val text: String = "", val speaker: String = "",
     val revision: Int = 0, val confirmed: Int = -1,
     val draft: String? = null, val draftRevision: Int = -1, val accepted: Int = -1,
-    val model: String = "", val promptVersion: String = ""
+    val model: String = "", val promptVersion: String = "", val generationMode: String = "openai"
 ) {
     fun edit(text: String, speaker: String, recordedAt: String): ReviewRecord =
         if (this.text == text && this.speaker == speaker && this.recordedAt == recordedAt) this
@@ -39,8 +39,10 @@ data class ReviewRecord(
         val output = result.getJSONObject("draft")
         require(output.getString("schema_version") == "1")
         output.getJSONArray("groups"); output.getJSONArray("excluded_spans"); output.getJSONArray("review_items")
+        val mode = result.getString("generation_mode")
+        require(mode == "mock" || mode == "openai")
         return copy(draft = output.toString(), draftRevision = revision, accepted = -1,
-            model = result.getString("model"), promptVersion = result.getString("prompt_version"))
+            model = result.getString("model"), promptVersion = result.getString("prompt_version"), generationMode = mode)
     }
 }
 
@@ -63,13 +65,13 @@ class ReviewStore(private val directory: File) {
         return ReviewRecord(original.name, sha, duration, j.getString("recorded_at"),
             (0 until raw.length()).map { raw.getString(it) }, j.getString("text"), j.getString("speaker"),
             j.getInt("revision"), j.getInt("confirmed"), if (j.isNull("draft")) null else j.getString("draft"),
-            j.getInt("draft_revision"), j.getInt("accepted"), j.optString("model"), j.optString("prompt_version"))
+            j.getInt("draft_revision"), j.getInt("accepted"), j.optString("model"), j.optString("prompt_version"), j.optString("generation_mode", "openai"))
     }
     fun save(r: ReviewRecord) {
         val j = JSONObject().put("sha256", r.sha256).put("duration_ms", r.durationMs).put("recorded_at", r.recordedAt)
             .put("raw_history", JSONArray(r.rawHistory)).put("text", r.text).put("speaker", r.speaker)
             .put("revision", r.revision).put("confirmed", r.confirmed).put("draft", r.draft ?: JSONObject.NULL)
-            .put("draft_revision", r.draftRevision).put("accepted", r.accepted).put("model", r.model).put("prompt_version", r.promptVersion)
+            .put("draft_revision", r.draftRevision).put("accepted", r.accepted).put("model", r.model).put("prompt_version", r.promptVersion).put("generation_mode", r.generationMode)
         val file = atomic(r.id)
         val stream = file.startWrite()
         try { stream.write(j.toString().toByteArray(Charsets.UTF_8)); file.finishWrite(stream) }

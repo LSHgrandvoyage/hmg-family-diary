@@ -14,8 +14,11 @@ afterEach(async () => {
     ),
   );
 });
-async function server(generator: DiaryGenerator) {
-  const s = createProbeServer("a".repeat(64), generator);
+async function server(
+  generator: DiaryGenerator,
+  mode: "mock" | "openai" = "openai",
+) {
+  const s = createProbeServer("a".repeat(64), generator, mode);
   servers.push(s);
   await new Promise<void>((r) => s.listen(0, "127.0.0.1", r));
   return `http://127.0.0.1:${(s.address() as { port: number }).port}/draft`;
@@ -47,11 +50,31 @@ it("returns an explicit unconfigured error without storing text or generating a 
   const response = await fetch(url, {
     method: "POST",
     headers,
-    body: JSON.stringify(fixture.input),
+    body: JSON.stringify({ ...fixture.input, generation_mode: "openai" }),
   });
   expect(response.status).toBe(503);
   expect(await response.json()).toEqual({ error: "NOT_CONFIGURED" });
 });
+it.each(["mock", "openai"] as const)(
+  "blocks mismatched or missing client mode before the %s generator runs",
+  async (mode) => {
+    const generate = vi.fn();
+    const url = await server({ generate }, mode);
+    for (const generation_mode of [
+      undefined,
+      mode === "mock" ? "openai" : "mock",
+    ]) {
+      const response = await fetch(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ ...fixture.input, generation_mode }),
+      });
+      expect(response.status).toBe(409);
+      expect(await response.json()).toEqual({ error: "MODE_MISMATCH" });
+    }
+    expect(generate).not.toHaveBeenCalled();
+  },
+);
 it("rejects malformed JSON and excessive payload before generation", async () => {
   const generate = vi.fn();
   const url = await server({ generate });

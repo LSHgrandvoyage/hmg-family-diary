@@ -62,6 +62,7 @@ it("sends only confirmed input, strict schema, no tools, and store:false; retain
     ...input,
     audio: "private-audio",
     coordinates: [1, 2],
+    generation_mode: "openai",
   } as GenerationInput);
   const request = JSON.parse(transport.mock.calls[0][1]!.body as string);
   expect(request.store).toBe(false);
@@ -70,6 +71,7 @@ it("sends only confirmed input, strict schema, no tools, and store:false; retain
   expect(request.text.format.schema.$id).toBeUndefined();
   expect(request.input[0].content).not.toContain("private-audio");
   expect(request.input[0].content).not.toContain("coordinates");
+  expect(request.input[0].content).not.toContain("generation_mode");
   expect(result.input_revision).toBe(input.input_revision);
   expect(result.draft.groups[0].statements.map((s) => s.member_id)).toEqual([
     "parent",

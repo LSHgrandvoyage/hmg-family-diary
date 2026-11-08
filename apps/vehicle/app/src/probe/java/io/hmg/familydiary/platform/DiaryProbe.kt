@@ -9,12 +9,15 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 class DiaryProbe(private val context: Context) {
+    val mode: String? = runCatching { File(context.filesDir, "diary-probe-mode").readText().trim() }
+        .getOrNull()?.takeIf { it == "mock" || it == "openai" }
     private val handler = Handler(Looper.getMainLooper())
     private val lock = Any()
     @Volatile private var generation = 0
     @Volatile private var connection: HttpURLConnection? = null
     var busy = false; private set
     fun run(input: JSONObject, done: (JSONObject?, String?) -> Unit) {
+        if (mode == null) { done(null, "생성 모드 연결 설정이 없어요. 맥북에서 연결 스크립트를 실행한 뒤 앱을 다시 열어 주세요."); return }
         cancel(); val token = generation; busy = true
         Thread({
             var result: JSONObject? = null; var error: String? = null
@@ -32,12 +35,16 @@ class DiaryProbe(private val context: Context) {
                     setRequestProperty("Content-Type", "application/json")
                     setRequestProperty("Authorization", "Bearer $credential"); doOutput = true
                 }
-                conn.outputStream.use { it.write(input.toString().toByteArray(Charsets.UTF_8)) }
+                val request = JSONObject(input.toString()).put("generation_mode", mode)
+                conn.outputStream.use { it.write(request.toString().toByteArray(Charsets.UTF_8)) }
                 val success = conn.responseCode == 200
                 val body = (if (success) conn.inputStream else conn.errorStream)?.use {
                     val bytes = it.readBytesLimited(1_000_000); JSONObject(String(bytes, Charsets.UTF_8))
                 }
-                if (success) result = body ?: throw IllegalStateException() else error = message(body?.optString("error"))
+                if (success) {
+                    require(body?.getString("generation_mode") == mode)
+                    result = body
+                } else error = message(body?.optString("error"))
             } catch (_: Exception) { error = "생성 서버에 연결하지 못했어요. 맥북 서버와 연결 설정을 확인한 뒤 다시 시도해 주세요." }
             finally { conn?.disconnect(); if (connection === conn) connection = null }
             handler.post { if (token == generation) { busy = false; done(result, error) } }
@@ -50,6 +57,7 @@ class DiaryProbe(private val context: Context) {
         return out.toByteArray()
     }
     private fun message(code: String?) = when (code) {
+        "MODE_MISMATCH" -> "앱과 서버의 생성 모드가 달라요. 연결 설정을 갱신하고 앱을 다시 열어 주세요. 외부 API는 호출하지 않았어요."
         "NOT_CONFIGURED" -> "OpenAI API 키·모델이 아직 설정되지 않았어요. 확인문은 이 기기에 보관했어요."
         "PROVIDER_AUTH" -> "OpenAI 인증·모델 접근 권한을 확인해 주세요. 확인문은 보관했어요."
         "REFUSED" -> "모델이 초안을 만들지 못했어요. 확인문과 원본은 그대로 남아 있어요."

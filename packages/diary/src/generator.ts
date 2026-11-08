@@ -14,6 +14,7 @@ export class GenerationError extends Error {
   }
 }
 export type GeneratedDraft = {
+  generation_mode: "mock" | "openai";
   draft: DiaryOutput;
   model: string;
   prompt_version: string;
@@ -174,6 +175,7 @@ export class OpenAIDiaryGenerator implements DiaryGenerator {
       )
         throw new GenerationError("UNVERIFIED_ALIGNMENT");
       return {
+        generation_mode: "openai",
         draft,
         model: this.config.model,
         prompt_version: PROMPT_VERSION,

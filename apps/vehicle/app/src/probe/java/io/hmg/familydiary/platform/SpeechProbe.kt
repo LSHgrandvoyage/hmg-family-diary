@@ -23,7 +23,7 @@ class SpeechProbe(private val context: Context) {
     private var sender: Thread? = null
     var busy = false; private set
 
-    fun run(file: File?, onStatus: (String) -> Unit, onDone: () -> Unit) {
+    fun run(file: File?, onStatus: (String) -> Unit, onDone: () -> Unit, onResult: (String) -> Unit = {}) {
         cancel()
         val token = generation
         busy = true
@@ -45,6 +45,7 @@ class SpeechProbe(private val context: Context) {
                         else -> "STT 종료 · 인식문 없음"
                     }
                     onStatus("$heading\n${transcript.text}")
+                    if (transcript.partial.isBlank() && transcript.completedCount > 0) onResult(transcript.text)
                     cancel(); onDone()
                 }
             }, 500)

@@ -14,12 +14,16 @@ import android.widget.*
 import io.hmg.familydiary.capture.PcmWave
 import io.hmg.familydiary.platform.CaptureProbe
 import io.hmg.familydiary.platform.SpeechProbe
+import io.hmg.familydiary.platform.ReviewPanel
+import io.hmg.familydiary.platform.ReviewStore
+import java.time.Instant
 import java.io.File
 
 /** Debug-only bench. Never installed in a real vehicle and never part of pleos release. */
 class MainActivity : Activity() {
     private lateinit var capture: CaptureProbe
     private lateinit var speech: SpeechProbe
+    private lateinit var review: ReviewPanel
     private lateinit var status: TextView
     private lateinit var sttStatus: TextView
     private lateinit var parked: CheckBox
@@ -66,7 +70,7 @@ class MainActivity : Activity() {
             text = value; textSize = size; setPadding(0, 8, 0, 8); root.addView(this)
         }
         label("가족의 이야기 · 원본 녹음 실험", 30f)
-        label("에뮬레이터 전용 / 실제 주차·차량 신호 미연결\n음성은 이 앱에만 저장됩니다. 서버 전송 없음 · 실험 상한 21분")
+        label("에뮬레이터 전용 / 실제 주차·차량 신호 미연결\n음성은 이 앱에만 저장됩니다. 일기 생성 시 확인한 텍스트만 전송 · 실험 상한 21분")
         parked = CheckBox(this).apply { text = "모의 P 상태 확인 (실제 차량 판정 아님)"; textSize = 20f; minHeight = 56 }
         consent = CheckBox(this).apply { text = "참여자에게 공동 녹음·보관을 알렸습니다"; textSize = 20f; minHeight = 56 }
         root.addView(parked); root.addView(consent)
@@ -94,7 +98,15 @@ class MainActivity : Activity() {
         recognize = button(second, "같은 원본으로 STT") { selected()?.let { runSpeech(it) } }
         delete = button(second, "실험 원본 전체 삭제") { confirmDelete() }
         sttStatus = label("STT 미실행 · Pleos ON_DEVICE / 저장된 PCM만 사용")
+        sttStatus.maxLines = 3; sttStatus.ellipsize = android.text.TextUtils.TruncateAt.END
         sttStatus.accessibilityLiveRegion = android.view.View.ACCESSIBILITY_LIVE_REGION_POLITE
+        review = ReviewPanel(this, root, { allowed() }, { !capture.busy && !speech.busy && player == null }, { !capture.busy && !speech.busy }, { render() })
+        files.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
+                if (!review.select(selected())) files.setSelection(originals.indexOfFirst { it.name == review.fileId }.coerceAtLeast(0))
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) { review.select(null) }
+        }
         parked.setOnCheckedChangeListener { _, checked ->
             if (!checked) interrupt("모의 P 해제 · 기록·재생 중단") else render()
         }
@@ -106,7 +118,7 @@ class MainActivity : Activity() {
     }
 
     private fun allowed() = benchAvailable && foreground && parked.isChecked && consent.isChecked
-    private fun idle() = !capture.busy && player == null && !speech.busy
+    private fun idle() = !capture.busy && player == null && !speech.busy && !review.busy
     private fun selected() = originals.getOrNull(files.selectedItemPosition)
     private fun focus(): Boolean {
         hasFocus = audio.requestAudioFocus(focusRequest) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
@@ -120,8 +132,10 @@ class MainActivity : Activity() {
         play.isEnabled = allowed() && idle() && originals.isNotEmpty()
         recognize.isEnabled = allowed() && idle() && originals.isNotEmpty()
         checkSdk.isEnabled = allowed() && idle()
-        files.isEnabled = idle()
+        files.isEnabled = allowed() && idle()
         delete.isEnabled = idle() && directory.listFiles()?.isNotEmpty() == true
+        sttStatus.visibility = if (allowed()) android.view.View.VISIBLE else android.view.View.GONE
+        review.render()
     }
     private fun refreshFiles(prefer: File? = null) {
         originals = directory.listFiles()?.filter { it.name.endsWith(".wav") }
@@ -137,10 +151,12 @@ class MainActivity : Activity() {
     }
     private fun startCapture() {
         if (!allowed() || !idle()) return
+        if (!review.save()) return
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 10); return
         }
         if (!focus()) return
+        val startedAt = Instant.now().toString()
         try {
             capture.start(onProgress = { millis ->
                 if (capture.busy && foreground) status.text = "녹음 중 · ${millis / 1000}초 · 편하게 이야기해 주세요"
@@ -150,6 +166,12 @@ class MainActivity : Activity() {
                     result.error != null -> "원본 보관 실패 · ${result.error}\n미완료 파일은 완료 원본으로 표시하지 않습니다."
                     result.interrupted -> "녹음 중단 · ${result.bytes / PcmWave.BYTES_PER_SECOND}초까지 보관됨"
                     else -> "원본 보관 완료 · ${result.bytes / PcmWave.BYTES_PER_SECOND}초 · 다시 들을 수 있어요"
+                }
+                result.file?.let { file ->
+                    runCatching {
+                        val store = ReviewStore(File(filesDir, "capture-review"))
+                        store.save(store.load(file).copy(recordedAt = startedAt))
+                    }
                 }
                 refreshFiles(result.file)
             })
@@ -188,7 +210,8 @@ class MainActivity : Activity() {
     }
     private fun runSpeech(file: File?) {
         if (!allowed() || !idle() || !focus()) return
-        speech.run(file, onStatus = { sttStatus.text = it }, onDone = { abandonFocus(); render() })
+        speech.run(file, onStatus = { sttStatus.text = it }, onDone = { abandonFocus(); render() },
+            onResult = { value -> file?.let { review.speechResult(it, value) } })
         render()
     }
     private fun stopPlayback() {
@@ -196,6 +219,7 @@ class MainActivity : Activity() {
         runCatching { player?.release() }; player = null; abandonFocus()
     }
     private fun stopEverything(interrupted: Boolean) {
+        if (::review.isInitialized) { review.save(); review.cancel() }
         capture.stop(interrupted); stopPlayback(); speech.cancel(); abandonFocus()
     }
     private fun interrupt(message: String) {
@@ -204,10 +228,11 @@ class MainActivity : Activity() {
     private fun confirmDelete() {
         if (!idle()) return
         AlertDialog.Builder(this).setTitle("실험 원본을 모두 삭제할까요?")
-            .setMessage("완료 원본과 미완료 파일을 이 앱에서 삭제합니다.")
+            .setMessage("완료 원본·미완료 파일과 인식문·수정문·일기 초안을 이 앱에서 삭제합니다.")
             .setNegativeButton("취소", null).setPositiveButton("삭제") { _, _ ->
                 if (idle()) {
-                    val success = directory.listFiles()?.map { it.delete() }?.all { it } ?: true
+                    val reviewsDeleted = review.clear()
+                    val success = (directory.listFiles()?.map { it.delete() }?.all { it } ?: true) && reviewsDeleted
                     status.text = if (success) "실험 원본 삭제 완료" else "일부 파일 삭제 실패 · 다시 시도해 주세요"
                     sttStatus.text = "STT 미실행"; refreshFiles()
                 }

@@ -16,8 +16,10 @@
 - Pleos SpeechToText3.3.1 ON_DEVICE / Locale.KOREA(ko-KR). WAV의 44-byte header를 제외한 동일 PCM을
   100ms 분량으로 전송하고 마지막에 completeAudioSend 호출. SDK request()로 별도 마이크를 열지 않는다.
 - 인식 완료 구간 누적. SDK의 한 구간 종료만으로 남은 파일 전송을 취소하지 않는다.
-  인식 중간 결과와 최종 확정 결과를 구분하며 앱이 음성·인식문을 로그나 서버로 내보내지 않는다.
-- probe merged manifest에서 INTERNET 권한 제거 확인. 제품 pleos release에는 RECORD_AUDIO/STT 권한 및 probe UI가 없다.
+  인식 중간 결과와 최종 확정 결과를 구분하며 앱이 음성·인식문을 로그로 내보내지 않는다.
+- 초기 캡처 probe는 INTERNET 권한을 제거했다. 후속 [검토·생성 실험](review-generation.md)에서 probe에만
+  INTERNET/localhost 예외를 추가했으며, 사용자 생성 요청 시 확인문만 로컬 서버를 통해 OpenAI에 전달한다.
+  제품 pleos release에는 RECORD_AUDIO/STT 권한 및 probe UI가 없다.
 
 이 저장소는 제품의 암호화 LocalStore(T008)가 아니다. 실험용 평문 파일이며 outbox·chunk 복구·동기화는 미구현이다.
 실험 상한 21분, 시작 시 여유 공간 64MiB 확인. 이는 제품의 자유 발화 형식을 제한하는 정책으로 확정한 값이 아니다.

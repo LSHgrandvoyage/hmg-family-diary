@@ -9,6 +9,9 @@
 
 **Format**: `[ID] [P?] [Story?] 설명·경로·완료 기준`. [P]는 지정된 선행 작업 완료 후 다른 파일에서 수행할 수 있다는 뜻이다.
 
+진행 중인 독립 probe 묶음: T017/T020의 인식문 검토·확인 revision·생성 adapter·실험용 loopback 연결.
+제품 선행 조건을 통과한 것으로 체크하지 않는다. 실행 범위와 결과는 `docs/evidence/review-generation.md`에 기록한다.
+
 ## Phase 1: Setup and platform evidence
 
 - [X] T001 pnpm workspace와 `apps/web/package.json`, `workers/diary/package.json`, `packages/{contracts,diary,storage}/package.json`, `.env.example`를 만들고 Node24·Next16·TypeScript·Better Auth·pg 의존성을 lockfile에 고정한다. 현재 구현된 dev/build/test/fixture 명령을 실제 script로 연결한다. db:migrate/status는 T007, worker는 T011, eval은 T035 구현 때 연결한다. 비밀키는 서버 전용으로 검증한다.

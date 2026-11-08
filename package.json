@@ -16,7 +16,8 @@
     "fixture:audio": "tsx scripts/generate-audio-fixture.ts",
     "test:storage": "vitest run packages/storage",
     "prebuild": "pnpm fixture:audio",
-    "format:check": "prettier --check \"apps/web/src/**/*.{ts,tsx,css}\" \"apps/web/tests/**/*.ts\" \"packages/**/*.ts\" \"scripts/*.{ts,mjs}\""
+    "format:check": "prettier --check \"apps/web/src/**/*.{ts,tsx,css}\" \"apps/web/tests/**/*.ts\" \"packages/**/*.ts\" \"scripts/*.{ts,mjs}\"",
+    "probe:server": "tsx --env-file-if-exists=.env.probe scripts/probe-server.ts"
   },
   "dependencies": {
     "ajv": "8.20.0",

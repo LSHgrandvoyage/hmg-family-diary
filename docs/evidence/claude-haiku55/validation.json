@@ -1,0 +1,59 @@
+{
+  "validated_at": "2026-11-08T15:04:59.182Z",
+  "validator": "packages/contracts/src/diary.ts validateDiary + exact whole-utterance bounds",
+  "results": [
+    {
+      "id": "E01",
+      "contract": "passed",
+      "whole_utterance_spans": true,
+      "input_utterances": 2,
+      "groups": 1,
+      "excluded_spans": 0
+    },
+    {
+      "id": "E02",
+      "contract": "passed",
+      "whole_utterance_spans": true,
+      "input_utterances": 2,
+      "groups": 1,
+      "excluded_spans": 0
+    },
+    {
+      "id": "E03",
+      "contract": "passed",
+      "whole_utterance_spans": true,
+      "input_utterances": 2,
+      "groups": 3,
+      "excluded_spans": 0
+    },
+    {
+      "id": "E06",
+      "contract": "passed",
+      "whole_utterance_spans": true,
+      "input_utterances": 2,
+      "groups": 1,
+      "excluded_spans": 1
+    },
+    {
+      "id": "E07",
+      "contract": "passed",
+      "whole_utterance_spans": true,
+      "input_utterances": 2,
+      "groups": 1,
+      "excluded_spans": 0
+    },
+    {
+      "id": "E09",
+      "contract": "passed",
+      "whole_utterance_spans": true,
+      "input_utterances": 42,
+      "groups": 2,
+      "excluded_spans": 39
+    }
+  ],
+  "hashes": {
+    "packages/diary/src/prompts.ts": "dfea4bce4f1d8183443f5245cf73947a29427bf977d0967c566e2fec63a72a3f",
+    "specs/001-family-trip-memory/contracts/diary-output.schema.json": "e39ca93541729937ad3d653e01a8bbc0a85dcfb2923ffccf20d585ca9070f9c4"
+  },
+  "semantic_review": "See ../g3-generation.md; structural checks do not establish semantic fidelity."
+}

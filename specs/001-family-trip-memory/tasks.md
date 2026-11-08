@@ -10,6 +10,7 @@
 **Format**: `[ID] [P?] [Story?] 설명·경로·완료 기준`. [P]는 지정된 선행 작업 완료 후 다른 파일에서 수행할 수 있다는 뜻이다.
 
 진행 중인 독립 probe 묶음: T017/T020의 인식문 검토·확인 revision·생성 adapter·실험용 loopback 연결.
+2026-11-09: Haiku 5.5 웹 내용 실험6건을 실행·보존했다. [부분 증거](../../docs/evidence/g3-generation.md). T035/G3 전체 완료가 아니며 체크 상태는 유지한다.
 제품 선행 조건을 통과한 것으로 체크하지 않는다. 실행 범위와 결과는 `docs/evidence/review-generation.md`에 기록한다.
 
 ## Phase 1: Setup and platform evidence

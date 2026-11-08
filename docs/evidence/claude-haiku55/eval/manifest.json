@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "prepared_at": "2026-11-08T14:53:54.537315+00:00",
+  "source_sha256": "d31170aa29dac4afc048ae2bb3653ea723db127a420236851b774653b98f3bbb",
+  "route": "Claude web subscription",
+  "inference_scope": "response_only",
+  "requested_model": "Haiku 5.5 중간",
+  "additional_api_calls": 0,
+  "api_equivalent": false,
+  "cases": [
+    {
+      "id": "E07",
+      "packet": "packets/E07.txt",
+      "sha256": "71edc09202390d4269c8eae54cffed4f49352b9353ae5af4ff41d76aa78ed928",
+      "metadata": {
+        "split": "evaluation",
+        "synthetic": true,
+        "prompt_version": "family-diary-v1",
+        "case": "E07",
+        "expected_review": "서로 다른 화자 충돌 유지 및 검토"
+      }
+    },
+    {
+      "id": "E09",
+      "packet": "packets/E09.txt",
+      "sha256": "e2d42b2adfb5be98f81d4806ac248fc63f34ad0f8d9a039f4ad445040840363a",
+      "metadata": {
+        "split": "evaluation",
+        "synthetic": true,
+        "prompt_version": "family-diary-v1",
+        "case": "E09",
+        "expected_review": "뒤 window의 정정이 첫 window에 반영"
+      }
+    }
+  ]
+}

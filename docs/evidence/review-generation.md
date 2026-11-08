@@ -68,30 +68,16 @@ pnpm probe:server
 사용자 결정에 따라 앱은 OpenAI API로 구현하고, 내용 탐색은
 [claude-web-experiments 스킬](/Users/lee/.codex/skills/claude-web-experiments/SKILL.md)의 웹 구독 경로로 분리했다.
 
-- 개발 입력: E01 반대 감정, E02 정정, E03 시점, E06 명령형 발화.
-- 평가 입력: E07 서로 다른 화자의 충돌, E09 뒤쪽 정정. 아직 실행/채점하지 않았다.
-- `prepare-web-experiments.ts`는 실제 앱의 동일 프롬프트와 출력 스키마·합성 입력만 전달용 메시지에 넣는다.
-  기대 결과·개발/평가 표시·버전 등은 metadata에만 두고 skill의 trial.py로 원문/packet SHA256을 기록한다.
-- 준비 파일: `.tools/claude-diary-review/{development,evaluation}.jsonl`.
-- 스킬 산출물: `.tools/claude-diary-review/{dev-run,eval-run}/{manifest.json,results.json,packets/}`.
-- 상태: 전부 `prepared`, 실제 전송0/완료0/미수집0. 추가 API 호출0.
-- 차단: CUA 브라우저 inventory의 host unavailable. 대체 Google Chrome 제어는 승인되지 않았다.
-  따라서 요금제·포함 사용량·추가 크레딧·실제 모델·thinking·시크릿·도구 설정을 확인하지 못했다.
-  사용량0이라고 주장하지 않으며 결과 파일에 외부 모델 답변을 만들어 넣지 않았다.
-
-```sh
-node --import tsx scripts/prepare-web-experiments.ts .tools/claude-diary-review
-python3 ~/.codex/skills/claude-web-experiments/scripts/trial.py prepare .tools/claude-diary-review/development.jsonl .tools/claude-diary-review/dev-run --model '미지정 - 실행 전 UI 확인'
-python3 ~/.codex/skills/claude-web-experiments/scripts/trial.py prepare .tools/claude-diary-review/evaluation.jsonl .tools/claude-diary-review/eval-run --model '미지정 - 실행 전 UI 확인'
-```
-
-기존 디렉터리는 덮어쓰지 않는다. 실제 UI 사용이 가능해지면 사용량/모델을 확인하고 새로운 실행 디렉터리에
-관측 모델을 기록한다. 전송 직전 begin → UI 응답 전문 회수 → record 순서를 따른다.
-웹에서 역할을 한 메시지로 표현하는 차이가 있으며, 웹 결과를 API 모델의 품질/비용/지연 검증으로 간주하지 않는다.
+2026-11-09 갱신: 최초 브라우저 연결 차단은 이후 승인된 native Chrome 제어로 해소했다.
+사용자가 요청한 비공개 Claude 프로젝트에서 **Haiku 5.5 중간**으로 개발4건·평가2건을
+각각 새 대화로 실행했다. 실제 전송6/완료6/미수집0, 추가 API 호출0이다.
+형식·근거 검사는6건 모두 통과했으나 장소 라벨 누락·충돌 표현·검토 표시의 개선점이 있다.
+전체 응답·입력 해시·UI 조건·한계는 [웹 실험 보고서](g3-generation.md)에 기록했다.
+앱의 OpenAI API 통합은 유지하며, 웹 결과를 해당 API의 검증으로 대체하지 않는다.
 
 ## 다음 검증
 
-1. Claude 웹 연결 후 위 내용 실험을 실행·검토하고 프롬프트를 보정한다.
+1. 웹 기준선에서 발견한 장소 라벨·충돌 표현·검토 표시 규칙을 보정하고, 새 평가 입력으로 재검증한다.
 2. `.env.probe`의 키·모델을 사용자가 설정하면 합성 입력으로 실제 OpenAI 응답과 초안 저장 경로를 검증한다.
 3. 제품 경로는 실제 P/UX·암호화·가족 인증·DB 작업자·동기화 선행 조건을 완료한 뒤 활성화한다.
 

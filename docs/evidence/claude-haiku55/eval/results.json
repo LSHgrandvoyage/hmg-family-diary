@@ -1,0 +1,64 @@
+[
+  {
+    "id": "E07",
+    "status": "completed",
+    "started_at": "2026-11-08T15:01:27.953318+00:00",
+    "response": {
+      "source": "observed_ui",
+      "answer": "{\"schema_version\":\"1\",\"groups\":[{\"id\":\"G1\",\"label\":\"동물원 방문 기록에 대한 정정\",\"place_label\":null,\"date\":null,\"time_relation\":\"occurred\",\"needs_review\":true,\"statements\":[{\"text\":\"보호자는 동물원에 갔다고 말했으나, 아이는 수족관에 갔다고 정정했다.\",\"audience\":\"shared\",\"member_id\":null,\"source_spans\":[{\"utterance_id\":\"E07-u1\",\"start_ms\":0,\"end_ms\":5000},{\"utterance_id\":\"E07-u2\",\"start_ms\":5000,\"end_ms\":10000}]}]}],\"excluded_spans\":[],\"review_items\":[{\"message\":\"방문 장소가 동물원인지 수족관인지 확정되지 않았습니다. 보호자와 아이의 발화가 서로 다르므로 실제 방문 장소를 확인해 주세요.\",\"utterance_ids\":[\"E07-u1\",\"E07-u2\"]}]}",
+      "chat_url": "https://claude.ai/chat/2b3d5285-3693-489d-a730-f23a0724dd35",
+      "model_ui_label": "Haiku 5.5 중간",
+      "observed_at": "2026-11-08T15:01:58.230761+00:00",
+      "ui_settings": {
+        "project_url": "https://claude.ai/project/01a1bba4-568a-705d-a60b-00c1e9c4b0f1",
+        "private": true,
+        "incognito": false,
+        "memory_creation": false,
+        "chat_search_reference": true,
+        "profile_instructions": "unverified",
+        "research": false,
+        "connectors": {
+          "Notion": false,
+          "Slack": false,
+          "Claude in Chrome": false
+        },
+        "effort": "중간",
+        "project_instructions": "neutral experiment isolation guidance"
+      },
+      "tool_use": "none_observed",
+      "notes": "Full answer copied via native Chrome UI into unsent composer and read through accessibility; trailing clipboard whitespace omitted, no content corrected. Input became a pasted text attachment. Project requested by user; chat search remains enabled globally, memory creation off. Not API-equivalent."
+    },
+    "input_sha256": "71edc09202390d4269c8eae54cffed4f49352b9353ae5af4ff41d76aa78ed928"
+  },
+  {
+    "id": "E09",
+    "status": "completed",
+    "started_at": "2026-11-08T15:02:18.524779+00:00",
+    "response": {
+      "source": "observed_ui",
+      "answer": "{\"schema_version\":\"1\",\"groups\":[{\"id\":\"g1\",\"label\":\"첫날 식사\",\"place_label\":null,\"date\":null,\"time_relation\":\"occurred\",\"needs_review\":true,\"statements\":[{\"text\":\"첫날 아침으로 국수를 먹었다.\",\"audience\":\"member\",\"member_id\":\"parent\",\"source_spans\":[{\"utterance_id\":\"E09-u1\",\"start_ms\":0,\"end_ms\":5000},{\"utterance_id\":\"E09-u42\",\"start_ms\":205000,\"end_ms\":210000}]}]},{\"id\":\"g2\",\"label\":\"전망대 구름 관찰\",\"place_label\":\"전망대\",\"date\":null,\"time_relation\":\"occurred\",\"needs_review\":false,\"statements\":[{\"text\":\"전망대에서 구름을 봤다.\",\"audience\":\"member\",\"member_id\":\"parent\",\"source_spans\":[{\"utterance_id\":\"E09-u2\",\"start_ms\":5000,\"end_ms\":10000}]}]}],\"excluded_spans\":[{\"source_span\":{\"utterance_id\":\"E09-u3\",\"start_ms\":10000,\"end_ms\":15000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u4\",\"start_ms\":15000,\"end_ms\":20000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u5\",\"start_ms\":20000,\"end_ms\":25000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u6\",\"start_ms\":25000,\"end_ms\":30000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u7\",\"start_ms\":30000,\"end_ms\":35000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u8\",\"start_ms\":35000,\"end_ms\":40000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u9\",\"start_ms\":40000,\"end_ms\":45000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u10\",\"start_ms\":45000,\"end_ms\":50000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u11\",\"start_ms\":50000,\"end_ms\":55000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u12\",\"start_ms\":55000,\"end_ms\":60000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u13\",\"start_ms\":60000,\"end_ms\":65000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u14\",\"start_ms\":65000,\"end_ms\":70000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u15\",\"start_ms\":70000,\"end_ms\":75000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u16\",\"start_ms\":75000,\"end_ms\":80000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u17\",\"start_ms\":80000,\"end_ms\":85000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u18\",\"start_ms\":85000,\"end_ms\":90000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u19\",\"start_ms\":90000,\"end_ms\":95000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u20\",\"start_ms\":95000,\"end_ms\":100000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u21\",\"start_ms\":100000,\"end_ms\":105000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u22\",\"start_ms\":105000,\"end_ms\":110000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u23\",\"start_ms\":110000,\"end_ms\":115000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u24\",\"start_ms\":115000,\"end_ms\":120000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u25\",\"start_ms\":120000,\"end_ms\":125000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u26\",\"start_ms\":125000,\"end_ms\":130000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u27\",\"start_ms\":130000,\"end_ms\":135000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u28\",\"start_ms\":135000,\"end_ms\":140000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u29\",\"start_ms\":140000,\"end_ms\":145000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u30\",\"start_ms\":145000,\"end_ms\":150000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u31\",\"start_ms\":150000,\"end_ms\":155000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u32\",\"start_ms\":155000,\"end_ms\":160000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u33\",\"start_ms\":160000,\"end_ms\":165000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u34\",\"start_ms\":165000,\"end_ms\":170000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u35\",\"start_ms\":170000,\"end_ms\":175000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u36\",\"start_ms\":175000,\"end_ms\":180000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u37\",\"start_ms\":180000,\"end_ms\":185000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u38\",\"start_ms\":185000,\"end_ms\":190000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u39\",\"start_ms\":190000,\"end_ms\":195000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u40\",\"start_ms\":195000,\"end_ms\":200000},\"reason\":\"repetition\"},{\"source_span\":{\"utterance_id\":\"E09-u41\",\"start_ms\":200000,\"end_ms\":205000},\"reason\":\"repetition\"}],\"review_items\":[{\"message\":\"'첫날'이 실제 어느 날짜인지 입력에 없어 날짜를 비워 두었습니다. 여행 날짜와 전망대 방문 날짜를 확인해 주세요.\",\"utterance_ids\":[\"E09-u1\",\"E09-u2\",\"E09-u42\"]},{\"message\":\"'전망대에서 구름을 봤어.' 발화가 40번 반복되어 한 번만 남겼습니다. 실제로 여러 번 말한 것인지 확인해 주세요.\",\"utterance_ids\":[\"E09-u2\",\"E09-u41\"]}]}",
+      "chat_url": "https://claude.ai/chat/3f59b6f3-b8b2-423e-901b-6f8fb217a73f",
+      "model_ui_label": "Haiku 5.5 중간",
+      "observed_at": "2026-11-08T15:03:29.959664+00:00",
+      "ui_settings": {
+        "project_url": "https://claude.ai/project/01a1bba4-568a-705d-a60b-00c1e9c4b0f1",
+        "private": true,
+        "incognito": false,
+        "memory_creation": false,
+        "chat_search_reference": true,
+        "profile_instructions": "unverified",
+        "research": false,
+        "connectors": {
+          "Notion": false,
+          "Slack": false,
+          "Claude in Chrome": false
+        },
+        "effort": "중간",
+        "project_instructions": "neutral experiment isolation guidance"
+      },
+      "tool_use": "none_observed",
+      "notes": "Full answer copied via native Chrome UI into unsent composer and read through accessibility; trailing clipboard whitespace omitted, no content corrected. Input became a pasted text attachment. Project requested by user; chat search remains enabled globally, memory creation off. Not API-equivalent."
+    },
+    "input_sha256": "e2d42b2adfb5be98f81d4806ac248fc63f34ad0f8d9a039f4ad445040840363a"
+  }
+]

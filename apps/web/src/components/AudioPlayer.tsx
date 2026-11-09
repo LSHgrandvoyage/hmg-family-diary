@@ -16,11 +16,13 @@ export const stamp = (n: number) =>
     .padStart(2, "0")}`;
 export function AudioPlayer({
   src,
+  synthetic = true,
   segments,
   request,
   onClose,
 }: {
   src: string;
+  synthetic?: boolean;
   segments: AudioSegment[];
   request: PlaybackRequest | null;
   onClose: () => void;
@@ -143,7 +145,10 @@ export function AudioPlayer({
       <div className="recording-controls">
         <div className="player-meta">
           <h2 className="h2">전체 녹음</h2>
-          <span>합성 시험음{duration > 0 ? ` · ${stamp(duration)}` : ""}</span>
+          <span>
+            {synthetic ? "합성 시험음" : "녹음 원본"}
+            {duration > 0 ? ` · ${stamp(duration)}` : ""}
+          </span>
         </div>
         <input
           className="player-range"
@@ -236,7 +241,9 @@ export function AudioPlayer({
         ))}
       </ol>
       <p className="preview-footnote">
-        원문은 인식문 예시이고, 소리는 실제 목소리가 아닌 합성 시험음이에요.
+        {synthetic
+          ? "원문은 인식문 예시이고, 소리는 실제 목소리가 아닌 합성 시험음이에요."
+          : "확인한 이야기와 녹음 당시의 원본 목소리예요. 글을 수정해도 원본은 바뀌지 않아요."}
       </p>
     </section>
   );

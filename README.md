@@ -32,8 +32,23 @@ docker compose -f compose.preview.yaml up -d --build
 아이폰·아이패드에서는 APK를 실행할 수 없지만 같은 Wi-Fi의 Safari로 웹 미리 보기를 볼 수 있다.
 LAN에 합성 미리 보기를 열 때는 `PREVIEW_BIND=0.0.0.0 docker compose -f compose.preview.yaml up -d`를 실행하고
 `http://<맥북의 LAN IP>:3018/demo`에 접속한다. 현재 HTTP 공개 합성 미리 보기이며,
-개인 기록용 서비스는 후속 작업에서 HTTPS·인증·비공개 미디어로 구성한다.
+연결 시험용 서비스는 별도 Compose의 HTTPS·인증·비공개 미디어 경로를 사용한다.
 종료는 `docker compose -f compose.preview.yaml down`이다.
+
+
+### Docker 서버와 차량·휴대폰 연결
+
+확인한 목업 일기와 **동일한 원본 WAV**를 차량에서 명시적으로 공유하고, 휴대폰에서 읽기·듣기·원본 내려받기·사진 첨부를 할 수 있다. 차량의 ‘휴대폰과 동기화’로 사진과 삭제를 반영한다. [설치·실행·검증 범위](docs/evidence/compose-runtime.md)를 참고한다.
+
+```sh
+pnpm exec tsx scripts/setup-runtime.ts <맥북-LAN-IP>
+docker compose --env-file .env.runtime --profile dev up -d --build
+# 초기 기기 안내: http://<IP>:8080/
+# 인증된 앱: https://<IP>:8443/login
+# 개발 확인 메일: http://localhost:8025 (맥북에서만)
+```
+
+아이폰은 설치 안내에서 개발 CA를 설치/신뢰한 뒤 앱을 연다. 보호자 보관함 생성·메일 확인·로그인 → 차량 연결 코드 발급 → 차량의 ‘차량과 사용 안내’에서 코드 입력 → 저장한 목업 일기 공유 순서다. OpenAI는 여전히 호출하지 않는다. 현재 개발용 합성 자료 검증 단계이며 실제 iPhone 파일 앱 저장, 외부 SMTP, 백업/복원, 제품 기기 암호화와 실제 주차·위치는 별도 검증 대상이다.
 
 Node24/pnpm11.13.1 로컬 개발:
 

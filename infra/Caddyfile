@@ -1,0 +1,30 @@
+{
+    auto_https disable_redirects
+    admin off
+    default_sni {$APP_HOST}
+}
+https://{$APP_HOST}:8443 {
+    tls internal
+    request_body {
+        max_size 43MB
+    }
+    header {
+        X-Content-Type-Options nosniff
+        Referrer-Policy same-origin
+    }
+    reverse_proxy web:3000
+}
+# Local development: only the PUBLIC CA certificate, never private keys or media.
+http://{$APP_HOST}:8080 {
+    handle /local-ca.crt {
+        rewrite * /root.crt
+        root * /data/caddy/pki/authorities/local
+        header Content-Type application/x-x509-ca-cert
+        header Content-Disposition "attachment; filename=family-diary-local-ca.crt"
+        file_server
+    }
+    handle {
+        root * /srv/setup
+        file_server
+    }
+}

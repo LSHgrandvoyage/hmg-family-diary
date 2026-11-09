@@ -100,3 +100,15 @@ receipt·device_secret·인증 쿠키는 로깅하지 않는다.
 - GET /sessions/{id}/photos 및 GET /sessions/{id}/photos/{photo_id}/content: 매 요청 동일 vault/삭제 확인, private no-store, 공개 정적 경로 금지.
 - DELETE /sessions/{id}/photos/{photo_id}: 즉시 읽기 차단 후 사본 삭제 상태. 세션 삭제도 사진 포함.
 - GET /sessions/{id}/nearby-memories: 인증 보관함의 기준 세션 녹음 위치로만 근접 기록 조회. 임의 가족 ID/좌표를 URL로 넘겨 타인 기록을 검색하지 않는다. 현재/미래/삭제 기록 제외.
+
+## First connected slice — confirmed local snapshot
+
+현재 차량 probe의 단일 WAV와 확정된 목업 일기를 서버에 연결하는 v1 확장이다.
+`PUT /sessions/{id}/snapshot`은 활성 차량의 `{expected_revision,snapshot}`을 받는다.
+snapshot은 원본 SHA256/길이, 원래 인식문·확인문·화자·입력 revision·검토 확정, 생성 결과와
+기록 당시 context를 포함한다. 서버는 기존 generationInput/validateDiary로 검증하며 원본 바이트를
+수신하기 전에는 audio_ready=false다. 멱등 키·본문 hash·동일 보관함·tombstone·음성 불변성을 확인한다.
+현재 chunk_id는 session_id와 동일하며 한 개의 완료 WAV만 전송한다(16kHz PCM16 mono, 최대 21분).
+`GET /sessions`, `GET /sessions/{id}`, audio Range, photos, sync, pairing/device 관리로 공유한다.
+사진/서버 revision 변경을 차량의 input revision과 혼동하지 않는다. 서버 snapshot은 자동으로 사용자
+확인문을 다시 쓰지 않는다. 이 경로는 범용 다중 chunk·서버 generation job endpoint의 대체 완료 증거가 아니다.

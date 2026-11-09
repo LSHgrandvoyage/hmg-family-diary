@@ -988,3 +988,203 @@ body {
   border-radius: var(--r-m);
   padding: var(--stack-m);
 }
+/* Connected family vault uses the same k-style foundations as the preview. */
+.live-nav,
+.live-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.live-nav > a,
+.live-nav > button {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  padding: 0 8px;
+}
+.login-layout {
+  max-width: 1040px;
+  margin: auto;
+  padding: 64px 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: center;
+}
+.login-card,
+.live-stack,
+.live-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.live-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 16px;
+}
+.live-form input {
+  border: 1px solid var(--c-line-strong);
+  border-radius: var(--r-m);
+  min-height: 48px;
+  padding: 12px;
+  background: var(--c-surface);
+  color: var(--c-text-1);
+}
+.live-form small {
+  font-size: 13px;
+  color: var(--c-text-2);
+}
+.live-notice {
+  line-height: 1.6;
+  color: var(--c-text-2);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.live-notice:not(:empty) {
+  padding: 16px 0;
+}
+.login-art {
+  width: 160px;
+  height: 160px;
+  margin-top: 32px;
+}
+.live-layout {
+  padding-bottom: calc(40px + env(safe-area-inset-bottom));
+}
+.live-archive {
+  padding: 24px 0;
+}
+.live-device {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-top: 1px solid var(--c-line);
+  padding-top: 24px;
+}
+.pair-code {
+  padding: 24px;
+  background: var(--c-brand-tint);
+  border-radius: var(--r-m);
+  text-align: center;
+}
+.pair-code strong {
+  font-size: 32px;
+  letter-spacing: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.pair-code p {
+  margin-top: 8px;
+}
+.live-group {
+  margin: 24px 0;
+}
+.live-group p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.95;
+  margin-top: 16px;
+}
+.live-actions [aria-pressed="true"] {
+  background: var(--c-brand-tint);
+  color: var(--c-brand-text);
+}
+.photo-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-weight: 600;
+}
+.photo-picker input {
+  font-size: 16px;
+  max-width: 100%;
+  min-height: 44px;
+}
+.photo-full {
+  max-width: 100%;
+  max-height: 65dvh;
+  object-fit: contain;
+}
+.live-layout summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding-top: 16px;
+}
+.live-layout .title {
+  overflow-wrap: anywhere;
+}
+.live-layout .photo-open img {
+  width: 100%;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+}
+.live-layout .story-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.live-layout .row-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.live-layout .row-title {
+  overflow-wrap: anywhere;
+}
+.live-layout .story-row > svg {
+  flex-shrink: 0;
+}
+.live-layout .row-sub,
+.live-layout .record-car-label {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 767px) {
+  .login-layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 32px 20px;
+  }
+  .login-art {
+    display: none;
+  }
+  .live-nav {
+    gap: 0;
+  }
+  .live-nav > a,
+  .live-nav > button {
+    padding: 0 4px;
+    font-size: 13px;
+  }
+  .site-header:has(.live-nav) {
+    padding: 0 16px;
+    gap: 8px;
+  }
+  .live-device {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .live-archive {
+    padding: 16px 0;
+  }
+  .live-layout .player-meta {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+.live-layout .detail-paper,
+.live-layout .memory-panel {
+  min-width: 0;
+}
+.live-notice:empty {
+  display: none;
+}
+@media (max-width: 767px) {
+  .live-layout .detail-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

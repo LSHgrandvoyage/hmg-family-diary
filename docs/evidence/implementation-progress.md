@@ -46,3 +46,7 @@ T001에 모든 후속 서비스 명령을 먼저 연결하라는 조건은 DB/wo
 현재 단계의 실제 setup/dev/build/test/fixture 명령만 연결하고 db:migrate/status는 T007, worker는 T011,
 eval은 T035에서 추가한다. 빠진 구현을 성공 반환하는 placeholder로 대체하지 않았다.
 이 변경은 구현 순서 보정이며 제품 범위나 검증 목표를 줄이지 않는다.
+
+## 2026-11-09 Docker 연결 slice
+
+확인된 로컬 목업 snapshot·단일 실제 WAV·보관함 인증·차량 pairing·휴대폰 읽기/듣기/다운로드·사진 업로드/차량 수신·삭제/폐기를 연결했다. [실행 증거](compose-runtime.md)와 `tasks.md` C001~C005를 참고한다. T007/T009/T016/T022~T034/T039/T045의 부분 구현이며 T040·기기 암호화·일반화 청크/생성 파이프라인·실제 플랫폼 gate 전체 완료가 아니다.

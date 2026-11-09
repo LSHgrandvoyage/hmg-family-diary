@@ -34,6 +34,8 @@ class MainActivity : Activity() {
     private lateinit var review: ReviewPanel
     private lateinit var store: ReviewStore
     private lateinit var contexts: MemoryContextStore
+    private lateinit var sync: CloudSync
+    @Volatile private var syncBusy = false
     private lateinit var directory: File
     private lateinit var audio: AudioManager
     private lateinit var focusRequest: AudioFocusRequest
@@ -112,6 +114,7 @@ class MainActivity : Activity() {
         directory = File(filesDir, "capture-probe")
         store = ReviewStore(File(filesDir, "capture-review"))
         contexts = MemoryContextStore(File(filesDir, "memory-context"))
+        sync = CloudSync(filesDir, directory, store, contexts)
         capture = CaptureProbe(directory); speech = SpeechProbe(this)
         audio = getSystemService(AudioManager::class.java)
         focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
@@ -145,7 +148,7 @@ class MainActivity : Activity() {
         if (wide) {
             rail.addView(View(this), LinearLayout.LayoutParams(1, 0, 1f))
             ui.add(rail, ui.text("차량 UI 미리 보기", 18f, true, ui.blue))
-            ui.add(rail, ui.text("모의 주차 · 로컬 저장\n휴대폰 동기화 전", 16f, color = ui.muted), 12)
+            ui.add(rail, ui.text("모의 주차 · 목업 생성\n선택한 기록 동기화", 16f, color = ui.muted), 12)
         }
         val railView: View = if (wide) ScrollView(this).apply { isFillViewport = true; addView(rail) } else rail
         shell.addView(railView, if (wide) LinearLayout.LayoutParams(ui.dp(248), -1) else LinearLayout.LayoutParams(-1, -2))
@@ -166,7 +169,7 @@ class MainActivity : Activity() {
         parked = ui.check("모의 P 상태 확인 · 실제 차량 신호 미연결")
         consent = ui.check("참여자에게 공동 녹음과 보관을 알렸어요")
         ui.add(gateCard, parked, 16); ui.add(gateCard, consent, 8)
-        ui.add(gateCard, ui.text("음성과 일기는 이 기기에 보관돼요. 지금은 에뮬레이터용이며, 일기 생성은 목업 서버로 확인문만 보내요. 참여하지 않아도 괜찮아요.", 20f, color = ui.muted), 24)
+        ui.add(gateCard, ui.text("음성과 일기는 이 기기에 보관돼요. 지금은 에뮬레이터용이며, 일기 생성은 목업 서버로 확인문만 보내요. 참여하지 않아도 괜찮아요. 직접 공유하면 음성·글·차량 정보가 가족 보관함에 함께 저장돼요.", 20f, color = ui.muted), 24)
         attach(gate)
         buildLibrary().also { attach(it) }
         buildRecording().also { attach(it) }
@@ -183,6 +186,7 @@ class MainActivity : Activity() {
         libraryCount = ui.text("보관한 이야기를 불러오고 있어요", 24f, true); ui.add(hero, libraryCount)
         ui.add(hero, ui.text("장소를 고르지 않아도 돼요. 오늘의 이야기를 자유롭게 남겨 보세요.", 20f, color = ui.muted), 12)
         ui.add(hero, ui.button("새 이야기 녹음하기", true) { navigate(Screen.RECORD) }, 24)
+        ui.add(hero, ui.button("휴대폰과 동기화") { runSync { sync.pull() } }, 16)
         val filters = ui.card(body)
         val label = ui.text("날짜·이야기로 찾기", 18f, true); ui.add(filters, label)
         search = ui.input("날짜·이야기 검색").apply { hint = "기억나는 말이나 날짜를 입력하세요" }; label.labelFor = search.id
@@ -199,7 +203,7 @@ class MainActivity : Activity() {
             override fun afterTextChanged(s: android.text.Editable?) = Unit
         })
         list = ui.column(); ui.add(body, list, 16)
-        ui.add(body, ui.text("이 기기의 기록만 보여요 · 다른 기기 동기화 전", 18f, color = ui.muted), 24)
+        ui.add(body, ui.text("공유 기록은 동기화를 눌러 최신 상태로 가져와요.", 18f, color = ui.muted), 24)
         return scroll
     }
     private fun refreshLibrary() {
@@ -275,6 +279,14 @@ class MainActivity : Activity() {
         tabs = listOf("일기 읽기", "원래 이야기", "내용 확인").mapIndexed { i, title ->
             ui.button(title) { setTab(i) }.also { tabRow.addView(it, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = ui.dp(8) }) }
         }
+        ui.add(body, ui.button("휴대폰에 공유") {
+            val file = selected
+            if (file != null && allowed() && idle() && review.save()) {
+                modal = AlertDialog.Builder(this).setTitle("가족 보관함에 공유할까요?")
+                    .setMessage("이 일기의 글·녹음 원본·차량 정보와 녹음 시점 위치를 연결한 휴대폰에서도 볼 수 있게 보내요.")
+                    .setNegativeButton("취소", null).setPositiveButton("공유") { _, _ -> runSync { sync.share(file) } }.show().also { styleDialog(it) }
+            }
+        }, 16)
         val playerCard = ui.card(body)
         ui.add(playerCard, ui.text("그날의 목소리", 24f, true))
         playbackStatus = ui.text("전체 녹음 · 원본 그대로", 18f, color = ui.muted); ui.add(playerCard, playbackStatus, 12)
@@ -304,15 +316,15 @@ class MainActivity : Activity() {
         sttStatus.maxLines = 4; sttStatus.ellipsize = android.text.TextUtils.TruncateAt.END
         sttStatus.accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE; ui.add(speechCard, sttStatus, 16)
         ui.add(speechCard, ui.button("음성 인식 중단") { speech.cancel(); abandonFocus(); sttStatus.text = "인식을 중단했어요. 원본은 남아 있어요."; render() }, 12)
-        review = ReviewPanel(this, editBody, { allowed() }, { !capture.busy && !speech.busy && player == null },
-            { !capture.busy && !speech.busy }, { render() }, {
+        review = ReviewPanel(this, editBody, { allowed() }, { !syncBusy && !capture.busy && !speech.busy && player == null },
+            { !syncBusy && !capture.busy && !speech.busy }, { render() }, {
                 hideKeyboard(); populateDetail(); setTab(0); detail.smoothScrollTo(0, 0)
                 status.text = "일기를 저장했어요. 보관함에서 다시 읽고 들을 수 있어요."; refreshLibrary()
             })
         contextBody = ui.column(); ui.add(body, contextBody, 16)
         val photoCard = ui.card(body)
         ui.add(photoCard, ui.text("함께 남긴 사진", 26f, true))
-        photoStatus = ui.text("사진은 휴대폰에서 추가해요. 차량에서는 함께 보관된 사진을 볼 수 있어요.\n지금은 휴대폰과 차량의 사진 동기화를 연결하기 전이에요.", 18f, color = ui.muted); ui.add(photoCard, photoStatus, 12)
+        photoStatus = ui.text("사진은 휴대폰에서 추가해요. 차량에서는 함께 보관된 사진을 볼 수 있어요.\n휴대폰에서 사진을 올린 뒤 보관함의 동기화를 눌러 주세요.", 18f, color = ui.muted); ui.add(photoCard, photoStatus, 12)
         photosBody = ui.column(); ui.add(photoCard, photosBody, 16)
         ui.add(body, ui.button("이 이야기 삭제") { confirmDelete() }, 24)
         return scroll
@@ -330,7 +342,7 @@ class MainActivity : Activity() {
                         selected = file; screen = Screen.DETAIL; pendingSeek = 0
                         sttStatus.text = if (r.rawHistory.isEmpty()) "인식 전 · 원본을 듣고 직접 입력해도 돼요." else "보관한 인식문이 있어요 · 원본과 비교해 주세요."
                         populateDetail(); setTab(if (r.draft != null && r.accepted == r.revision) 0 else 2)
-                        status.text = "이 기기에 보관된 이야기 · 휴대폰 동기화 전"; detail.scrollTo(0, 0); render()
+                        status.text = if (sync.linked(file.name)) "가족 보관함에 공유한 이야기 · 변경 사항은 동기화로 가져와요" else "이 기기에 보관된 이야기 · 공유 전"; detail.scrollTo(0, 0); render()
                     }
                 }.onFailure { status.text = "원본 또는 저장 기록을 열지 못했어요. 기존 파일은 그대로 두었어요." }
             }
@@ -425,9 +437,33 @@ class MainActivity : Activity() {
         }, 24); ui.add(card, message, 16)
         val info = ui.card(body)
         ui.add(info, ui.text("지금 연결된 기능", 24f, true))
-        ui.add(info, ui.text("녹음·원본 재생·기기 내 음성 인식\n목업 일기 생성·이 기기에 저장\n\n실제 주차 신호·위치 자동 수집·휴대폰 동기화는 연결 전이에요.", color = ui.muted), 16)
+        ui.add(info, ui.text("녹음·원본 재생·기기 내 음성 인식\n목업 일기 생성·이 기기에 저장\n\n실제 주차 신호·위치 자동 수집은 연결 전이에요. 휴대폰 연결은 아래에서 시작해요.", color = ui.muted), 16)
         ui.add(info, ui.button("모의 P 해제 · 사용 잠그기") { parked.isChecked = false }, 24)
+        val cloud = ui.card(body)
+        ui.add(cloud, ui.text("휴대폰과 같은 보관함", 24f, true))
+        ui.add(cloud, ui.text("휴대폰의 차량 연결에서 만든 8자리 코드를 입력해 주세요. 기존 녹음은 직접 공유하기 전까지 이 기기에만 남아요.", 20f, color = ui.muted), 16)
+        val code = ui.input("차량 연결 코드").apply { inputType = android.text.InputType.TYPE_CLASS_NUMBER; filters = arrayOf(android.text.InputFilter.LengthFilter(8)) }
+        ui.add(cloud, code, 16)
+        ui.add(cloud, ui.button("이 차량 연결하기", true) { val value = code.text.toString(); runSync { sync.pair(value); sync.pull() } }, 16)
+        ui.add(cloud, ui.button("변경 사항 동기화") { runSync { sync.pull() } }, 16)
+        ui.add(cloud, ui.text("연결 해제는 휴대폰에서 할 수 있어요. 해제된 차량이 다시 접속하면 공유 사본을 지워요. 오프라인 삭제는 다음 연결까지 대기해요.", 18f, color = ui.muted), 16)
         return scroll
+    }
+    private fun runSync(work: () -> Unit) {
+        if (!allowed() || !idle() || !review.save()) return
+        syncBusy = true; sync.begin(); status.text = "휴대폰 보관함과 연결하고 있어요…"; hideKeyboard(); render()
+        Thread({
+            val result = runCatching { work() }
+            runOnUiThread {
+                syncBusy = false
+                if (isDestroyed) return@runOnUiThread
+                status.text = result.fold({ "동기화했어요. 휴대폰과 차량에서 같은 기록을 볼 수 있어요." }, { it.message ?: "연결하지 못했어요. 다시 시도해 주세요." })
+                val file = selected
+                if (file != null && !file.exists()) { review.forgetDeleted(); selected = null; screen = Screen.LIBRARY }
+                else if (result.isSuccess && file != null && allowed()) openMemory(file)
+                refreshLibrary(); render()
+            }
+        }, "family-vault-sync").start()
     }
     private fun vehicle() = runCatching { VehicleSnapshot.read(JSONObject(prefs.getString("profile", "{}")!!)) }.getOrDefault(VehicleSnapshot())
     private fun navigate(next: Screen) {
@@ -438,7 +474,7 @@ class MainActivity : Activity() {
         render()
     }
     private fun allowed() = benchAvailable && foreground && ::parked.isInitialized && parked.isChecked && consent.isChecked
-    private fun idle() = !capture.busy && player == null && !speech.busy && (!::review.isInitialized || !review.busy)
+    private fun idle() = !syncBusy && !capture.busy && player == null && !speech.busy && (!::review.isInitialized || !review.busy)
     private fun render() {
         if (!initialized) return
         val allowed = allowed()
@@ -453,15 +489,15 @@ class MainActivity : Activity() {
             ui.style(b, b.isSelected)
         }
         record.isEnabled = allowed && idle(); finish.isEnabled = allowed && capture.busy
-        play.isEnabled = allowed && selected != null && !capture.busy && !speech.busy && !review.busy
+        play.isEnabled = allowed && !syncBusy && selected != null && !capture.busy && !speech.busy && !review.busy
         play.text = if (player != null && prepared) if (player!!.isPlaying) "일시정지" else "이어서 듣기" else "원본 재생"
         stop.isEnabled = player != null
-        seek.isEnabled = allowed && selected != null && !capture.busy && !speech.busy && !review.busy
+        seek.isEnabled = allowed && !syncBusy && selected != null && !capture.busy && !speech.busy && !review.busy
         recognize.isEnabled = allowed && idle() && selected != null
         readBody.visibility = if (tab == 0) View.VISIBLE else View.GONE
         originalBody.visibility = if (tab == 1) View.VISIBLE else View.GONE
         editBody.visibility = if (tab == 2) View.VISIBLE else View.GONE
-        tabs.forEachIndexed { i, button -> ui.style(button, i == tab); button.isSelected = i == tab; button.isEnabled = allowed && !capture.busy && !speech.busy && !review.busy }
+        tabs.forEachIndexed { i, button -> ui.style(button, i == tab); button.isSelected = i == tab; button.isEnabled = allowed && !syncBusy && !capture.busy && !speech.busy && !review.busy }
         review.render()
     }
     private fun focus(): Boolean {
@@ -505,7 +541,7 @@ class MainActivity : Activity() {
     }
     private fun playOriginal() {
         val file = selected ?: return
-        if (!allowed() || capture.busy || speech.busy || review.busy) return
+        if (!allowed() || syncBusy || capture.busy || speech.busy || review.busy) return
         if (player != null) {
             if (!prepared) return
             if (player!!.isPlaying) { player!!.pause(); playbackStatus.text = "일시정지 · 원본 그대로" }
@@ -547,6 +583,7 @@ class MainActivity : Activity() {
     private fun interrupt(message: String) {
         if (!initialized) return
         ++openGeneration
+        sync.cancel()
         modal?.dismiss(); modal = null
         review.save(); review.cancel(); capture.stop(true); stopPlayback(); speech.cancel(); abandonFocus()
         status.text = message; playbackStatus.text = "중단됨 · 자동으로 다시 재생하지 않아요"; render()
@@ -573,8 +610,8 @@ class MainActivity : Activity() {
                         ui.add(item, ui.button("사진 크게 보기") { if (allowed() && idle()) showPhoto(file) }, 8)
                         ui.add(item, ui.button("사진 삭제") {
                             if (allowed() && idle()) modal = AlertDialog.Builder(this).setTitle("이 사진을 삭제할까요?")
-                                .setMessage("이 일기에 첨부한 기기 사본만 삭제해요.").setNegativeButton("취소", null)
-                                .setPositiveButton("삭제") { _, _ -> if (allowed() && idle()) { photoStatus.text = if (contexts.deletePhoto(id, file)) "사진을 삭제했어요." else "삭제하지 못했어요. 다시 시도해 주세요."; loadPhotos(id) } }.show().also { styleDialog(it) }
+                                .setMessage("공유 사진은 가족 보관함에서도 삭제해요. 연결되지 않은 기기에는 다음 동기화 때 반영돼요.").setNegativeButton("취소", null)
+                                .setPositiveButton("삭제") { _, _ -> if (allowed() && idle()) { if (sync.linked(id)) { selected?.let { original -> runSync { sync.deletePhoto(original, file) } }; return@setPositiveButton }; photoStatus.text = if (contexts.deletePhoto(id, file)) "사진을 삭제했어요." else "삭제하지 못했어요. 다시 시도해 주세요."; loadPhotos(id) } }.show().also { styleDialog(it) }
                         }, 8)
                     }
                 }
@@ -599,9 +636,10 @@ class MainActivity : Activity() {
         val file = selected ?: return
         if (!allowed() || !idle()) return
         modal = AlertDialog.Builder(this).setTitle("이 이야기를 삭제할까요?")
-            .setMessage("이 기기의 원본 음성·일기·확인문·차량 정보·첨부 사진을 함께 삭제해요.")
+            .setMessage("원본 음성·일기·확인문·차량 정보·첨부 사진을 함께 삭제해요. 공유한 기록은 가족 보관함에서도 삭제되며, 연결이 필요해요.")
             .setNegativeButton("취소", null).setPositiveButton("삭제") { _, _ ->
                 if (allowed() && idle()) {
+                    if (sync.linked(file.name)) { runSync { sync.delete(file) }; return@setPositiveButton }
                     if (file.delete()) {
                         store.delete(file.name); contexts.delete(file.name); review.forgetDeleted(); selected = null
                         status.text = "이 이야기를 삭제했어요."; screen = Screen.LIBRARY; refreshLibrary(); render()

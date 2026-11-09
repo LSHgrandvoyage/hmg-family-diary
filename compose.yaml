@@ -1,0 +1,107 @@
+name: hmg-family-diary
+x-app: &app
+  image: hmg-family-diary-runtime:local
+  build:
+    context: .
+    dockerfile: infra/runtime.Dockerfile
+  user: "1000:1000"
+  read_only: true
+  tmpfs: ["/tmp:size=128M,mode=1777"]
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  restart: unless-stopped
+x-domain-env: &domain-env
+  DATABASE_URL: postgresql://diary_app:${APP_DB_PASSWORD:?}@db:5432/diary
+  APP_ORIGIN: ${APP_ORIGIN:?}
+  BETTER_AUTH_URL: ${APP_ORIGIN:?}
+  AUDIO_STORE: local
+  AUDIO_ROOT: /data/audio
+  PHOTO_ROOT: /data/photos
+  DIARY_GENERATOR: mock
+services:
+  db:
+    image: postgres:18-bookworm@sha256:f1ea2a1a4fb7b68d4836be1fdcb8a6466a89b072158bf9d97663600538c294c5
+    environment:
+      POSTGRES_DB: diary
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?}
+      AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD:?}
+      MIGRATION_DB_PASSWORD: ${MIGRATION_DB_PASSWORD:?}
+    volumes:
+      - pg_data:/var/lib/postgresql
+      - ./infra/init-db.sh:/docker-entrypoint-initdb.d/01-roles.sh:ro
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U postgres -d diary"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+  migrate:
+    <<: *app
+    restart: "no"
+    command: [node, --import, tsx, scripts/migrate.ts]
+    environment:
+      MIGRATION_DATABASE_URL: postgresql://diary_migrate:${MIGRATION_DB_PASSWORD:?}@db:5432/diary
+    depends_on:
+      db: {condition: service_healthy}
+  volumes-init:
+    image: node:24.18.0-bookworm-slim@sha256:6f7b03f7c2c8e2e784dcf9295400527b9b1270fd37b7e9a7285cf83b6951452d
+    command: [sh, -c, "chown 1000:1000 /data/audio /data/photos && chmod 700 /data/audio /data/photos"]
+    network_mode: none
+    volumes: [audio_data:/data/audio, photo_data:/data/photos]
+  web:
+    <<: *app
+    command: [node, /standalone/apps/web/server.js]
+    environment:
+      <<: *domain-env
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
+      NEXT_TELEMETRY_DISABLED: "1"
+      AUTH_DATABASE_URL: postgresql://diary_auth:${AUTH_DB_PASSWORD:?}@db:5432/diary
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?}
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_FROM: Family Diary <diary@example.test>
+    volumes: [audio_data:/data/audio, photo_data:/data/photos]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      volumes-init: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 4s
+      retries: 10
+  worker:
+    <<: *app
+    command: [node, --import, tsx, workers/diary/src/runner.ts]
+    environment: *domain-env
+    volumes: [audio_data:/data/audio, photo_data:/data/photos]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      volumes-init: {condition: service_completed_successfully}
+  proxy:
+    image: caddy:2-alpine@sha256:78bd35025c7ba85961dd149ae670315129954e77abe2383ac47c89106b35ade9
+    environment:
+      APP_HOST: ${APP_HOST:?}
+    ports: ["${RUNTIME_BIND:-0.0.0.0}:8443:8443", "${RUNTIME_BIND:-0.0.0.0}:8080:8080"]
+    volumes:
+      - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./infra/setup:/srv/setup:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web: {condition: service_healthy}
+    restart: unless-stopped
+  mailpit:
+    image: axllent/mailpit:v1.21@sha256:81370195cd4a0eab9604d17c2617a7525b0486f9365555253b6c5376c6350f1a
+    profiles: [dev]
+    ports: ["127.0.0.1:8025:8025"]
+    restart: unless-stopped
+volumes:
+  pg_data:
+  audio_data:
+  photo_data:
+  caddy_data:
+  caddy_config:

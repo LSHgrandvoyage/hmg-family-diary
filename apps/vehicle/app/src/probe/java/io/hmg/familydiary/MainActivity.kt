@@ -48,6 +48,18 @@ class MainActivity : Activity() {
     private lateinit var detail: ScrollView
     private lateinit var settings: ScrollView
     private lateinit var list: LinearLayout
+    private lateinit var connectionTitle: TextView
+    private lateinit var connectionDescription: TextView
+    private lateinit var connectionFeedback: TextView
+    private lateinit var connectionForm: LinearLayout
+    private lateinit var connectionCode: EditText
+    private lateinit var connectButton: Button
+    private lateinit var syncButton: Button
+    private lateinit var chooseMemoryButton: Button
+    private lateinit var libraryConnection: TextView
+    private lateinit var librarySync: Button
+    private var syncNotice = ""
+    private var syncFailed = false
     private lateinit var libraryCount: TextView
     private lateinit var search: EditText
     private lateinit var months: Spinner
@@ -186,7 +198,10 @@ class MainActivity : Activity() {
         libraryCount = ui.text("보관한 이야기를 불러오고 있어요", 24f, true); ui.add(hero, libraryCount)
         ui.add(hero, ui.text("장소를 고르지 않아도 돼요. 오늘의 이야기를 자유롭게 남겨 보세요.", 20f, color = ui.muted), 12)
         ui.add(hero, ui.button("새 이야기 녹음하기", true) { navigate(Screen.RECORD) }, 24)
-        ui.add(hero, ui.button("휴대폰과 동기화") { runSync { sync.pull() } }, 16)
+        libraryConnection = ui.text("", 20f, true, ui.blue)
+        ui.add(hero, libraryConnection, 16)
+        librarySync = ui.button("휴대폰과 동기화") { if (sync.paired) runSync { sync.pull() } else navigate(Screen.SETTINGS) }
+        ui.add(hero, librarySync, 12)
         val filters = ui.card(body)
         val label = ui.text("날짜·이야기로 찾기", 18f, true); ui.add(filters, label)
         search = ui.input("날짜·이야기 검색").apply { hint = "기억나는 말이나 날짜를 입력하세요" }; label.labelFor = search.id
@@ -414,7 +429,8 @@ class MainActivity : Activity() {
     }
     private fun buildSettings(): ScrollView {
         val (scroll, body) = page(); settings = scroll
-        ui.heading(body, "차량과 사용 안내", "다음 녹음부터 적용해요. 이전 일기의 차량 정보는 그대로 남아요.")
+        ui.heading(body, "차량과 사용 안내", "휴대폰 연결을 확인하고, 우리 차의 정보를 남겨요.")
+        buildConnectionCard(body)
         val card = ui.card(body, 24)
         val profile = vehicle()
         val values = listOf("차 별명" to profile.nickname, "제조사" to profile.brand, "모델" to profile.model,
@@ -437,27 +453,70 @@ class MainActivity : Activity() {
         }, 24); ui.add(card, message, 16)
         val info = ui.card(body)
         ui.add(info, ui.text("지금 연결된 기능", 24f, true))
-        ui.add(info, ui.text("녹음·원본 재생·기기 내 음성 인식\n목업 일기 생성·이 기기에 저장\n\n실제 주차 신호·위치 자동 수집은 연결 전이에요. 휴대폰 연결은 아래에서 시작해요.", color = ui.muted), 16)
+        ui.add(info, ui.text("녹음·원본 재생·기기 내 음성 인식\n목업 일기 생성·이 기기에 저장\n\n실제 주차 신호·위치 자동 수집은 연결 전이에요. 휴대폰 연결은 위 카드에서 확인해요.", color = ui.muted), 16)
         ui.add(info, ui.button("모의 P 해제 · 사용 잠그기") { parked.isChecked = false }, 24)
-        val cloud = ui.card(body)
-        ui.add(cloud, ui.text("휴대폰과 같은 보관함", 24f, true))
-        ui.add(cloud, ui.text("휴대폰의 차량 연결에서 만든 8자리 코드를 입력해 주세요. 기존 녹음은 직접 공유하기 전까지 이 기기에만 남아요.", 20f, color = ui.muted), 16)
-        val code = ui.input("차량 연결 코드").apply { inputType = android.text.InputType.TYPE_CLASS_NUMBER; filters = arrayOf(android.text.InputFilter.LengthFilter(8)) }
-        ui.add(cloud, code, 16)
-        ui.add(cloud, ui.button("이 차량 연결하기", true) { val value = code.text.toString(); runSync { sync.pair(value); sync.pull() } }, 16)
-        ui.add(cloud, ui.button("변경 사항 동기화") { runSync { sync.pull() } }, 16)
-        ui.add(cloud, ui.text("연결 해제는 휴대폰에서 할 수 있어요. 해제된 차량이 다시 접속하면 공유 사본을 지워요. 오프라인 삭제는 다음 연결까지 대기해요.", 18f, color = ui.muted), 16)
         return scroll
     }
-    private fun runSync(work: () -> Unit) {
+    private fun buildConnectionCard(body: LinearLayout) {
+        val cloud = ui.card(body, 24)
+        connectionTitle = ui.text("", 28f, true, ui.blue).apply { accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
+        ui.add(cloud, connectionTitle)
+        connectionDescription = ui.text("", 20f, color = ui.muted); ui.add(cloud, connectionDescription, 16)
+        connectionForm = ui.column(); ui.add(cloud, connectionForm, 16)
+        val label = ui.text("휴대폰에서 만든 8자리 연결 코드", 20f, true); ui.add(connectionForm, label)
+        connectionCode = ui.input("차량 연결 코드").apply { inputType = android.text.InputType.TYPE_CLASS_NUMBER; filters = arrayOf(android.text.InputFilter.LengthFilter(8)) }
+        label.labelFor = connectionCode.id; ui.add(connectionForm, connectionCode, 12)
+        connectButton = ui.button("이 차량 연결하기", true) {
+            val code = connectionCode.text.toString().trim()
+            if (!Regex("[0-9]{8}").matches(code)) { syncNotice = "휴대폰의 8자리 코드를 모두 입력해 주세요."; syncFailed = true; renderConnection(); return@button }
+            runSync("차량 연결 완료 · 보관함에서 공유할 일기를 골라 주세요.") { sync.pair(code); sync.pull() }
+        }; ui.add(connectionForm, connectButton, 16)
+        connectionCode.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { if (initialized) renderConnection() }
+            override fun afterTextChanged(s: android.text.Editable?) = Unit
+        })
+        connectionFeedback = ui.text("", 20f).apply { accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
+        ui.add(cloud, connectionFeedback, 16)
+        chooseMemoryButton = ui.button("공유할 일기 고르기", true) { navigate(Screen.LIBRARY) }; ui.add(cloud, chooseMemoryButton, 16)
+        syncButton = ui.button("변경 사항 동기화") { runSync { sync.pull() } }; ui.add(cloud, syncButton, 12)
+        ui.add(cloud, ui.text("공유할 일기를 열어 ‘휴대폰에 공유’를 눌러 주세요. 연결만으로 기존 녹음이 자동 전송되지는 않아요. 연결 해제는 휴대폰에서 할 수 있어요.", 18f, color = ui.muted), 16)
+    }
+    private fun renderConnection() {
+        if (!::connectionTitle.isInitialized) return
+        val paired = sync.paired
+        connectionTitle.text = when { syncBusy -> if (paired) "보관함과 동기화 중…" else "차량을 연결하고 있어요…"; paired -> "휴대폰 보관함과 연결됨"; else -> "휴대폰을 연결해 주세요" }
+        connectionDescription.text = if (syncBusy) "서버의 연결 상태와 공유 기록을 확인하고 있어요." else if (paired) buildString {
+            append("원본까지 공유된 기록 ${sync.sharedCount}개")
+            append(if (sync.lastVerifiedAt.isBlank()) "\n연결 정보 저장됨 · 마지막 확인 시각 미기록" else "\n마지막 서버 확인: ${displayDate(sync.lastVerifiedAt)}")
+            append(if (sync.lastSyncedAt.isBlank()) "\n동기화를 누르면 최신 상태를 확인해요." else "\n마지막 동기화 완료: ${displayDate(sync.lastSyncedAt)}")
+            if (sync.sharedCount == 0) append("\n아직 공유된 일기가 없어요. 아래에서 일기를 골라 주세요.")
+        } else "휴대폰의 ‘차량 연결’에서 코드를 만든 뒤 입력해 주세요."
+        connectionForm.visibility = if (paired) View.GONE else View.VISIBLE
+        connectionCode.isEnabled = allowed() && idle()
+        connectButton.isEnabled = allowed() && idle() && connectionCode.text.length == 8
+        chooseMemoryButton.visibility = if (paired) View.VISIBLE else View.GONE
+        syncButton.visibility = if (paired) View.VISIBLE else View.GONE
+        chooseMemoryButton.isEnabled = allowed() && idle(); syncButton.isEnabled = allowed() && idle()
+        connectionFeedback.text = if (syncBusy) "완료될 때까지 잠시 기다려 주세요." else syncNotice
+        connectionFeedback.setTextColor(if (syncFailed && !syncBusy) ui.danger else ui.blue)
+        connectionFeedback.visibility = if (syncBusy || syncNotice.isNotBlank()) View.VISIBLE else View.GONE
+        libraryConnection.text = when { syncBusy -> "휴대폰 보관함과 동기화 중…"; paired -> "휴대폰 연결됨 · 원본까지 공유된 기록 ${sync.sharedCount}개"; else -> "휴대폰 미연결 · 기록은 이 기기에 보관돼요" }
+        librarySync.text = if (paired) "휴대폰과 동기화" else "휴대폰 연결하기"
+        librarySync.isEnabled = allowed() && idle()
+    }
+    private fun runSync(successMessage: String = "동기화 완료 · 직접 공유한 기록과 사진을 최신 상태로 맞췄어요.", work: () -> Unit) {
         if (!allowed() || !idle() || !review.save()) return
-        syncBusy = true; sync.begin(); status.text = "휴대폰 보관함과 연결하고 있어요…"; hideKeyboard(); render()
+        syncBusy = true; syncFailed = false; syncNotice = ""; sync.begin(); status.text = "휴대폰 보관함과 연결하고 있어요…"; hideKeyboard(); render()
         Thread({
             val result = runCatching { work() }
             runOnUiThread {
                 syncBusy = false
                 if (isDestroyed) return@runOnUiThread
-                status.text = result.fold({ "동기화했어요. 휴대폰과 차량에서 같은 기록을 볼 수 있어요." }, { it.message ?: "연결하지 못했어요. 다시 시도해 주세요." })
+                syncFailed = result.isFailure
+                syncNotice = result.fold({ successMessage }, { it.message ?: "연결하지 못했어요. 기록은 유지돼요. 다시 시도해 주세요." })
+                status.text = syncNotice
+                if (sync.paired) connectionCode.setText("")
                 val file = selected
                 if (file != null && !file.exists()) { review.forgetDeleted(); selected = null; screen = Screen.LIBRARY }
                 else if (result.isSuccess && file != null && allowed()) openMemory(file)
@@ -498,7 +557,7 @@ class MainActivity : Activity() {
         originalBody.visibility = if (tab == 1) View.VISIBLE else View.GONE
         editBody.visibility = if (tab == 2) View.VISIBLE else View.GONE
         tabs.forEachIndexed { i, button -> ui.style(button, i == tab); button.isSelected = i == tab; button.isEnabled = allowed && !syncBusy && !capture.busy && !speech.busy && !review.busy }
-        review.render()
+        review.render(); renderConnection()
     }
     private fun focus(): Boolean {
         hasFocus = audio.requestAudioFocus(focusRequest) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED

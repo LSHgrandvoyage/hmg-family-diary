@@ -16,10 +16,13 @@ import javax.net.ssl.TrustManagerFactory
 /** Debug/emulator connected slice. Credentials and the specific local CA remain app-private. */
 class CloudSync(private val root: File, private val recordings: File, private val reviews: ReviewStore, private val contexts: MemoryContextStore) {
     private val stateFile = AtomicFile(File(root, "cloud-sync.json"))
-    private var state = if (stateFile.baseFile.exists()) JSONObject(stateFile.openRead().bufferedReader().use { it.readText() }) else JSONObject().put("links", JSONObject()).put("cursor", "0")
+    @Volatile private var state = if (stateFile.baseFile.exists()) JSONObject(stateFile.openRead().bufferedReader().use { it.readText() }) else JSONObject().put("links", JSONObject()).put("cursor", "0")
     @Volatile private var cancelled = false
     @Volatile private var connection: HttpsURLConnection? = null
     val paired: Boolean get() = state.optString("token").isNotBlank()
+    val lastVerifiedAt: String get() = state.optString("last_verified_at")
+    val lastSyncedAt: String get() = state.optString("last_synced_at")
+    val sharedCount: Int get() = state.getJSONObject("links").keys().asSequence().count { state.getJSONObject("links").getJSONObject(it).optBoolean("audio_ready", false) }
     fun linked(file: String) = state.getJSONObject("links").keys().asSequence().any { state.getJSONObject("links").getJSONObject(it).getString("file") == file }
     fun configured() = File(root,"sync-origin.txt").isFile && File(root,"sync-ca.crt").isFile
     private fun save() { val stream=stateFile.startWrite();try {stream.write(state.toString().toByteArray());stateFile.finishWrite(stream)}catch(e:Exception){stateFile.failWrite(stream);throw e} }
@@ -54,7 +57,7 @@ class CloudSync(private val root: File, private val recordings: File, private va
     fun pair(code:String) {
         check(!paired){"이미 연결된 차량이에요."}
         val result=json("devices/claim","POST",JSONObject().put("code",code).put("label","차량 미리 보기"),claim=true)
-        state=JSONObject().put("token",result.getString("token")).put("vault",result.getString("vault_id")).put("device",result.getString("id")).put("cursor","0").put("links",JSONObject());save()
+        state=JSONObject().put("token",result.getString("token")).put("vault",result.getString("vault_id")).put("device",result.getString("id")).put("expires_at",result.getString("expires_at")).put("last_verified_at",java.time.Instant.now().toString()).put("cursor","0").put("links",JSONObject());save()
     }
     private fun removeLocal(link:JSONObject){val name=link.getString("file");check(File(recordings,name).delete() || !File(recordings,name).exists());reviews.delete(name);check(contexts.delete(name))}
     private fun purgeShared(){val links=state.getJSONObject("links");for(id in links.keys().asSequence().toList()){removeLocal(links.getJSONObject(id));links.remove(id);save()};state=JSONObject().put("links",JSONObject()).put("cursor","0");save()}
@@ -76,18 +79,20 @@ class CloudSync(private val root: File, private val recordings: File, private va
             val saved=json("sessions/$id/snapshot","PUT",payload,key)
             link.put("revision",saved.getInt("revision")).put("input_revision",r.revision).remove("pending");save()
             val uploaded=JSONObject(String(request("sessions/$id/audio","PUT",file.readBytes()),Charsets.UTF_8))
-            link.put("revision",uploaded.getInt("revision"));save();pull()
+            link.put("revision",uploaded.getInt("revision")).put("audio_ready",true);save();pull()
         } catch(e:Gone){removeLocal(link);links.remove(id);save();throw IllegalStateException("다른 기기에서 삭제한 기록이에요. 이 기기의 공유 사본도 삭제했어요.")}
     }
     fun pull(){
         check(paired){"차량 연결 코드를 먼저 입력해 주세요."}
         json("me") // Verify revocation even when there are no changes.
+        state.put("last_verified_at",java.time.Instant.now().toString());save()
         var more:Boolean
         do {
             val response=json("sync?cursor=${state.getString("cursor")}"); val items=response.getJSONArray("items")
             for(i in 0 until items.length()){checkActive();apply(items.getJSONObject(i))}
             state.put("cursor",response.getString("cursor"));save();more=response.getBoolean("has_more")
         }while(more)
+        state.put("last_synced_at",java.time.Instant.now().toString());save()
     }
     private fun apply(m:JSONObject){
         val id=m.getString("id");UUID.fromString(id);val links=state.getJSONObject("links");var link=links.optJSONObject(id)
@@ -113,7 +118,7 @@ class CloudSync(private val root: File, private val recordings: File, private va
             if(!photo.exists()||hash(photo.readBytes())!=p.getString("sha256")){val data=request("sessions/$id/photos/$photoId");require(hash(data)==p.getString("sha256"));photo.parentFile!!.mkdirs();val atomic=AtomicFile(photo);val stream=atomic.startWrite();try{stream.write(data);atomic.finishWrite(stream)}catch(e:Exception){atomic.failWrite(stream);throw e}}
         }
         val previous=link.getJSONArray("photos");for(i in 0 until previous.length()){val photoId=previous.getString(i);if(photoId !in ids)File(root,"memory-context/$name/$photoId.jpg").delete()}
-        link.put("photos",JSONArray(ids.toList())).put("revision",m.getInt("revision"));save()
+        link.put("photos",JSONArray(ids.toList())).put("revision",m.getInt("revision")).put("audio_ready",true);save()
     }
     fun delete(file:File){val id=idFor(file);val link=state.getJSONObject("links").getJSONObject(id)
         try{json("sessions/$id","DELETE",JSONObject().put("expected_revision",link.getInt("revision")))}catch(_:Gone){}

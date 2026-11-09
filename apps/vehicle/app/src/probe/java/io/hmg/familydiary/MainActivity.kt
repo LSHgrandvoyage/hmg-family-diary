@@ -3,7 +3,6 @@ package io.hmg.familydiary
 import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
 import android.media.AudioAttributes
@@ -68,7 +67,6 @@ class MainActivity : Activity() {
     private lateinit var editBody: LinearLayout
     private lateinit var contextBody: LinearLayout
     private lateinit var photosBody: LinearLayout
-    private lateinit var photoButton: Button
     private lateinit var photoStatus: TextView
     private lateinit var navigation: List<Button>
     private lateinit var tabs: List<Button>
@@ -80,8 +78,6 @@ class MainActivity : Activity() {
     private var loadGeneration = 0
     private var openGeneration = 0
     private var photoGeneration = 0
-    private var pendingPhotoId: String? = null
-    private var importing = false
     private var modal: AlertDialog? = null
     private var player: MediaPlayer? = null
     private var prepared = false
@@ -316,9 +312,8 @@ class MainActivity : Activity() {
         contextBody = ui.column(); ui.add(body, contextBody, 16)
         val photoCard = ui.card(body)
         ui.add(photoCard, ui.text("함께 남긴 사진", 26f, true))
-        photoStatus = ui.text("직접 고른 사진만 이 기기에 보관해요 · 최대 8장", 18f, color = ui.muted); ui.add(photoCard, photoStatus, 12)
+        photoStatus = ui.text("사진은 휴대폰에서 추가해요. 차량에서는 함께 보관된 사진을 볼 수 있어요.\n지금은 휴대폰과 차량의 사진 동기화를 연결하기 전이에요.", 18f, color = ui.muted); ui.add(photoCard, photoStatus, 12)
         photosBody = ui.column(); ui.add(photoCard, photosBody, 16)
-        photoButton = ui.button("사진 추가") { choosePhoto() }; ui.add(photoCard, photoButton, 16)
         ui.add(body, ui.button("이 이야기 삭제") { confirmDelete() }, 24)
         return scroll
     }
@@ -436,7 +431,7 @@ class MainActivity : Activity() {
     }
     private fun vehicle() = runCatching { VehicleSnapshot.read(JSONObject(prefs.getString("profile", "{}")!!)) }.getOrDefault(VehicleSnapshot())
     private fun navigate(next: Screen) {
-        if (!allowed() || !idle() || importing || !review.save()) return
+        if (!allowed() || !idle() || !review.save()) return
         ++openGeneration; hideKeyboard(); screen = next
         if (next == Screen.LIBRARY) refreshLibrary()
         if (next == Screen.RECORD) { timer.text = "00:00"; captureContext.text = contextDescription(MemoryContext(Instant.now().toString(), vehicle(), prefs.getBoolean("mock-location", false))).substringBefore("\n녹음 시작:") + "\n녹음을 시작하는 순간의 값으로 보관해요." }
@@ -453,7 +448,7 @@ class MainActivity : Activity() {
         detail.visibility = if (allowed && screen == Screen.DETAIL) View.VISIBLE else View.GONE
         settings.visibility = if (allowed && screen == Screen.SETTINGS) View.VISIBLE else View.GONE
         navigation.forEachIndexed { index, b ->
-            b.isEnabled = allowed && idle() && !importing
+            b.isEnabled = allowed && idle()
             b.isSelected = when(index) { 0 -> screen == Screen.LIBRARY || screen == Screen.DETAIL; 1 -> screen == Screen.RECORD; else -> screen == Screen.SETTINGS }
             ui.style(b, b.isSelected)
         }
@@ -463,7 +458,6 @@ class MainActivity : Activity() {
         stop.isEnabled = player != null
         seek.isEnabled = allowed && selected != null && !capture.busy && !speech.busy && !review.busy
         recognize.isEnabled = allowed && idle() && selected != null
-        photoButton.isEnabled = allowed && idle() && !importing && selected != null
         readBody.visibility = if (tab == 0) View.VISIBLE else View.GONE
         originalBody.visibility = if (tab == 1) View.VISIBLE else View.GONE
         editBody.visibility = if (tab == 2) View.VISIBLE else View.GONE
@@ -557,36 +551,6 @@ class MainActivity : Activity() {
         review.save(); review.cancel(); capture.stop(true); stopPlayback(); speech.cancel(); abandonFocus()
         status.text = message; playbackStatus.text = "중단됨 · 자동으로 다시 재생하지 않아요"; render()
     }
-    private fun choosePhoto() {
-        if (!allowed() || !idle() || importing) return
-        pendingPhotoId = selected?.name ?: return
-        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-            type = "image/*"; addCategory(Intent.CATEGORY_OPENABLE)
-            putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/jpeg", "image/png", "image/webp"))
-        }
-        try { startActivityForResult(intent, 30) }
-        catch (_: android.content.ActivityNotFoundException) { pendingPhotoId = null; photoStatus.text = "이 기기에 사진 선택 앱이 없어요. 파일 선택 앱을 준비해 주세요." }
-    }
-    @Deprecated("Activity result API for platform-only prototype")
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode != 30) return
-        val id = pendingPhotoId; pendingPhotoId = null
-        val uri = data?.data
-        if (resultCode != RESULT_OK || id == null || uri == null) return
-        importing = true; photoStatus.text = "사진을 이 기기에 보관하고 있어요…"; render()
-        Thread({
-            val result = runCatching { contexts.addPhoto(id, requireNotNull(contentResolver.openInputStream(uri))) }
-            runOnUiThread {
-                importing = false
-                if (isDestroyed) return@runOnUiThread
-                if (selected?.name == id) {
-                    photoStatus.text = if (result.isSuccess) "사진을 이 기기에 저장했어요 · 다른 기기 동기화 전" else "사진 저장 실패 · ${result.exceptionOrNull()?.message ?: "다시 시도해 주세요"}"
-                    loadPhotos(id)
-                }; render()
-            }
-        }, "memory-photo-import").start()
-    }
     private fun loadPhotos(id: String) {
         val token = ++photoGeneration; photosBody.removeAllViews()
         Thread({
@@ -608,7 +572,7 @@ class MainActivity : Activity() {
                         item.addView(image, LinearLayout.LayoutParams(-1, ui.dp(160)))
                         ui.add(item, ui.button("사진 크게 보기") { if (allowed() && idle()) showPhoto(file) }, 8)
                         ui.add(item, ui.button("사진 삭제") {
-                            if (allowed() && idle() && !importing) modal = AlertDialog.Builder(this).setTitle("이 사진을 삭제할까요?")
+                            if (allowed() && idle()) modal = AlertDialog.Builder(this).setTitle("이 사진을 삭제할까요?")
                                 .setMessage("이 일기에 첨부한 기기 사본만 삭제해요.").setNegativeButton("취소", null)
                                 .setPositiveButton("삭제") { _, _ -> if (allowed() && idle()) { photoStatus.text = if (contexts.deletePhoto(id, file)) "사진을 삭제했어요." else "삭제하지 못했어요. 다시 시도해 주세요."; loadPhotos(id) } }.show().also { styleDialog(it) }
                         }, 8)
@@ -633,11 +597,11 @@ class MainActivity : Activity() {
     }
     private fun confirmDelete() {
         val file = selected ?: return
-        if (!allowed() || !idle() || importing) return
+        if (!allowed() || !idle()) return
         modal = AlertDialog.Builder(this).setTitle("이 이야기를 삭제할까요?")
             .setMessage("이 기기의 원본 음성·일기·확인문·차량 정보·첨부 사진을 함께 삭제해요.")
             .setNegativeButton("취소", null).setPositiveButton("삭제") { _, _ ->
-                if (allowed() && idle() && !importing) {
+                if (allowed() && idle()) {
                     if (file.delete()) {
                         store.delete(file.name); contexts.delete(file.name); review.forgetDeleted(); selected = null
                         status.text = "이 이야기를 삭제했어요."; screen = Screen.LIBRARY; refreshLibrary(); render()

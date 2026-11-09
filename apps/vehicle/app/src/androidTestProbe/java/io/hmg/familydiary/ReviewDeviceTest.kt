@@ -58,7 +58,6 @@ class ReviewDeviceTest {
         context.create(file.name, io.hmg.familydiary.platform.MemoryContext("2026-11-08T04:00:00Z",
             io.hmg.familydiary.platform.VehicleSnapshot("우리의 첫 차", "현대", "아이오닉 5", "SUV", "2025", "샘플 00가0000", "synthetic"), true))
         var activity: MainActivity? = null
-        var importedUri: android.net.Uri? = null
         fun ui(action: () -> Unit) = instrumentation.runOnMainSync(action)
         fun views(v: View): List<View> = listOf(v) + if (v is ViewGroup) (0 until v.childCount).flatMap { views(v.getChildAt(it)) } else emptyList()
         fun all() = views(activity!!.window.decorView)
@@ -118,27 +117,19 @@ class ReviewDeviceTest {
             assertEquals("original", statement.getJSONArray("source_spans").getJSONObject(0).getString("utterance_id"))
             assertEquals(saved.durationMs, statement.getJSONArray("source_spans").getJSONObject(0).getLong("end_ms"))
             screenshot("synthetic-vehicle-diary.png")
-            // Intercept the OS chooser only; the app imports a real, test-owned content URI.
-            val resolver = instrumentation.targetContext.contentResolver
-            val values = android.content.ContentValues().apply {
-                put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, "synthetic-diary-${UUID.randomUUID()}.png")
-                put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/png")
-                put(android.provider.MediaStore.Images.Media.RELATIVE_PATH, "Pictures/DiaryTest")
-            }
-            importedUri = requireNotNull(resolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values))
+            // Vehicle viewing fixture only; attachments belong to the phone/web flow.
+            ui { assertTrue(all().filterIsInstance<Button>().none { it.text == "사진 추가" }) }
             val bitmap = android.graphics.Bitmap.createBitmap(320, 180, android.graphics.Bitmap.Config.ARGB_8888)
             bitmap.eraseColor(android.graphics.Color.rgb(231, 244, 253))
             val canvas = android.graphics.Canvas(bitmap)
             val paint = android.graphics.Paint().apply { color = android.graphics.Color.rgb(10, 112, 194); textSize = 24f }
             canvas.drawText("SYNTHETIC PHOTO", 30f, 100f, paint)
-            resolver.openOutputStream(importedUri!!).use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it!!) }; bitmap.recycle()
-            val monitor = instrumentation.addMonitor(android.content.IntentFilter(Intent.ACTION_OPEN_DOCUMENT).apply { addCategory(Intent.CATEGORY_OPENABLE); addDataType("image/*") },
-                android.app.Instrumentation.ActivityResult(android.app.Activity.RESULT_OK, Intent().setData(importedUri)), true)
-            try { ui { button("사진 추가").performClick() }; assertEquals("Chooser was intercepted", 1, monitor.hits) } finally { instrumentation.removeMonitor(monitor) }
-            waitFor("Imported selected photo is visible") { all().filterIsInstance<Button>().any { it.text == "사진 크게 보기" } }
+            val photoBytes = java.io.ByteArrayOutputStream()
+            bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, photoBytes); bitmap.recycle()
+            context.addPhoto(file.name, photoBytes.toByteArray().inputStream())
+            ui { button("일기 읽기").performClick() }
+            waitFor("Stored photo is visible on vehicle") { all().filterIsInstance<Button>().any { it.text == "사진 크게 보기" } }
             assertEquals(1, context.photos(file.name).size)
-            ui { all().filterIsInstance<CheckBox>().first().isChecked = true }
-            waitFor("Return from chooser requires parked confirmation") { button("사진 크게 보기").isShown }
             ui { button("사진 크게 보기").requestRectangleOnScreen(android.graphics.Rect(0, 0, 100, 64), false) }
             screenshot("synthetic-vehicle-context-photo.png")
             ui { button("사진 크게 보기").performClick() }
@@ -191,7 +182,7 @@ class ReviewDeviceTest {
             assertFalse(file.exists())
             assertFalse(File(instrumentation.targetContext.filesDir, "capture-review/${file.name}.json").exists())
             assertNull(context.load(file.name)); assertTrue(context.photos(file.name).isEmpty())
-        } finally { ui { activity?.finish() }; importedUri?.let { instrumentation.targetContext.contentResolver.delete(it, null, null) }; file.delete(); store.delete(file.name); context.delete(file.name) }
+        } finally { ui { activity?.finish() }; file.delete(); store.delete(file.name); context.delete(file.name) }
     }
     @Test fun contextAndPhotosStayWithOriginalAcrossReloads() {
         val file = fixture(); val other = fixture()

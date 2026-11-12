@@ -11,6 +11,8 @@ import {
   type GeneratedDraft,
 } from "./generator.ts";
 
+export const MOCK_DIARY_TEXT = "AI 생성 일기 목업 입니다.";
+
 /** A transport/store bench response, not a semantic organizer. No network dependency. */
 export class MockDiaryGenerator implements DiaryGenerator {
   async generate(
@@ -21,32 +23,36 @@ export class MockDiaryGenerator implements DiaryGenerator {
     const input = generationInput(value);
     const draft: DiaryOutput = {
       schema_version: "1",
-      groups: input.utterances.map((u, index) => ({
-        id: `mock-${index + 1}`,
-        label: `${input.members.find((m) => m.id === u.member_id)!.display_name}의 이야기`,
-        place_label: null,
-        date: null,
-        time_relation: "unclear",
-        needs_review: false,
-        statements: [
-          {
-            text: u.text,
-            audience: "member",
-            member_id: u.member_id,
-            source_spans: [
-              { utterance_id: u.id, start_ms: u.start_ms, end_ms: u.end_ms },
-            ],
-          },
-        ],
-      })),
+      groups: [
+        {
+          id: "mock-notice",
+          label: "AI 생성 일기 목업",
+          place_label: null,
+          date: null,
+          time_relation: "unclear",
+          needs_review: false,
+          statements: [
+            {
+              text: MOCK_DIARY_TEXT,
+              audience: "shared",
+              member_id: null,
+              source_spans: input.utterances.map((u) => ({
+                utterance_id: u.id,
+                start_ms: u.start_ms,
+                end_ms: u.end_ms,
+              })),
+            },
+          ],
+        },
+      ],
       excluded_spans: [],
       review_items: [],
     };
     return {
       generation_mode: "mock",
       draft: validateDiary(draft, input),
-      model: "mock-confirmed-text-v1",
-      prompt_version: "mock-passthrough-v1",
+      model: "mock-static-notice-v2",
+      prompt_version: "mock-static-notice-v2",
       input_revision: input.input_revision,
       session_id: input.session_id,
     };

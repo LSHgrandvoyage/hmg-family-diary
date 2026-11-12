@@ -147,3 +147,6 @@ state: `tts_active`, `tts_index`(0부터), `tts_count`, `tts_title`(주차에서
 
 ### C032 주행 화면
 차량 주행 여부는 native state가 결정한다. 주행 DOM은 녹음/청취와 최소 제어만 제공하고 list/read/settings는 주차 권한을 계속 요구한다. 주행 전용 음성 제어는 audio 권한과 native idle 조건으로 검증한다. 검토 복귀 대상은 새 녹음 완료 이벤트로만 지정한다.
+
+### C033 고정 목업 응답
+mock-static-notice-v2는 단일 그룹/단일 shared placeholder statement로 `AI 생성 일기 목업 입니다.`를 반환한다. member_id=null이며 모든 입력 원본 구간은 참조로 유지한다. 이 참조는 테스트 흐름의 연결을 의미하고 의미적 요약 근거라고 주장하지 않는다. generation_mode=mock을 유지하고 실제 생성 API 오류를 목업으로 숨기지 않는다.

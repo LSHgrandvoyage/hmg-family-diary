@@ -4,12 +4,16 @@ import {
   validateDiary,
   type GenerationInput,
 } from "../../contracts/src/diary.ts";
-import { MockDiaryGenerator, probeGenerator } from "./probe-generator.ts";
+import {
+  MockDiaryGenerator,
+  MOCK_DIARY_TEXT,
+  probeGenerator,
+} from "./probe-generator.ts";
 
 afterEach(() => vi.unstubAllGlobals());
 const input = fixture.input as GenerationInput;
 
-it("defaults to a network-free mock even with credentials, preserving each speaker and complete evidence", async () => {
+it("defaults to a network-free mock even with credentials, preserving original references without inventing a speaker", async () => {
   const transport = vi.fn();
   vi.stubGlobal("fetch", transport);
   const selected = probeGenerator({
@@ -22,23 +26,25 @@ it("defaults to a network-free mock even with credentials, preserving each speak
   expect(result.session_id).toBe(input.session_id);
   expect(result.input_revision).toBe(input.input_revision);
   validateDiary(result.draft, input);
-  expect(result.draft.groups.flatMap((g) => g.statements)).toEqual(
-    input.utterances.map((u) => ({
-      text: u.text,
-      audience: "member",
-      member_id: u.member_id,
-      source_spans: [
-        { utterance_id: u.id, start_ms: u.start_ms, end_ms: u.end_ms },
-      ],
-    })),
-  );
+  expect(result.draft.groups.flatMap((g) => g.statements)).toEqual([
+    {
+      text: MOCK_DIARY_TEXT,
+      audience: "shared",
+      member_id: null,
+      source_spans: input.utterances.map((u) => ({
+        utterance_id: u.id,
+        start_ms: u.start_ms,
+        end_ms: u.end_ms,
+      })),
+    },
+  ]);
   expect(
     result.draft.groups.every((g) => g.date === null && g.place_label === null),
   ).toBe(true);
   expect(transport).not.toHaveBeenCalled();
 });
 
-it("uses the current confirmed text and revision instead of an unrelated fixture", async () => {
+it("keeps the fixed notice while retaining the current session, revision and original reference", async () => {
   const generator = new MockDiaryGenerator();
   const changed = {
     ...input,
@@ -56,8 +62,12 @@ it("uses the current confirmed text and revision instead of an unrelated fixture
   expect(result.session_id).toBe(changed.session_id);
   expect(result.input_revision).toBe(9);
   expect(result.draft.groups[0].statements[0].text).toBe(
-    changed.utterances[0].text,
+    "AI 생성 일기 목업 입니다.",
   );
+  expect(
+    result.draft.groups[0].statements[0].source_spans[0].utterance_id,
+  ).toBe("new-original");
+  expect(changed.utterances[0].text).toBe("어제의 이야기를 오늘 다시 말했어.");
   expect(JSON.stringify(result)).not.toContain("수족관");
 });
 

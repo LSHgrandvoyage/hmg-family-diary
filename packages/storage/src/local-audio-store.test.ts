@@ -3,7 +3,7 @@ import { mkdtemp, rm, symlink, readdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHash, randomUUID } from "node:crypto";
-import { LocalAudioStore } from "./local-audio-store";
+import { LocalAudioStore, inspectWav } from "./local-audio-store";
 const roots: string[] = [];
 afterEach(async () => {
   for (const root of roots.splice(0))
@@ -124,3 +124,18 @@ describe("private immutable audio", () => {
     ).rejects.toThrow("INVALID_RANGE");
   });
 });
+
+// Vehicle ReviewStore uses integer (PCM bytes * 1000 / 32000).
+it.each([1001, 2002, 2006, 2010, 2014, 2018, 2022, 2048, 32300, 64100])(
+  "preserves %i ms originals without floating point truncation",
+  async (ms) => {
+    const b = Buffer.alloc(44 + ms * 32);
+    wav().copy(b, 0, 0, 44);
+    b.writeUInt32LE(b.length - 8, 4);
+    b.writeUInt32LE(b.length - 44, 40);
+    expect(Math.floor(inspectWav(b).durationMs)).toBe(ms);
+    const { store, key } = await setup();
+    await store.putImmutable(key, stream(b), sha(b));
+    expect(await store.readRange(key, null)).toEqual(b);
+  },
+);

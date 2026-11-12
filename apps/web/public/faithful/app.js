@@ -1909,6 +1909,16 @@
     tail(buttons[1], "끝내고 일기 만들기");
     action(buttons[1], () => bridge("finish"));
   }
+  function listenIcon(kind) {
+    const paths = {
+      previous: '<path d="M5 5v14M19 5 9 12l10 7Z"/>',
+      next: '<path d="M19 5v14M5 5l10 7-10 7Z"/>',
+      play: '<path d="m8 5 11 7-11 7Z"/>',
+      pause: '<path d="M8 5v14M16 5v14"/>',
+      stop: '<rect x="6" y="6" width="12" height="12" rx="1"/>',
+    };
+    return `<svg aria-hidden="true" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${paths[kind]}</svg>`;
+  }
   // C032: the supplied recording layout, with an audio-only driving surface.
   function paintDriving(state) {
     if (page !== "cardriving" || !app.querySelector("[data-driving-surface]")) {
@@ -1940,10 +1950,21 @@
       wave.replaceChildren(...levels.map(() => document.createElement("span")));
       right.classList.add("driving-audio-panel");
       right.innerHTML = `<div><h2>주행 중에는 목소리로</h2><p data-driving-note>이야기 확인과 사진 보기는 주차 후에 할 수 있어요.</p></div>
-        <div data-driving-listen><section><h3>그날의 목소리</h3><p data-driving-original></p><div class="driving-controls">
-        <button data-drive="previous" aria-label="이전 녹음">이전</button><button data-drive="play">원본 듣기</button><button data-drive="next" aria-label="다음 녹음">다음</button></div><button class="driving-stop" data-drive="stop">재생 종료</button></section>
-        <section><h3>일기 이어 듣기</h3><div class="driving-controls"><button data-drive="ttsPrevious" aria-label="이전 일기">이전</button><button data-drive="narrate">일기 듣기</button><button data-drive="ttsNext" aria-label="다음 일기">다음</button></div><button class="driving-stop" data-drive="ttsStop">듣기 종료</button></section></div>
-        <p class="driving-notice" data-driving-status role="status"></p>`;
+        <div data-driving-listen><section>
+          <div class="driving-listen-header"><h3 data-listen-heading>일기 이어 듣기</h3>
+          <button data-listen-switch aria-label="같은 일기의 원본 듣기로 전환"></button></div>
+          <p data-driving-original></p><div class="driving-controls">
+          <button data-drive="listenPrevious" aria-label="이전 일기">${listenIcon("previous")}</button>
+          <button data-drive="listenToggle" aria-label="일기 재생">${listenIcon("play")}</button>
+          <button data-drive="listenNext" aria-label="다음 일기">${listenIcon("next")}</button></div>
+        </section></div><p class="driving-notice" data-driving-status role="status"></p>`;
+      action(right.querySelector("[data-listen-switch]"), () =>
+        drive(
+          vehicleState.driving_listen?.mode === "original"
+            ? "listenDiary"
+            : "listenOriginal",
+        ),
+      );
       const controls = left.querySelectorAll("button,a");
       controls[0].dataset.drivePrimary = "true";
       controls[1].dataset.drive = "finish";
@@ -1988,37 +2009,61 @@
     tail(end, "녹음 마치기");
     end.disabled = !state.recording;
     root.querySelector("[data-driving-listen]").hidden = !!state.recording;
+    const listen = state.driving_listen || {};
+    const original = listen.mode === "original";
+    text(
+      root.querySelector("[data-listen-heading]"),
+      original ? "그날의 목소리" : "일기 이어 듣기",
+    );
     text(
       root.querySelector("[data-driving-original]"),
-      state.audio_selected
-        ? state.audio_date || "선택한 원본"
-        : "아직 녹음이 없어요",
+      listen.date || "완성된 일기가 없어요",
     );
-    const enabled = {
-      previous: state.can_play && state.original_previous,
-      play: state.can_play,
-      next: state.can_play && state.original_next,
-      stop: state.audio_busy,
-      narrate: state.can_narrate,
-      ttsPrevious: state.tts_previous,
-      ttsNext: state.tts_next,
-      ttsStop: state.tts_active,
-    };
-    Object.entries(enabled).forEach(([name, value]) => {
-      root.querySelector(`[data-drive="${name}"]`).disabled = !value;
-    });
-    text(
-      root.querySelector('[data-drive="play"]'),
-      state.playing ? "일시정지" : "원본 듣기",
+    const switcher = root.querySelector("[data-listen-switch]");
+    text(switcher, original ? "일기 듣기" : "원본 듣기");
+    switcher.setAttribute(
+      "aria-label",
+      original
+        ? "같은 일기의 일기 듣기로 전환"
+        : "같은 일기의 원본 듣기로 전환",
     );
+    switcher.disabled = !listen.available;
+    root.querySelector('[data-drive="listenPrevious"]').disabled =
+      !listen.previous;
+    root.querySelector('[data-drive="listenNext"]').disabled = !listen.next;
+    const toggle = root.querySelector('[data-drive="listenToggle"]');
+    toggle.disabled = !listen.available;
+    const icon = original
+      ? state.playing
+        ? "pause"
+        : "play"
+      : state.tts_active
+        ? "stop"
+        : "play";
+    toggle.innerHTML = listenIcon(icon);
+    toggle.setAttribute(
+      "aria-label",
+      original
+        ? state.playing
+          ? "원본 일시정지"
+          : "원본 재생"
+        : state.tts_active
+          ? "일기 재생 정지"
+          : "일기 재생",
+    );
+    const notice = state.playback_notice || "";
+    // Playback state is represented by the transport icons; retain actual errors.
+    const error = /실패|못했|없어요|오류|상실|중단/.test(notice) ? notice : "";
+    const status = root.querySelector("[data-driving-status]");
     text(
-      root.querySelector("[data-driving-status]"),
+      status,
       state.recording
         ? "인식한 이야기는 주차 후 확인해 주세요."
         : state.stt_busy
           ? "원본을 보관했어요. 이야기를 글로 옮기고 있어요."
-          : state.playback_notice || "",
+          : error,
     );
+    status.hidden = !status.textContent;
     drawInputLevel(state.level, state.paused || !state.recording);
   }
   async function drive(action) {

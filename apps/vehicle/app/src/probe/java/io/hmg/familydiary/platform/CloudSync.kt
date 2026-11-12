@@ -89,7 +89,10 @@ class CloudSync(private val root: File, private val recordings: File, private va
             if(status==401 && !claim){bindLocal();state.put("auth_invalid",true);save();throw IllegalStateException("차량 연결이 해제되거나 만료됐어요. 다시 연결해 주세요.")}
             if(status==409)throw Conflict()
             if(status==404)throw Missing()
-            if(status==422 || status==403)throw Invalid()
+            if(status==422 || status==403) {
+                val code=runCatching { conn.errorStream?.bufferedReader()?.use { JSONObject(it.readText()).optJSONObject("error")?.optString("code") } }.getOrNull()
+                throw Invalid(code?.takeIf { it in setOf("AUDIO_MISMATCH","INVALID_WAV","VEHICLE_REQUIRED","INVALID_SNAPSHOT") } ?: "INVALID_RECORD")
+            }
             if(status==410)throw Gone()
             check(status in 200..299){when(status){409->"다른 기기의 변경이 있어요. 동기화 후 다시 시도해 주세요.";422->"기록이나 연결 코드를 확인해 주세요.";429->"요청이 많아요. 잠시 후 다시 시도해 주세요.";else->"서버에 연결하지 못했어요. 기록은 유지돼요. ($status)"}}
             return conn.inputStream.use{stream->val out=java.io.ByteArrayOutputStream();val buf=ByteArray(8192);while(true){checkActive();val n=stream.read(buf);if(n<0)break;require(out.size()+n<=42*1024*1024);out.write(buf,0,n)};out.toByteArray()}
@@ -145,13 +148,15 @@ class CloudSync(private val root: File, private val recordings: File, private va
             ?: UUID.nameUUIDFromBytes((vault+":"+file.name).toByteArray()).toString()
         outbox.enqueue(file.name,vault,device,id,snapshot,link);version++
     }
-    fun retryNow(){forceNameRetry.set(true);outbox.jobs(vault,device).filter { !it.optBoolean("blocked") }.forEach { it.put("next_at",0);outbox.update(it) }}
+    fun retryNow(){forceNameRetry.set(true);outbox.retryAudioValidation(vault,device,false);outbox.jobs(vault,device).filter { !it.optBoolean("blocked") }.forEach { it.put("next_at",0);outbox.update(it) }}
     fun reconcile(){if(paired)recordings.listFiles()?.filter { it.extension=="wav" }?.forEach { capture(it) }}
     @Synchronized fun share(file:File){capture(file);flush();pull()} // Legacy test adapter; UI never needs this.
     /** Uploads only. No local audio/photo/review replacement or deletion in background. */
     @Synchronized fun flush(): Boolean {
         if(!paired)return false
-        begin();reconcile();uploading=true;version++
+        begin()
+        if(outbox.retryAudioValidation(vault,device,true)){state.put("cursor","0");save()}
+        reconcile();uploading=true;version++
         try {
             flushVehicleName()
             for(job in outbox.jobs(vault,device)) {
@@ -168,7 +173,10 @@ class CloudSync(private val root: File, private val recordings: File, private va
                     val attempts=job.optInt("attempts")+1
                     job.put("attempts",attempts).put("next_at",System.currentTimeMillis()+(30000L shl attempts.coerceAtMost(7)).coerceAtMost(3600000))
                     val blocked=(e is Conflict && !job.optBoolean("delete")) || e is Invalid || e is Missing
+                    if(e is Invalid)job.put("error_code",e.code)
                     job.put("blocked",blocked).put("error", when {
+                        e is Invalid && e.code=="AUDIO_MISMATCH" -> "원본 길이 또는 무결성 확인에 실패했어요. 서버 업데이트 후 지금 동기화를 눌러 주세요."
+                        e is Invalid && e.code=="INVALID_WAV" -> "녹음 파일 형식을 확인하지 못했어요. 차량의 원본은 보관돼 있어요."
                         e is UpgradeRequired -> "서버 업데이트 대기 · 원문 구간과 일기를 이 기기에 보관했어요."
                         e is Conflict -> "내용 충돌 · 이 기기의 일기를 보존했어요. 확인 후 다시 시도해 주세요."
                         blocked -> "기록을 전송하지 못했어요. 내용을 확인해 주세요."
@@ -249,8 +257,10 @@ class CloudSync(private val root: File, private val recordings: File, private va
         val id=m.getString("id");UUID.fromString(id);val links=state.getJSONObject("links");var link=links.optJSONObject(id)
         if(m.getBoolean("deleted")){if(link!=null){val name=link.getString("file");outbox.delete(name,vault,device,id);outbox.jobs(vault,device).filter{it.getString("file")==name}.forEach{outbox.finish(it)};removeLocal(link);links.remove(id);save()};return}
         if(link!=null && outbox.deleted(link.getString("file")))return
-        if(!m.getBoolean("audio_ready"))return // A later ready change will be emitted after complete immutable upload.
+        val audioReady=m.getBoolean("audio_ready")
         val s=m.getJSONObject("snapshot"); val name=link?.getString("file")?:"$id.wav"; val target=File(recordings,name)
+        // A locally owned, verified original can receive photos while its upload is pending.
+        if(!audioReady && (link==null || !target.isFile || PcmWave.sha256(target)!=s.getString("sha256")))return
         // Track newly fetched objects before writing any media, so cancellation/revocation can clean them up.
         if(link==null){link=JSONObject().put("file",name).put("revision",0).put("input_revision",s.getInt("revision")).put("photos",JSONArray());links.put(id,link);save()}
         if(!target.exists()){
@@ -260,7 +270,7 @@ class CloudSync(private val root: File, private val recordings: File, private va
         outbox.bind(name,vault)
         val local=reviews.load(target)
         val pending=outbox.jobs(vault,device).filter { it.getString("file")==name }
-        val canReplace=(local.revision==link.getInt("input_revision") || local.text.isBlank()) && pending.isEmpty()
+        val canReplace=audioReady && (local.revision==link.getInt("input_revision") || local.text.isBlank()) && pending.isEmpty()
         if(!canReplace && link.optJSONObject("snapshot")?.let { !sameSnapshot(it,s) }==true && pending.none { it.optJSONObject("snapshot")?.let { candidate -> sameSnapshot(candidate,s) }==true })link.put("content_conflict",true)
         if(canReplace){
             val raw=s.getJSONArray("raw_history")
@@ -275,7 +285,7 @@ class CloudSync(private val root: File, private val recordings: File, private va
         }
         val previous=link.getJSONArray("photos");for(i in 0 until previous.length()){val photoId=previous.getString(i);if(photoId !in ids)File(root,"memory-context/$name/$photoId.jpg").delete()}
         contexts.setPhotoOrder(name,ids.map { "$it.jpg" })
-        link.put("photos",JSONArray(ids.toList())).put("audio_ready",true)
+        link.put("photos",JSONArray(ids.toList())).put("audio_ready",audioReady)
         if(!link.optBoolean("content_conflict"))link.put("revision",m.getInt("revision"))
         if(canReplace)link.put("snapshot",s)
         save()
@@ -291,7 +301,7 @@ class CloudSync(private val root: File, private val recordings: File, private va
     private class Missing:Exception()
     private class UpgradeRequired:Exception()
     private class Conflict:Exception()
-    private class Invalid:Exception()
+    private class Invalid(val code:String):Exception()
     companion object {
         private val instances=java.util.concurrent.ConcurrentHashMap<String,CloudSync>()
         fun get(root:File):CloudSync=instances.computeIfAbsent(root.canonicalPath) {

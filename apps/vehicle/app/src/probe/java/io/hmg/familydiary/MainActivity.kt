@@ -63,7 +63,7 @@ class MainActivity : Activity() {
             handledRecording=service.resultFile
             pendingCaptureReview=service.resultFile
             selected=service.resultFile;review.select(null);review.select(selected,store.load(selected!!))
-            screen=Screen.DETAIL;nativeEditor=false;drivingRows=null;drivingHasDiary=null
+            screen=Screen.DETAIL;nativeEditor=false;drivingRows=null;drivingHasDiary=null;drivingDiaryRows=null;drivingDiaryDates.clear()
             status.text=service.notice
             refreshLibrary();if(allowed())exact.review(selected!!.name)
             render()
@@ -87,6 +87,7 @@ class MainActivity : Activity() {
     private fun playbackChanged(service:PlaybackService){
         if(!initialized || isDestroyed)return
         player=service.player;prepared=service.prepared;completedPlayback=service.completed
+        if(service.narrating)drivingListenMode="diary" else if(service.player!=null)drivingListenMode="original"
         if(service.busy && selected!=service.file)service.file?.takeIf { it.isFile }?.let {
             selected=it;review.select(null);review.select(it,store.load(it))
         }
@@ -94,6 +95,10 @@ class MainActivity : Activity() {
         handler.removeCallbacks(ticker)
         if(foreground){if(service.busy)handler.post(ticker);render()}
     }
+    private var drivingListenMode = "diary"
+    private var drivingSwitchGeneration = 0
+    private var drivingDiaryRows:List<File>?=null
+    private val drivingDiaryDates=mutableMapOf<File,String>()
     private enum class Screen { LIBRARY, RECORD, DETAIL, SETTINGS }
     private lateinit var exact: ExactDiaryView
     private lateinit var nativeShell: View
@@ -379,7 +384,7 @@ class MainActivity : Activity() {
         driving.isChecked=toDriving;parked.isChecked=!toDriving
         changingMotion=false
         if(toDriving) {
-            drivingRows=null;drivingHasDiary=null
+            drivingRows=null;drivingHasDiary=null;drivingDiaryRows=null;drivingDiaryDates.clear()
             if(!sync.uploading)sync.cancel();modal?.dismiss();modal=null
             hideKeyboard();review.save();review.cancel()
             if(!capture.busy && speech.busy && recordingService?.settling!=true)speech.cancel()
@@ -1039,6 +1044,7 @@ class MainActivity : Activity() {
         render()
     }
     private fun stopPlayback() {
+        drivingSwitchGeneration++
         playbackService?.stop()
         handler.removeCallbacks(ticker);prepared=false;completedPlayback=0.0;player=null;pendingSeek=0
         if(::seek.isInitialized){seek.progress=0;position.text="00:00 / ${time(review.record?.durationMs?:0)}"}
@@ -1159,7 +1165,63 @@ class MainActivity : Activity() {
         .put("vehicle",vehicle().json()).put("version",BuildConfig.VERSION_NAME)
         .put("name_pending",sync.namePending).put("name_notice",if(vehicle().nickname.length>40)"차 별명을 40자 이내로 수정해 주세요. 기존 이름은 보존돼 있어요." else if(sync.namePending)"차 별명 반영 대기 · 연결되면 휴대폰에도 같은 이름으로 표시돼요." else "")
         .put("location_granted",checkSelfPermission("pleos.car.permission.FUSED_LOCATION")==PackageManager.PERMISSION_GRANTED)
-    private fun referenceState() = VehicleTheme.state(this).put("driving",::driving.isInitialized && driving.isChecked).put("sync_notice",sync.uploadNotice.ifBlank { syncNotice }).put("paired",sync.paired).put("recording",capture.busy).put("paused",capture.paused)
+    private fun drivingDiaryFiles() = drivingDiaryRows ?: drivingOriginals().filter { narrationItem(it)!=null }.also { drivingDiaryRows=it }
+    private fun drivingListenFile():File? = drivingDiaryFiles().let { rows ->
+        playbackService?.file?.takeIf { playbackService?.busy==true && it in rows }
+            ?: selected?.takeIf { it in rows } ?: rows.firstOrNull()
+    }
+    private fun drivingListen(action:String) {
+        check(audioAllowed() && !capture.busy && !speech.busy && !syncBusy && !review.busy)
+        val rows=drivingDiaryFiles();val current=drivingListenFile()?:error("완성된 일기가 없어요.")
+        val service=checkNotNull(playbackService)
+        val wasPlaying=service.narrating || service.player?.isPlaying==true
+        when(action) {
+            "listenDiary", "listenOriginal" -> {
+                val mode=if(action=="listenDiary")"diary" else "original"
+                if(mode==drivingListenMode)return
+                stopPlayback();selectReference(current);drivingListenMode=mode
+                if(wasPlaying) {
+                    val generation=drivingSwitchGeneration
+                    fun resume(attempt:Int) {
+                        if(generation!=drivingSwitchGeneration || !driving.isChecked || !audioAllowed() || capture.busy || speech.busy || syncBusy || review.busy || selected!=current)return
+                        if(service.busy) {
+                            if(attempt<60)handler.postDelayed({resume(attempt+1)},50)
+                            return
+                        }
+                        runCatching {if(mode=="diary")startDrivingNarration() else playOriginal()}
+                            .onFailure {drivingNotice=it.message.orEmpty();render()}
+                    }
+                    handler.post {resume(0)}
+                }
+            }
+            "listenToggle" -> {
+                if(drivingListenMode=="diary" && service.narrating)stopPlayback()
+                else {selectReference(current);if(drivingListenMode=="diary")startDrivingNarration() else playOriginal()}
+            }
+            "listenPrevious", "listenNext" -> {
+                if(drivingListenMode=="diary" && service.narrating) {
+                    if(action=="listenPrevious")service.previousNarration() else service.nextNarration()
+                } else {
+                    val index=rows.indexOf(current)+(if(action=="listenPrevious")-1 else 1)
+                    val target=rows.getOrNull(index)?:return
+                    selectReference(target)
+                    if(wasPlaying){if(drivingListenMode=="diary")startDrivingNarration() else playOriginal()}
+                }
+            }
+            else -> error("지원하지 않는 음성 제어예요.")
+        }
+        render()
+    }
+    private fun drivingListenState():JSONObject {
+        val rows=drivingDiaryFiles();val file=drivingListenFile();val index=rows.indexOf(file)
+        val enabled=audioAllowed() && !capture.busy && !speech.busy && !syncBusy && !review.busy && playbackService?.settling!=true
+        val service=playbackService
+        return JSONObject().put("mode",drivingListenMode).put("available",enabled && file!=null)
+            .put("memory",file?.name?:JSONObject.NULL).put("date",file?.let {drivingDiaryDates.getOrPut(it){displayDate(store.load(it).recordedAt)}}?:"")
+            .put("previous",enabled && if(service?.narrating==true)service.hasPrevious else index>0)
+            .put("next",enabled && if(service?.narrating==true)service.hasNext else index>=0 && index<rows.lastIndex)
+    }
+    private fun referenceState() = VehicleTheme.state(this).put("driving_listen",if(driving.isChecked)drivingListenState() else JSONObject.NULL).put("driving",::driving.isInitialized && driving.isChecked).put("sync_notice",sync.uploadNotice.ifBlank { syncNotice }).put("paired",sync.paired).put("recording",capture.busy).put("paused",capture.paused)
         .put("stt_busy",speech.busy).put("stt_text",if(allowed() && (capture.busy || liveFile==selected))liveText else "").put("stt_status",if(capture.busy || liveFile==selected)liveStatus else "").put("stt_memory",liveFile?.name?:JSONObject.NULL)
         .put("level",if(capture.busy && !capture.paused)captureLevel else 0f).put("sync_pending",syncPending && sync.paired).put("narrating",playbackService?.busy==true && player==null).put("playback_notice",playbackService?.notice.orEmpty()).put("syncing",syncBusy || sync.uploading).put("elapsed",captureElapsed/1000.0).put("memoryId",selected?.name?:JSONObject.NULL)
         .put("position",if(prepared) runCatching { player?.currentPosition?.div(1000.0)?:0.0 }.getOrDefault(0.0) else completedPlayback)
@@ -1198,13 +1260,18 @@ class MainActivity : Activity() {
                 "state"->referenceState()
                 "driveAction"->{
                     check(driving.isChecked);renderDriving()
-                    val control=when(request.getString("action")){
+                    val action=request.getString("action")
+                    if(action in setOf("listenDiary","listenOriginal","listenToggle","listenPrevious","listenNext")) {
+                        drivingListen(action)
+                    } else {
+                    val control=when(action){
                         "record"->drivingRecord;"pause"->drivingPause;"finish"->drivingFinish
                         "play"->drivingPlay;"stop"->drivingStop;"previous"->drivingPrevious;"next"->drivingNext
                         "narrate"->drivingTtsStart;"ttsPrevious"->drivingTtsPrevious;"ttsNext"->drivingTtsNext;"ttsStop"->drivingTtsStop
                         else->error("지원하지 않는 음성 제어예요.")
                     }
-                    check(control.isEnabled){"지금은 이 음성 기능을 사용할 수 없어요."};control.performClick();referenceState()
+                    check(control.isEnabled){"지금은 이 음성 기능을 사용할 수 없어요."};control.performClick()
+                    };referenceState()
                 }
                 "list"->{ val rows=org.json.JSONArray();directory.listFiles()?.filter { it.name.endsWith(".wav") }?.forEach { runCatching { referenceRecord(it) }.getOrNull()?.let(rows::put) };JSONObject().put("items",rows) }
                 "read"->{val file=referenceFile(id);if(playbackService?.narrating!=true)selectReference(file);referenceRecord(file)}
@@ -1274,7 +1341,7 @@ class MainActivity : Activity() {
                     if(operation=="pairVehicle"){check(!sync.paired){"이미 연결된 차량이에요. 휴대폰에서 연결을 관리해 주세요."};require(Regex("[0-9]{6}").matches(code)){"휴대폰의 6자리 연결 코드를 입력해 주세요."}}
                     else check(sync.paired){"휴대폰을 먼저 연결해 주세요."}
                     runSync("변경 사항을 반영했어요.",complete={error->reply(if(error==null)settingsState() else JSONObject().put("error",error.message?:"연결을 확인해 주세요."))}) {
-                        when(operation){"pairVehicle"->{sync.pair(code,label);SyncUploads.request(this,sync);sync.pull()};else->{SyncUploads.request(this,sync);sync.pull()}}
+                        when(operation){"pairVehicle"->{sync.pair(code,label);SyncUploads.request(this,sync);sync.pull()};else->{sync.retryNow();SyncUploads.request(this,sync);sync.pull()}}
                     };return
                 }
                 "share"->{SyncUploads.request(this,sync);JSONObject()}

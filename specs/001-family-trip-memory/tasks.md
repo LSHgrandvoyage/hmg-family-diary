@@ -313,3 +313,9 @@ C036 검토 완료: 공개 공지5건·가이드8항목·FAQ·약관/개인정�
 - [X] C037c 관련 검증·release 빌드·dev 커밋 및 새 배포 묶음.
 
 C037: 서버 handler9개·typecheck·합성 양쪽 테마/연결 UI 및 기존 설정 회귀·release 빌드/Android 단위23개 통과.0.2.1 업데이트 소스/APK를 작업 커밋에서 별도 패키징한다. 이번 버전 Windows/Pleos 실기기와 실제 DB 경합·서버 왕복 검증은 미실행. [근거](../../docs/evidence/c037-pairing-and-setup.md).
+
+- [X] C038a 짧은 WAV 길이 오차 재현·서버 검증 수정·기존 실패 재시도 및 사진 수신 복구.
+- [X] C038b 동일 일기의 TTS/원본 단일 주행 플레이어·아이콘 제어.
+- [X] C038c 관련 회귀·release 빌드·커밋·Windows 업데이트 묶음.
+
+C038: 저장소17개·typecheck·합성 주행 UI·release/Android 단위23개 통과. 최종 APK에서 실제 Pleos 계측2개가1.242초에 통과했다(원본 차단 이행/사진 보존, 동일 일기 TTS↔원본 전환/종료). 사용자 Windows의 실제 파일 복구는 업데이트 후 확인이 필요하다. [근거](../../docs/evidence/c038-sync-recovery-driving-listen.md).

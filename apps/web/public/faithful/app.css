@@ -1395,3 +1395,24 @@ dialog input.pairing-code-input::placeholder {
   color: var(--muted);
   opacity: 1;
 }
+
+.driving-listen-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.driving-listen-header h3 {
+  margin: 0;
+}
+.driving-audio-panel [data-listen-switch] {
+  font-size: 16px;
+  min-height: 52px;
+  padding: 8px 14px;
+}
+.driving-controls button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+}

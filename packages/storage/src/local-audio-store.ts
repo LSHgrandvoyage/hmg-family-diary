@@ -67,7 +67,8 @@ export function inspectWav(
     sampleRate: format.sampleRate,
     channels: format.channels,
     bitsPerSample: format.bitsPerSample,
-    durationMs: (payload / format.align / format.sampleRate) * 1000,
+    // Match the vehicle integer-byte calculation before flooring milliseconds.
+    durationMs: (payload * 1000) / (format.align * format.sampleRate),
   };
 }
 /** Caller holds the session DB lock and checks tombstones before publish/delete. This adapter never owns authorization. */

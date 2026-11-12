@@ -57,6 +57,24 @@ class SyncOutbox(root: File) {
                 .put("id",id).put("delete",true).put("next_at",0))
         }
     }
+    /** Retry immutable audio validation, never clear text conflicts or tombstones. */
+    fun retryAudioValidation(vault: String, device: String, once: Boolean): Boolean = transaction(true) { s ->
+        var changed=false
+        val jobs=map(s,"jobs")
+        jobs.keys().forEach { key ->
+            val job=jobs.getJSONObject(key)
+            val legacy=job.optString("error")=="기록을 전송하지 못했어요. 내용을 확인해 주세요." && !job.has("error_code")
+            if(job.optString("vault")==vault && job.optString("device")==device &&
+                job.optString("stage")=="audio" && job.optBoolean("blocked") &&
+                !map(s,"deleted").has(job.optString("file")) &&
+                (legacy || job.optString("error_code")=="AUDIO_MISMATCH") &&
+                (!once || !job.optBoolean("audio_validation_retry_v1"))) {
+                job.put("audio_validation_retry_v1",true).put("next_at",0).put("blocked",false)
+                job.remove("error");job.remove("error_code");changed=true
+            }
+        }
+        changed
+    }
     fun rebind(vault: String, device: String) = transaction(true) { s ->
         val jobs=map(s,"jobs")
         jobs.keys().forEach { key -> jobs.getJSONObject(key).takeIf { it.getString("vault")==vault }?.apply {

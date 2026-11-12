@@ -26,6 +26,7 @@ class PlaybackService:Service() {
     var queueIndex=-1;private set
     val queueCount get()=queue.size
     val narrating get()=busy && queueIndex in queue.indices
+    val settling get()=stopping
     val narrationTitle get()=queue.getOrNull(queueIndex)?.title.orEmpty()
     val hasPrevious get()=narrating && queueIndex>0
     val hasNext get()=narrating && queueIndex<queue.lastIndex

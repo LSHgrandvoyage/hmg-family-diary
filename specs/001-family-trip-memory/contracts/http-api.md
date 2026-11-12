@@ -156,3 +156,6 @@ snapshot/audio API와 인증·원본/맥락 불변 계약은 유지한다. 호�
 
 ## C037 연결 코드 형식
 `POST /pairings`는 `/^[0-9]{6}$/` 문자열을 발급한다. `POST /devices/claim`도6자리만 허용한다. 선행0 보존,5분 만료·일회용·기존 요청 제한 유지. 전역 UNIQUE code_hash 충돌은 제한 재시도하고 실패 시503 PAIRING_BUSY. 기존 device token은 변경하지 않는다. 업데이트 전 미사용8자리 코드는 재발급이 필요하며 APK와 서버를 함께 업데이트한다.
+
+## C038 원본 길이 검증과 부분 전송 복구
+WAV durationMs는 `(payloadBytes * 1000) / (channels * 2 * sampleRate)`이며 snapshot 비교는 정수 ms 내림값을 사용한다. 원본 SHA/포맷 검사는 유지한다. audio_ready=false 상태에도 해당 원본 해시가 일치하는 기존 로컬 기록의 사진은 수신 가능하지만 원격 음성 준비 상태는 false다. 재시도는 기존 session ID/payload/원본을 유지하며 서버 자료를 삭제하거나 임의 보정하지 않는다.

@@ -20,6 +20,7 @@ fixed.add('docs/evidence/c029-settings-redesign.md')
 fixed.add('docs/evidence/c030-common-vehicle-rail.md')
 fixed.add('docs/evidence/c031-unified-vehicle-name.md')
 fixed.add('docs/evidence/c032-driving-reference-and-home.md')
+fixed.update({'.gitattributes','compose.team.yaml','infra/Caddyfile.team','docs/team/windows-testing.md','docs/evidence/c033-fixed-mock.md','docs/evidence/c034-team-deployment.md'})
 fixed.update('docs/evidence/connected-ui/c032-driving-'+state+'-'+theme+'.png' for state in ('idle','recording') for theme in ('dark','light'))
 fixed.add('docs/evidence/connected-ui/c031-phone-name.png')
 fixed.update('docs/evidence/connected-ui/'+name for name in ('c030-carsettings-dark.png','c030-carhome-dark.png','c030-carlist-dark.png','c030-carsettings-light.png'))
@@ -51,7 +52,8 @@ shutil.copyfile(apk,out/'app-probe-debug.apk')
 with zipfile.ZipFile(out/'source.zip','w',zipfile.ZIP_DEFLATED) as archive:
     for name,p in selected: archive.write(p, 'hmg-family-diary/'+name)
 sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
-manifest={'kind':'emulator-prototype-review-bundle','source_state':'working-tree','base_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=root).decode().strip(),'apk_sha256':sha(out/'app-probe-debug.apk'),'source_zip_sha256':sha(out/'source.zip'),'source_files':{name:sha(p) for name,p in selected},'notes':['Uncommitted working tree snapshot; not a claimed final commit.','AI remains mock. No SDK/AVD, runtime secrets or private media included.','APK was built locally; rebuild from source for independently reproducible validation.']}
+dirty=bool(subprocess.check_output(['git','status','--porcelain'],cwd=root).strip())
+manifest={'kind':'emulator-prototype-review-bundle','source_state':'working-tree' if dirty else 'committed-tree','base_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=root).decode().strip(),'apk_sha256':sha(out/'app-probe-debug.apk'),'source_zip_sha256':sha(out/'source.zip'),'source_files':{name:sha(p) for name,p in selected},'notes':[('Uncommitted working tree snapshot; not a claimed final commit.' if dirty else 'Clean source checkout at base_commit; not automatically a final contest submission.'),'AI remains mock. No SDK/AVD, runtime secrets or private media included.','APK was built locally; rebuild from source for independently reproducible validation.']}
 (out/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n')
 shutil.copyfile(root/'docs/contest/README.md',out/'README.md')
 print(f'Created local review bundle: {out} ({len(selected)} source files)')

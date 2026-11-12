@@ -68,3 +68,6 @@ SDK 저장소: [Pleos Maven](https://nexus-playground.pleos.ai/repository/maven-
 ## 발언별 원본 타임라인 (C026)
 
 새 인식 결과에 원문과 EPD 시각을 보관한다. 차량 일기 상세의 `원래 이야기`, 모바일 녹음 원문에서 발언을 누르면 해당 시점부터 원본을 듣는다. 기존 시각 없는 기록은 전체 원본을 유지한다. 사람별 자동 분리는 아직 제공하지 않는다. 상세 검증과 기존 STT 오인식, 후속 Docker 반영 및 실제 서버 왕복 통과 범위는 `docs/evidence/c026-original-timeline.md`를 확인한다. 새 앱의 업로드에는 `speech_timeline_version:1` 서버가 필요하다.
+
+## Windows 팀 테스트와 제출 점검
+[Windows Docker 테스트 안내](../team/windows-testing.md), [최신 공식 지원 범위](platform-review-2026-11-12.md), [제출 체크리스트](submission-checklist.md)를 참조한다. 팀 배포 ZIP은 소스/Compose/시험용 APK이며 공개 서버나 공식 제출 release APK가 아니다.

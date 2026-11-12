@@ -1,4 +1,7 @@
 *.bat text eol=crlf
-*.sh text eol=lf
 *.png binary
 *.jar binary
+*.sh text eol=lf
+**/gradlew text eol=lf
+*.mjs text eol=lf
+*.yaml text eol=lf

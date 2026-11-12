@@ -38,3 +38,9 @@ private-data/
 playwright-report/
 test-results/
 *.tsbuildinfo
+
+# Local team distribution and backup artifacts
+backups/
+*.tar
+*.tar.gz
+*.dump

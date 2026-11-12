@@ -1,3 +1,5 @@
+> 팀원 Windows 테스트: [Docker 환경 구축 안내](docs/team/windows-testing.md). 공모전 준비: [제출 체크리스트](docs/contest/submission-checklist.md) · [플랫폼 지원 범위](docs/contest/platform-review-2026-11-12.md). 현재 일기 본문은 `AI 생성 일기 목업 입니다.`로 고정됩니다. 팀 테스트 APK와 제출용 release APK를 구분합니다.
+
 # HMG Family Diary
 
 차에서 자유롭게 풀어놓은 가족 이야기를 LLM이 분류·정제해 **일기와 실제 목소리**로 남겨,

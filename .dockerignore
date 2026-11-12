@@ -15,3 +15,7 @@ test-results
 *.log
 *.pem
 *.key
+
+dist
+backups
+apk

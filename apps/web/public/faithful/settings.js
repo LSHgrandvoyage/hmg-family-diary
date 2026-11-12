@@ -29,7 +29,7 @@
         <div class="settings-column">
           <section class="settings-card settings-connection" aria-label="휴대폰 연결">
             <div class="settings-connection-heading"><span class="settings-device-icon">${phone}</span><div><h2 data-connection-title></h2><p data-connection-time></p></div></div>
-            <div class="settings-actions"><button data-sync-now class="settings-primary">지금 동기화</button><button data-connection-edit></button><button data-server-import hidden>테스트 서버 설정</button></div>
+            <div class="settings-actions"><button data-sync-now class="settings-primary">지금 동기화</button><button data-connection-edit></button><button data-server-import hidden>연결 서버 설정</button></div>
             <p class="settings-feedback" data-connection-notice role="status"></p>
           </section>
           <section class="settings-card" aria-label="우리 차 정보">
@@ -75,6 +75,10 @@
         : "휴대폰에서도 일기와 목소리를 함께 보관해요",
     );
     set("[data-connection-edit]", "휴대폰 연결하기");
+    set(
+      "[data-server-import]",
+      current.server_configured ? "연결 서버 변경" : "연결 서버 설정",
+    );
     set(
       "[data-connection-notice]",
       current.syncing ? "동기화하고 있어요…" : current.sync_notice || "",
@@ -204,6 +208,10 @@
   }
   function editConnection() {
     if (current.paired) return;
+    if (current.server_setup_available && current.server_configured === false) {
+      void api.bridge("importServerSettings");
+      return;
+    }
     const d = api.dialog(
       "휴대폰 연결",
       "휴대폰의 차량 화면에서 연결 코드를 만들어 주세요.",
@@ -214,9 +222,19 @@
     d.append(name);
     const form = document.createElement("form");
     d.append(form);
-    const code = field(form, "8자리 연결 코드", "", 8);
+    const code = document.createElement("input");
+    code.type = "text";
+    code.maxLength = 6;
+    code.placeholder = "6자리 연결 코드를 입력해주세요";
+    code.setAttribute("aria-label", "6자리 연결 코드");
+    code.className = "pairing-code-input";
+    code.autocomplete = "one-time-code";
+    code.oninput = () => {
+      code.value = code.value.replace(/[^0-9]/g, "").slice(0, 6);
+    };
+    form.append(code);
     code.inputMode = "numeric";
-    code.pattern = "[0-9]{8}";
+    code.pattern = "[0-9]{6}";
     code.required = true;
     const save = api.button(
       d,

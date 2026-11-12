@@ -1,6 +1,6 @@
 import { isDeepStrictEqual } from "node:util";
 import { Pool, type PoolClient } from "pg";
-import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomInt, randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile, rename, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import sharp from "sharp";
@@ -165,7 +165,7 @@ export async function handleDomain(req: Request): Promise<Response> {
       const b = await body(req);
       if (
         typeof b.code !== "string" ||
-        !/^\d{8}$/.test(b.code) ||
+        !/^\d{6}$/.test(b.code) ||
         typeof b.label !== "string" ||
         !b.label.trim() ||
         b.label.length > 40
@@ -214,19 +214,22 @@ export async function handleDomain(req: Request): Promise<Response> {
           `codes:${p.vault}`,
         ]);
         if (!limit.rows[0].ok) throw new HttpError(429, "RATE_LIMITED");
-        const code = String(randomBytes(4).readUInt32BE() % 100000000).padStart(
-          8,
-          "0",
-        );
         await c.query(
           "UPDATE diary.pairings SET consumed_at=now() WHERE vault_id=$1 AND consumed_at IS NULL",
           [p.vault],
         );
-        const r = await c.query(
-          "INSERT INTO diary.pairings(vault_id,code_hash,expires_at) VALUES($1,$2,now()+interval '5 minutes') RETURNING expires_at",
-          [p.vault, digest(code)],
-        );
-        return json({ code, expires_at: r.rows[0].expires_at }, 201);
+        // The hash is globally unique, including other vaults hidden by RLS.
+        // Never replace an existing code; retry without aborting the transaction.
+        for (let attempt = 0; attempt < 10; attempt++) {
+          const code = String(randomInt(1000000)).padStart(6, "0");
+          const r = await c.query(
+            "INSERT INTO diary.pairings(vault_id,code_hash,expires_at) VALUES($1,$2,now()+interval '5 minutes') ON CONFLICT (code_hash) DO NOTHING RETURNING expires_at",
+            [p.vault, digest(code)],
+          );
+          if (r.rowCount)
+            return json({ code, expires_at: r.rows[0].expires_at }, 201);
+        }
+        throw new HttpError(503, "PAIRING_BUSY");
       }
       if (path[0] === "devices") {
         if (path.length === 2 && method === "PATCH") {

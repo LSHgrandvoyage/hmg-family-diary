@@ -153,3 +153,6 @@ snapshot/audio API와 인증·원본/맥락 불변 계약은 유지한다. 호�
 
 ## C027 테마·설정 복귀 UI
 서버/동기화 wire 변경 없음. 기존 setTheme(mode)/theme_mode/theme_dark bridge를 사용한다. 화면 직접 전환 버튼도 차량 주차 검토 권한을 유지한다. 녹음 파형은 기존 state.level(실제 PCM 기반 정규화 입력)만 소비한다.
+
+## C037 연결 코드 형식
+`POST /pairings`는 `/^[0-9]{6}$/` 문자열을 발급한다. `POST /devices/claim`도6자리만 허용한다. 선행0 보존,5분 만료·일회용·기존 요청 제한 유지. 전역 UNIQUE code_hash 충돌은 제한 재시도하고 실패 시503 PAIRING_BUSY. 기존 device token은 변경하지 않는다. 업데이트 전 미사용8자리 코드는 재발급이 필요하며 APK와 서버를 함께 업데이트한다.

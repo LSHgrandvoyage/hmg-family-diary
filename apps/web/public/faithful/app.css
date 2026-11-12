@@ -1303,15 +1303,95 @@ body.vehicle .theme-shortcut [data-theme-cycle] svg {
 }
 
 /* C032: reference recording proportions, no transcript or photos while driving. */
-.driving-audio-panel { box-sizing:border-box; width:572px; gap:24px!important; justify-content:space-between!important; }
-.driving-audio-panel h2 { margin:0 0 12px; font-size:24px; color:var(--ink); }
-.driving-audio-panel h3 { margin:0 0 12px; font-size:22px; color:var(--ink); }
-.driving-audio-panel p { margin:0; font-size:18px; line-height:1.6; color:var(--muted); }
-.driving-audio-panel section + section { margin-top:24px; }
-.driving-controls { display:flex; gap:12px; margin-top:12px; }
-.driving-audio-panel button { border:0; border-radius:20px; background:var(--surface-2,var(--bg)); color:var(--ink); font:inherit; font-weight:700; font-size:20px; min-height:64px; padding:12px 20px; }
-.driving-controls button:nth-child(2) { flex:1; background:var(--ink); color:var(--bg); }
-.driving-audio-panel .driving-stop { background:transparent; font-size:18px; min-height:48px; padding:8px 0; }
-[data-driving-surface] nav [aria-disabled="true"] { cursor:default; }
-[data-driving-surface] nav a:not([aria-current]) { opacity:.45; }
-[data-driving-listen][hidden] { display:none; }
+.driving-audio-panel {
+  box-sizing: border-box;
+  width: 572px;
+  gap: 24px !important;
+  justify-content: space-between !important;
+}
+.driving-audio-panel h2 {
+  margin: 0 0 12px;
+  font-size: 24px;
+  color: var(--ink);
+}
+.driving-audio-panel h3 {
+  margin: 0 0 12px;
+  font-size: 22px;
+  color: var(--ink);
+}
+.driving-audio-panel p {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.driving-audio-panel section + section {
+  margin-top: 24px;
+}
+.driving-controls {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+.driving-audio-panel button {
+  border: 0;
+  border-radius: 20px;
+  background: var(--surface-2, var(--bg));
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  font-size: 20px;
+  min-height: 64px;
+  padding: 12px 20px;
+}
+.driving-controls button:nth-child(2) {
+  flex: 1;
+  background: var(--ink);
+  color: var(--bg);
+}
+.driving-audio-panel .driving-stop {
+  background: transparent;
+  font-size: 18px;
+  min-height: 48px;
+  padding: 8px 0;
+}
+[data-driving-surface] nav [aria-disabled="true"] {
+  cursor: default;
+}
+[data-driving-surface] nav a:not([aria-current]) {
+  opacity: 0.45;
+}
+[data-driving-listen][hidden] {
+  display: none;
+}
+
+/* C037: one digit per cell, including leading zeroes. */
+.pairing-code-digits {
+  display: grid !important;
+  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  width: 100%;
+}
+.pairing-code-digits > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  height: 52px;
+  border-radius: 12px;
+  background: var(--surface-alt);
+  color: var(--ink);
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 25px;
+  font-weight: 600;
+}
+dialog input.pairing-code-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 56px;
+  font-size: 20px;
+}
+dialog input.pairing-code-input::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}

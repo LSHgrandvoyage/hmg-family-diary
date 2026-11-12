@@ -100,3 +100,6 @@ node .\scripts\team-test.mjs connect emulator-5554 "$adb"
 Docker volume은 재시작 때 유지되지만 **백업은 아니다**. 테스트 동안은 합성 데이터를 쓰고, PC 고장까지 대비하려면 앱 쓰기를 중단한 상태에서 DB와 audio/photo 볼륨, 환경 파일을 함께 암호화 백업하고 별도 프로젝트로 복원 검증해야 한다. 이 패키지에 자동 백업·복구 완료를 주장하지 않는다.
 
 현재 공개 서버는 만들지 않는다. 나중에 클라우드 공동 서버를 열 때는 공인 DNS/HTTPS, 운영 SMTP·가입 정책, 원본 암호화/키 관리, 일관 백업과 삭제/폐기 표식 복구, 차량의 개발 CA 고정 제거/정식 신뢰 경로가 추가로 필요하다. localhost용 목업4319는 공개 API로 노출하지 않는다. [플랫폼 검토](../contest/platform-review-2026-11-12.md)와 [제출 준비](../contest/submission-checklist.md)를 함께 확인한다.
+
+## 제출용 release의 서버 설정과6자리 코드
+제출용 `io.hmg.familydiary.contest`는 위 debug용 connect 명령 대신 `node .\scripts\team-test.mjs configure-release <실제 emulator-ID> "$adb"`를 사용합니다. 인증서를 휴대폰에 설치한 것만으로 차량 서버 주소가 등록되지는 않습니다. 차량의 확인창에서 설정 적용 후 휴대폰의 새6자리 코드를 입력하세요. [설정 이유와 순서](../contest/release-runbook.md#연결-설정과-인증서-c037)를 참고하세요.

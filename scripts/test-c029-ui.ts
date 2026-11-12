@@ -322,7 +322,7 @@ try {
         .getByRole("button", { name: "휴대폰 연결하기", exact: true })
         .click();
       await expect(p.getByLabel("연결 기기 별칭")).toHaveCount(0);
-      await p.getByLabel("8자리 연결 코드").fill("123");
+      await p.getByLabel("6자리 연결 코드").fill("123");
       await p.getByRole("button", { name: "연결하기", exact: true }).click();
       expect(
         await p.evaluate(
@@ -331,7 +331,7 @@ try {
               .length,
         ),
       ).toBe(0);
-      await p.getByLabel("8자리 연결 코드").fill("12345678");
+      await p.getByLabel("6자리 연결 코드").fill("123456");
       await p.getByRole("button", { name: "연결하기", exact: true }).click();
       await expect(
         p.getByText("휴대폰과 연결됨", { exact: true }),

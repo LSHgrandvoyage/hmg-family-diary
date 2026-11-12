@@ -127,6 +127,9 @@
     if (!r.ok)
       throw Error(
         {
+          PAIRING_BUSY:
+            "연결 코드를 만들지 못했어요. 잠시 후 다시 시도해 주세요.",
+          RATE_LIMITED: "요청이 많아요. 잠시 후 다시 시도해 주세요.",
           PHOTO_LIMIT: "사진은 8장까지 추가할 수 있어요.",
           INVALID_PHOTO:
             "사진을 읽을 수 없거나 해상도가 너무 커요. JPG·PNG·WebP 형식, 4천만 화소 이하의 사진을 선택해 주세요.",
@@ -1480,7 +1483,15 @@
         ? "차량과 휴대폰에서 같은 일기와 목소리를 볼 수 있어요."
         : "연결 코드를 만든 뒤 차량 화면에 입력해 주세요.",
     );
-    C(digits).forEach((x) => text(x, "–"));
+    digits.classList.add("pairing-code-digits");
+    digits.replaceChildren(
+      ...Array.from({ length: 6 }, () => {
+        const digit = document.createElement("span");
+        digit.textContent = "–";
+        digit.setAttribute("aria-hidden", "true");
+        return digit;
+      }),
+    );
     digits.removeAttribute("aria-label");
     digits.removeAttribute("role");
     tail(
@@ -1529,7 +1540,7 @@
       } else {
         const code = await api("pairings", "POST", {});
         C(digits).forEach((x, i) => {
-          text(x, code.code.slice(i * 2, i * 2 + 2));
+          text(x, code.code.slice(i, i + 1));
           x.style.fontSize = "25px";
         });
         digits.setAttribute("aria-label", "차량 연결 코드 " + code.code);
@@ -1936,27 +1947,78 @@
       const controls = left.querySelectorAll("button,a");
       controls[0].dataset.drivePrimary = "true";
       controls[1].dataset.drive = "finish";
-      action(controls[0], () => drive(vehicleState.recording ? "pause" : "record"));
-      root.querySelectorAll("[data-drive]").forEach((b) => action(b, () => drive(b.dataset.drive)));
+      action(controls[0], () =>
+        drive(vehicleState.recording ? "pause" : "record"),
+      );
+      root
+        .querySelectorAll("[data-drive]")
+        .forEach((b) => action(b, () => drive(b.dataset.drive)));
     }
     const root = app.firstElementChild;
     const left = root.querySelector("[data-driving-left]");
-    tail(C(left)[0], state.recording ? (state.paused ? "일시정지" : "녹음 중") : "주행 모드");
-    text(left.querySelector("[data-timer]"), stamp(state.recording ? state.elapsed || 0 : 0));
-    tail(C(C(left)[1]).at(-1), state.recording ? "녹음 원본을 이 기기에 저장하고 있어요" : "편하게 이야기해 주세요");
+    tail(
+      C(left)[0],
+      state.recording ? (state.paused ? "일시정지" : "녹음 중") : "주행 모드",
+    );
+    text(
+      left.querySelector("[data-timer]"),
+      stamp(state.recording ? state.elapsed || 0 : 0),
+    );
+    tail(
+      C(C(left)[1]).at(-1),
+      state.recording
+        ? "녹음 원본을 이 기기에 저장하고 있어요"
+        : "편하게 이야기해 주세요",
+    );
     const primary = root.querySelector("[data-drive-primary]");
-    tail(primary, state.recording ? (state.paused ? "이어서 녹음" : "잠깐 멈춤") : "녹음 시작");
-    primary.querySelector("svg").innerHTML = state.recording && !state.paused ? '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>' : '<path d="M8 5l12 7-12 7z"/>';
+    tail(
+      primary,
+      state.recording
+        ? state.paused
+          ? "이어서 녹음"
+          : "잠깐 멈춤"
+        : "녹음 시작",
+    );
+    primary.querySelector("svg").innerHTML =
+      state.recording && !state.paused
+        ? '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>'
+        : '<path d="M8 5l12 7-12 7z"/>';
     primary.disabled = !state.recording && !state.can_record;
     const end = root.querySelector('[data-drive="finish"]');
     tail(end, "녹음 마치기");
     end.disabled = !state.recording;
     root.querySelector("[data-driving-listen]").hidden = !!state.recording;
-    text(root.querySelector("[data-driving-original]"), state.audio_selected ? state.audio_date || "선택한 원본" : "아직 녹음이 없어요");
-    const enabled = { previous: state.can_play && state.original_previous, play: state.can_play, next: state.can_play && state.original_next, stop: state.audio_busy, narrate: state.can_narrate, ttsPrevious: state.tts_previous, ttsNext: state.tts_next, ttsStop: state.tts_active };
-    Object.entries(enabled).forEach(([name, value]) => { root.querySelector(`[data-drive="${name}"]`).disabled = !value; });
-    text(root.querySelector('[data-drive="play"]'), state.playing ? "일시정지" : "원본 듣기");
-    text(root.querySelector("[data-driving-status]"), state.recording ? "인식한 이야기는 주차 후 확인해 주세요." : state.stt_busy ? "원본을 보관했어요. 이야기를 글로 옮기고 있어요." : state.playback_notice || "");
+    text(
+      root.querySelector("[data-driving-original]"),
+      state.audio_selected
+        ? state.audio_date || "선택한 원본"
+        : "아직 녹음이 없어요",
+    );
+    const enabled = {
+      previous: state.can_play && state.original_previous,
+      play: state.can_play,
+      next: state.can_play && state.original_next,
+      stop: state.audio_busy,
+      narrate: state.can_narrate,
+      ttsPrevious: state.tts_previous,
+      ttsNext: state.tts_next,
+      ttsStop: state.tts_active,
+    };
+    Object.entries(enabled).forEach(([name, value]) => {
+      root.querySelector(`[data-drive="${name}"]`).disabled = !value;
+    });
+    text(
+      root.querySelector('[data-drive="play"]'),
+      state.playing ? "일시정지" : "원본 듣기",
+    );
+    text(
+      root.querySelector("[data-driving-status]"),
+      state.recording
+        ? "인식한 이야기는 주차 후 확인해 주세요."
+        : state.stt_busy
+          ? "원본을 보관했어요. 이야기를 글로 옮기고 있어요."
+          : state.playback_notice || "",
+    );
     drawInputLevel(state.level, state.paused || !state.recording);
   }
   async function drive(action) {
@@ -1995,7 +2057,10 @@
     window.DiaryTheme?.native(state);
     const wasPaused = vehicleState.paused;
     vehicleState = state;
-    if (state.driving) { paintDriving(state); return; }
+    if (state.driving) {
+      paintDriving(state);
+      return;
+    }
     updatePlaylist(state);
     if (state.settings) window.DiarySettings?.update(state.settings);
     app
@@ -2243,7 +2308,10 @@
   }
   async function render() {
     const token = ++generation;
-    if (native && vehicleState.driving) { paintDriving(vehicleState); return; }
+    if (native && vehicleState.driving) {
+      paintDriving(vehicleState);
+      return;
+    }
     const [route, search] = location.hash.slice(1).split("?");
     page = window.CHAGOK_TEMPLATES[route] ? route : native ? "carhome" : "main";
     selected = new URLSearchParams(search || "").get("id") || selected;
@@ -2261,7 +2329,10 @@
     try {
       if (native) {
         vehicleState = await bridge("state");
-        if (vehicleState.driving) { paintDriving(vehicleState); return; }
+        if (vehicleState.driving) {
+          paintDriving(vehicleState);
+          return;
+        }
         await bridge("view", { page });
         window.DiaryTheme?.native(vehicleState);
       }

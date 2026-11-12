@@ -342,7 +342,7 @@ class MainActivity : Activity() {
         ui.add(gateCard,ui.button("차량 신호 사용") {recordingService?.setSimulation(null)},8)
         ui.add(gateCard, ui.text("음성과 일기는 이 기기에 보관돼요. 지금은 에뮬레이터용이며, 일기 생성은 고정 목업이에요. 참여하지 않아도 괜찮아요. 휴대폰이 연결돼 있으면 완성한 일기·원본 음성·차량 및 녹음 위치가 가족 보관함에 자동 저장돼요.", 20f, color = ui.muted), 24)
         ui.add(gateCard,ui.button("녹음 위치 사용 설정") {requestRecordingLocation()},12)
-        if(BuildConfig.LOCAL_MOCK) ui.add(gateCard,ui.button("테스트 서버 설정 가져오기") { importServerSettings() },12)
+        if(BuildConfig.LOCAL_MOCK) ui.add(gateCard,ui.button("연결 서버 설정") { importServerSettings() },12)
         attach(gate)
         buildLibrary().also { attach(it) }
         buildRecording().also { attach(it) }
@@ -797,12 +797,12 @@ class MainActivity : Activity() {
             runSync("차 별명을 저장했어요.") { sync.rename(name) }
         }; ui.add(cloud, renameButton, 12)
         connectionForm = ui.column(); ui.add(cloud, connectionForm, 16)
-        val label = ui.text("휴대폰에서 만든 8자리 연결 코드", 20f, true); ui.add(connectionForm, label)
-        connectionCode = ui.input("차량 연결 코드").apply { inputType = android.text.InputType.TYPE_CLASS_NUMBER; filters = arrayOf(android.text.InputFilter.LengthFilter(8)) }
-        label.labelFor = connectionCode.id; ui.add(connectionForm, connectionCode, 12)
+        connectionCode = ui.input("6자리 연결 코드").apply { hint = "6자리 연결 코드를 입력해주세요"; inputType = android.text.InputType.TYPE_CLASS_NUMBER; filters = arrayOf(android.text.InputFilter.LengthFilter(6)) }
+        ui.add(connectionForm, connectionCode, 12)
         connectButton = ui.button("이 차량 연결하기", true) {
+            if(BuildConfig.LOCAL_MOCK && !sync.configured()) { importServerSettings(); return@button }
             val code = connectionCode.text.toString().trim()
-            if (!Regex("[0-9]{8}").matches(code)) { syncNotice = "휴대폰의 8자리 코드를 모두 입력해 주세요."; syncFailed = true; renderConnection(); return@button }
+            if (!Regex("[0-9]{6}").matches(code)) { syncNotice = "휴대폰의 6자리 코드를 모두 입력해 주세요."; syncFailed = true; renderConnection(); return@button }
             val name = connectionLabel.text.toString().trim()
             if (name.isBlank()) { connectionLabel.error = "차 별명을 입력해 주세요."; return@button }
             runSync("차량 연결 완료 · 완성한 일기를 자동으로 동기화해요.") { sync.pair(code, name); SyncUploads.request(this,sync); sync.pull() }
@@ -834,7 +834,7 @@ class MainActivity : Activity() {
         renameButton.visibility = if (paired) View.VISIBLE else View.GONE
         renameButton.isEnabled = allowed() && idle()
         connectionCode.isEnabled = allowed() && idle()
-        connectButton.isEnabled = allowed() && idle() && connectionCode.text.length == 8
+        connectButton.isEnabled = allowed() && idle() && connectionCode.text.length == 6
         chooseMemoryButton.visibility = if (paired) View.VISIBLE else View.GONE
         syncButton.visibility = if (paired) View.VISIBLE else View.GONE
         chooseMemoryButton.isEnabled = allowed() && idle(); syncButton.isEnabled = allowed() && idle()
@@ -1271,7 +1271,7 @@ class MainActivity : Activity() {
                     val label=vehicle().nickname.trim()
                     val code=request.optString("code").trim()
                     if(operation!="syncSettings")require(label.length in 1..40){"차 별명을 1~40자로 입력해 주세요."}
-                    if(operation=="pairVehicle"){check(!sync.paired){"이미 연결된 차량이에요. 휴대폰에서 연결을 관리해 주세요."};require(Regex("[0-9]{8}").matches(code)){"휴대폰의 8자리 연결 코드를 입력해 주세요."}}
+                    if(operation=="pairVehicle"){check(!sync.paired){"이미 연결된 차량이에요. 휴대폰에서 연결을 관리해 주세요."};require(Regex("[0-9]{6}").matches(code)){"휴대폰의 6자리 연결 코드를 입력해 주세요."}}
                     else check(sync.paired){"휴대폰을 먼저 연결해 주세요."}
                     runSync("변경 사항을 반영했어요.",complete={error->reply(if(error==null)settingsState() else JSONObject().put("error",error.message?:"연결을 확인해 주세요."))}) {
                         when(operation){"pairVehicle"->{sync.pair(code,label);SyncUploads.request(this,sync);sync.pull()};else->{SyncUploads.request(this,sync);sync.pull()}}
@@ -1352,6 +1352,16 @@ class MainActivity : Activity() {
         if(!BuildConfig.LOCAL_MOCK || !canImportServerSettings()) {
             Toast.makeText(this,"주차 상태에서 진행 중인 작업을 마친 뒤 다시 눌러 주세요.",Toast.LENGTH_LONG).show();return
         }
+        modal?.dismiss()
+        modal=AlertDialog.Builder(this).setTitle("연결 서버 설정")
+            .setMessage("휴대폰과 같은 가족 보관함을 사용하려면, 먼저 이 차량에 테스트 PC의 서버 주소와 인증서를 등록해야 해요.\n\nPC의 source 폴더에서 실행하세요.\nnode scripts/team-test.mjs configure-release <기기 ID>\n\n기기 ID는 adb devices에 나온 emulator-번호예요. 명령 실행 후 차량에 뜨는 확인창에서 설정 적용을 눌러 주세요.")
+            .setPositiveButton("확인",null)
+            .setNegativeButton("설정 직접 입력") { _,_ -> pasteServerSettings() }
+            .setNeutralButton("설정 파일 선택") { _,_ -> selectServerSettingsFile() }
+            .show().also {styleDialog(it)}
+    }
+    private fun selectServerSettingsFile() {
+        if(!BuildConfig.LOCAL_MOCK || !canImportServerSettings())return
         runCatching { startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
             type="*/*";addCategory(Intent.CATEGORY_OPENABLE)
         },8035) }.onFailure { pasteServerSettings() }
@@ -1394,8 +1404,8 @@ class MainActivity : Activity() {
             hint="PC의 chagok-server.json 내용을 붙여넣어 주세요."
             filters=arrayOf(android.text.InputFilter.LengthFilter(ServerSettings.MAX_BYTES))
         }
-        val dialog=AlertDialog.Builder(this).setTitle("테스트 서버 설정")
-            .setMessage("파일 선택기를 지원하지 않는 환경이에요. PC에서 configure-release를 실행하거나 설정 내용을 붙여넣어 주세요.")
+        val dialog=AlertDialog.Builder(this).setTitle("서버 설정 직접 입력")
+            .setMessage("PC에서 내보낸 chagok-server.json 내용을 붙여넣어 주세요. 파일 선택기가 없어도 PC의 configure-release 명령으로 설정을 보낼 수 있어요.")
             .setView(input).setNegativeButton("취소",null).setPositiveButton("서버 확인",null).create()
         dialog.setOnShowListener {dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
             try {val value=ServerSettings.parse(input.text.toString().toByteArray());dialog.dismiss();confirmServerSettings(value)}

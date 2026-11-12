@@ -6,7 +6,7 @@
 
 ## 파일 구성
 
-- `apk/새벽개발팸_차곡차곡_release.apk`: 실행 가능한 release 빌드. 패키지 `io.hmg.familydiary.contest`, 버전0.2.0. 디버깅 비활성, 별도 전용 키 서명.
+- `apk/새벽개발팸_차곡차곡_release.apk`: 실행 가능한 release 빌드. 패키지 `io.hmg.familydiary.contest`, 버전0.2.1. 디버깅 비활성, 별도 전용 키 서명.
 - `source/`: 해당 커밋의 소스, Docker 실행 설정, 개발·검증 문서.
 - `manifest.json`, `SHA256SUMS.txt`: 소스 커밋, 빌드 환경, APK/소스 무결성 정보.
 - `검증결과.md`: 실제 실행 범위와 미검증 사항.
@@ -106,3 +106,24 @@ Windows의 Python 실행명은 설치에 따라 `py -3`일 수 있습니다. `ap
 - 자세한 근거는 `source/docs/contest/platform-review-2026-11-12.md`, 실제 실행 범위는 `검증결과.md`를 확인합니다.
 
 [공식 접수 안내](https://appdevchallenge.auto-hmg.io/guide/submission)에 따라 비공개 저장소 대신 소스+APK 압축파일의 다운로드 링크를 제출할 수 있습니다. 이 묶음의 생성은 메일 접수·링크 업로드·심사 승인 완료를 뜻하지 않습니다. 지원서와 전원 동의서는 별도로 첨부합니다.
+
+## 연결 설정과 인증서 (C037)
+
+이 버전은 숫자6자리 연결 코드를 사용합니다. APK와 서버 소스를 함께 업데이트하고 휴대폰에서 새 코드를 발급하세요. 기존 차량 연결·기록은 유지됩니다.
+
+- 브라우저에 설치하는 공개 CA 인증서: 이 PC가 만든 HTTPS 인증서를 신뢰하도록 합니다. 로컬 IP 서버에는 공인 인증서가 없으므로 테스트 환경에서 사용합니다. 인증서만으로 서버 주소나 가족 보관함이 차량에 등록되지는 않습니다.
+- 차량의 `연결 서버 설정`: 같은 PC의 HTTPS 주소와 공개 CA를 앱에 등록합니다. 파일 선택기는 선택 경로이며, Pleos가 파일 선택을 지원하지 않으면 아래 PC 명령을 사용합니다.
+- 휴대폰에서 만든6자리 코드: 서버가 등록된 차량을 내 가족 보관함에 연결합니다. 만료시간5분이며 한 번만 사용할 수 있습니다.
+
+이미 Docker 서버를 켰고 인증서를 설치했다면, **제출 폴더 안 `source` 폴더**에서 PowerShell로 실행합니다.
+
+```powershell
+$adb = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
+& $adb devices
+# 목록에 나온 실제 기기 ID를 사용합니다. 5037은 기기 ID가 아닙니다.
+node .\scripts\team-test.mjs configure-release emulator-5554 "$adb"
+```
+
+차량 확인창의 주소가 본인 PC 주소인지 확인하고 `설정 적용`을 누릅니다. 이후 휴대폰에서 새 연결 코드를 만들고 차량에 입력합니다. 파일 선택이나 에뮬레이터에 인증서를 따로 설치할 필요 없이 이 명령이 주소·공개 CA를 전달합니다.
+
+Windows 업데이트는 기존 source 폴더에 새 소스를 덮어쓰되 `.env.team`과 `.tools/team`을 보존한 뒤 `node .\scripts\team-test.mjs up`으로 이미지를 재빌드합니다. `up --no-build`는 이전8자리 서버를 계속 사용할 수 있으므로 업데이트 때는 사용하지 않습니다. APK는 기존 앱을 삭제하지 않고 `adb install -r`로 업데이트합니다.

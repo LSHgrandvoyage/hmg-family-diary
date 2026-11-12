@@ -76,7 +76,7 @@ class CloudSync(private val root: File, private val recordings: File, private va
         return conn
     }
     private fun request(path:String, method:String="GET", data:ByteArray?=null, key:String?=null, claim:Boolean=false):ByteArray {
-        checkActive();check(configured()){"개발 서버 연결 설정이 필요해요."}
+        checkActive();check(configured()){"서버 주소가 아직 등록되지 않았어요. 설정의 연결 서버 설정에서 PC 서버를 먼저 등록해 주세요."}
         val origin=ServerSettings.read(root).origin
         val conn=openConnection(path);connection=conn
         try {

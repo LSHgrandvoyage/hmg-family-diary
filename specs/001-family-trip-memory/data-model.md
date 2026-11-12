@@ -1,6 +1,8 @@
 # Data Model
 
-구현할 논리 모델이다. 데이터베이스·마이그레이션은 아직 생성하지 않았다.
+> 현재 상태(2026-11-13): 현재 서버 물리 모델은 `db/migrations/`의 vaults/devices/pairings/memories(snapshot)/photos/changes/requests/purge_jobs와 인증 스키마다. 차량 로컬은 ReviewStore·MemoryContextStore·SyncOutbox를 사용한다. 아래 정규화 엔터티/청크 모델은 초기 목표 설계이며 현재 DB 전체 구현을 뜻하지 않는다. 003 명세와 HTTP 계약의 실제 snapshot 전송을 우선한다.
+
+초기 논리 목표 모델의 상세는 다음과 같다.
 공통 ID는 UUID, 시각은 UTC ISO8601이며 사건의 해석에는 세션의 IANA timezone을 함께 사용한다.
 모든 보관 데이터는 `vault_id`로 격리한다. 서버는 요청 본문의 vault_id 대신 인증 주체의 보관함을 사용한다.
 

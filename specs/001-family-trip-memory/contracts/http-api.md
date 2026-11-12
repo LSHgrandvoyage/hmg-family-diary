@@ -1,6 +1,8 @@
 # HTTP Contract v1
 
-기준 경로 `/api/v1`. JSON UTF-8. 아직 구현된 endpoint가 아니다.
+> 현재 상태(2026-11-13): 현재 실행 API는 `apps/web/src/server/`의 라우팅/handler와 이 문서의 Local prototype/C023 이후 계약을 따른다. 앞부분의 일반화 청크/발화·생성 job API는 초기 목표이며 전부 구현된 endpoint가 아니다. 현재 연결 코드는 C037의6자리이고 자동 전송은 C023·C038이 정본이다.
+
+기준 경로 `/api/v1`. JSON UTF-8. 구현 여부는 위 범위 구분을 따른다.
 휴대폰: 보호자 인증 세션 쿠키 + 변경 요청의 Origin/CSRF 검증.
 차량: `Authorization: Bearer <opaque-device-token>`. 서버에 hash만 저장하고 매 요청 활성 여부 확인. 차량 token은 발급 후30일 만료이며 최초 버전은
 자동 연장 없이 보호자와 재연결한다. 차량은 로컬 만료도 검사하고 만료 시 보관함 사용을 잠근다.

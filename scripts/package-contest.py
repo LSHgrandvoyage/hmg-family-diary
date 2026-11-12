@@ -9,8 +9,8 @@ apk = root / 'apps/vehicle/app/build/outputs/apk/probe/debug/app-probe-debug.apk
 source_only = "--source-only" in sys.argv
 if not source_only and not apk.is_file():
     raise SystemExit('Build :app:assembleProbeDebug first.')
-roots = ('apps/', 'packages/', 'workers/', 'db/', 'infra/', 'scripts/', 'tests/', 'specs/', 'docs/contest/', '.specify/memory/')
-fixed = {'docs/evidence/compose-runtime.md', 'docs/evidence/g0-environment.md', 'docs/product-brief.md', 'docs/evidence/connected-ui/c021-phone-filter.png', 'docs/evidence/connected-ui/c021-car-filter.png', 'README.md', 'THIRD_PARTY_NOTICES.md', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.json', 'vitest.config.ts', 'playwright.config.ts', 'compose.yaml', 'compose.preview.yaml', '.dockerignore', '.gitignore', '.env.example', '.env.probe.example'}
+roots = ('apps/', 'packages/', 'workers/', 'db/', 'infra/', 'scripts/', 'tests/', 'specs/', 'docs/contest/', '.specify/memory/', '.specify/scripts/', '.specify/templates/', '.specify/workflows/', '.agents/skills/speckit-')
+fixed = {'AGENTS.md', 'docs/evidence/c040-spec-reorganization.md', 'docs/evidence/compose-runtime.md', 'docs/evidence/g0-environment.md', 'docs/product-brief.md', 'docs/evidence/connected-ui/c021-phone-filter.png', 'docs/evidence/connected-ui/c021-car-filter.png', 'README.md', 'THIRD_PARTY_NOTICES.md', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.json', 'vitest.config.ts', 'playwright.config.ts', 'compose.yaml', 'compose.preview.yaml', '.dockerignore', '.gitignore', '.env.example', '.env.probe.example'}
 fixed.update('docs/evidence/connected-ui/'+name for name in ('c025-car-1280-light.png','c025-car-1280-dark.png','c025-detail-active-dark.png','c025-driving.png'))
 fixed.update('docs/evidence/connected-ui/'+name for name in ('c026-phone-light.png','c026-phone-dark.png','c026-car-light.png','c026-car-dark.png'))
 fixed.add('docs/evidence/connected-ui/c026-runtime-phone-timeline.png')

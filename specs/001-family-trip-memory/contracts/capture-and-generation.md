@@ -1,5 +1,7 @@
 # Capture and Generation Contract
 
+> 현재 상태(2026-11-13): 현재 제출 구현은 단일 원본 WAV·실시간 STT·확인문·revision·고정 목업이다. 아래 사건 분류/장문 LLM·발화자별 청크 포트는 목표 계약이며 제출 앱의 실제 AI 기능이 아니다. 생성 본문은002의 고정 목업 요구사항이 우선한다.
+
 ## Platform ports
 
 - `ParkedStateProvider`: PARKED/NOT_PARKED/UNKNOWN + observation timestamp + source.

@@ -1,7 +1,9 @@
 # Prototype Runtime and Storage Contract
 
+> 현재 상태(2026-11-13): Docker Compose·PostgreSQL·Better Auth·비공개 파일 볼륨은 현재 구현돼 있다. 일반화 worker 생성·전체 백업/복원·공인 클라우드는 아래 목표 설계 중 후속 범위다. 실행 명령/포트는 compose.yaml, compose.team.yaml과 docs/contest/release-runbook.md를 따른다.
+
 2026-11-08 사용자 결정. Supabase 사용 계획을 대체한다. 아래 경로·컨테이너·명령은 구현 목표이며
-현재 실행 가능한 Compose 파일이나 앱 이미지는 아직 없다. 기능 spec·헌장의 범위는 유지한다.
+현재 실행 상태는 위 범위 구분을 따른다. 기능 spec·헌장의 범위는 유지한다.
 
 ## Runtime boundary
 

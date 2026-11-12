@@ -153,55 +153,24 @@ OpenAI 모드에서 설정/응답 오류가 나면 기존 초안을 유지하며
 전체 서버 목표는 Docker Compose의 web·worker·PostgreSQL·Caddy, Better Auth와 비공개 AudioStore다.
 `compose.preview.yaml`은 화면 확인 전용이며 T039 운영 계약을 충족하는 구성이 아니다.
 
-## 먼저 읽을 문서
+## 명세와 개발 순서
 
-1. [제품 정의](docs/product-brief.md): 타깃, 해결할 문제, 베스트 시나리오, 성공 기준
-2. [첫 기능 명세](specs/001-family-trip-memory/spec.md): 사용자 여정, 요구사항, 수용 조건
-3. [제품 결정 이력](docs/decisions.md): 원본 음성·양쪽 기기 재생의 첫 버전 포함 결정
-4. [구현 전 기술 근거](docs/technical-evidence.md): 실제 검증이 필요한 차량 기능
-5. [헌장](.specify/memory/constitution.md): 개발·기록·검증 원칙
-6. [명세 품질 점검](specs/001-family-trip-memory/checklists/requirements.md)
-7. [구현 계획](specs/001-family-trip-memory/plan.md) · [조사·기술 결정](specs/001-family-trip-memory/research.md)
-8. [작업 목록](specs/001-family-trip-memory/tasks.md) · [검증 절차](specs/001-family-trip-memory/quickstart.md)
-9. [데이터 모델](specs/001-family-trip-memory/data-model.md) · [API 계약](specs/001-family-trip-memory/contracts/http-api.md)
-10. [Docker 실행·음성 저장·클라우드 이전 계약](specs/001-family-trip-memory/contracts/runtime-and-storage.md)
-11. [시스템·데이터·서비스 아키텍처](docs/architecture/README.md): 도식 3종, SVG·PNG·Mermaid 원본
+[기능 명세 색인](specs/README.md)에서 기능별 spec·plan·tasks와 현재 구현/후속 범위를 확인합니다.
+[제품 정의](docs/product-brief.md), [헌장2.2.0](.specify/memory/constitution.md), [공통 구조](specs/001-family-trip-memory/plan.md), [이전 요구사항 매핑](specs/traceability.md)을 함께 읽습니다.
+기존 단일 명세는2026-11-13 사용자 승인으로 사후 분리했고 [원문](specs/archive/2026-11-13-before-split/README.md)을 보존했습니다.
 
 ## Spec Kit
 
-공식 `specify-cli==1.3.2`로 초기화했다. Codex용 skills, Bash 스크립트,
-기본 템플릿과 SDD workflow를 포함한다. 에이전트 이벤트 자동 실행은 사용하지 않는다.
-Git 작업은 일반 Git으로 관리한다.
-
-새 체크아웃에서 버전과 설치 상태를 확인한다. Python 3.11+와 uv가 필요하다.
+공식 specify-cli로 초기화한 `.agents/skills/speckit-*`와 `.specify` 템플릿/스크립트를 사용합니다. 설치 버전 기록은1.3.2이며 현재 도구 최신 버전을 뜻하지 않습니다.
+새 작업은 specify → 필요한 clarify → plan → tasks → analyze → implement → 검증/증거 순서입니다.
+기능별 디렉터리를 사용하면서 Git은 dev에 작업 단위로 커밋합니다. 자동 이벤트 실행이나 원격 푸시는 하지 않습니다.
 
 ```sh
-uvx --from specify-cli==1.3.2 specify version
-uvx --from specify-cli==1.3.2 specify integration status
+SPECIFY_FEATURE_DIRECTORY=specs/008-first-run .specify/scripts/bash/check-prerequisites.sh --json --require-spec --require-tasks --include-tasks
 ```
 
-이 저장소를 작업 폴더로 열고 에이전트 채팅에서 아래 순서로 진행한다.
-이름은 쉘 명령이 아니라 설치된 skill 호출이다.
-
-- `$speckit-constitution`: 현재 헌장 1.1.0. 원칙 변경이 있을 때 갱신
-- `$speckit-specify`: 현재 `specs/001-family-trip-memory/spec.md` 기준선 작성 완료
-- `$speckit-clarify`: 추가 제품 판단이 필요할 때 사용
-- `$speckit-plan`: 기술 조사·조건부 구현 계획 작성 완료. 실제 차량 G0~G2는 미통과
-- `$speckit-tasks`: 40개 작업 중 setup·Android 골격·합성 사례·계약 검증 완료; 나머지는 작업 목록 참조
-- `$speckit-analyze`: spec·plan·tasks 정합성 읽기 검토
-- `$speckit-implement`: 진행 중. 실제 캡처·주차 포트와 서버 기반 구현이 남음
-
-새 체크아웃의 기능 선택은 다음과 같이 지정한다. `.specify/feature.json`은
-spec-kit이 관리하는 기기별 상태여서 Git에 포함하지 않는다.
-
-```sh
-export SPECIFY_FEATURE_DIRECTORY=specs/001-family-trip-memory
-```
-
-에이전트에는 위 기능 디렉터리를 명시해도 된다. 현재 실행 명령은 위의 합성 미리 보기와 Android 빌드 절을 따른다.
-명세 수정 뒤 제품 정의·수용 조건·체크리스트를 같이 검토한다.
-
-## 출처와 초기화
+기기별 feature 포인터를 가정하지 않습니다. 작은 변경도 구현 전에 소유 기능의 수용 조건과 작업을 갱신합니다.
+원본 음성·SDK·클라우드·실기기 검증의 남은 범위는 각 기능 tasks에서 추적합니다.
 
 [GitHub Spec Kit](https://github.com/github/spec-kit)의 공식 PyPI 배포판을 사용했다.
 초기화 명령은 다음과 같다. 이미 초기화된 이 체크아웃에 다시 실행할 필요는 없다.

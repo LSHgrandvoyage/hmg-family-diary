@@ -78,7 +78,13 @@ test("photos persist locally, stay with their diary, enlarge and remain deleted 
   await expect(page.locator(".photo-open")).toHaveCount(0);
   await page.goto("/demo/sea");
   await expect(page.locator(".photo-open")).toHaveCount(2);
-  await page.getByRole("button", { name: "사진 1 삭제" }).click();
+  await page.getByRole("button", { name: "사진 옵션" }).click();
+  await page.getByRole("button", { name: "사진 삭제", exact: true }).click();
+  await page.getByRole("button", { name: "사진 1 삭제 선택" }).click();
+  await page
+    .getByRole("dialog", { name: "이 사진을 삭제할까요?" })
+    .getByRole("button", { name: "삭제", exact: true })
+    .click();
   await expect(page.locator(".photo-open")).toHaveCount(1);
   await page.reload();
   await expect(page.locator(".photo-open")).toHaveCount(1);
@@ -108,6 +114,10 @@ test("invalid files, count limits and aborted storage preserve existing photos",
   await expect(
     page.getByRole("region", { name: "일기 사진" }).getByRole("alert"),
   ).toContainText("JPG·PNG·WebP");
+  await page
+    .getByRole("dialog", { name: "사진을 추가하지 못했어요" })
+    .getByRole("button", { name: "확인", exact: true })
+    .click();
   await input.setInputFiles({
     name: "huge.jpg",
     mimeType: "image/jpeg",
@@ -116,12 +126,20 @@ test("invalid files, count limits and aborted storage preserve existing photos",
   await expect(
     page.getByRole("region", { name: "일기 사진" }).getByRole("alert"),
   ).toContainText("10MB");
+  await page
+    .getByRole("dialog", { name: "사진을 추가하지 못했어요" })
+    .getByRole("button", { name: "확인", exact: true })
+    .click();
   await input.setInputFiles(
     Array.from({ length: 8 }, (_, i) => ({ ...photo, name: `extra-${i}.png` })),
   );
   await expect(
     page.getByRole("region", { name: "일기 사진" }).getByRole("alert"),
   ).toContainText("8장");
+  await page
+    .getByRole("dialog", { name: "사진을 추가하지 못했어요" })
+    .getByRole("button", { name: "확인", exact: true })
+    .click();
   await expect(page.locator(".photo-open")).toHaveCount(1);
   await page.evaluate(() => {
     const original = IDBObjectStore.prototype.add;
@@ -141,6 +159,10 @@ test("invalid files, count limits and aborted storage preserve existing photos",
   await expect(
     page.getByRole("region", { name: "일기 사진" }).getByRole("alert"),
   ).toContainText("저장하지 못했어요");
+  await page
+    .getByRole("dialog", { name: "사진을 추가하지 못했어요" })
+    .getByRole("button", { name: "확인", exact: true })
+    .click();
   await expect(page.locator(".photo-open")).toHaveCount(1);
   await page.evaluate(() =>
     (window as unknown as { restoreAdd: () => void }).restoreAdd(),

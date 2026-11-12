@@ -1,4 +1,4 @@
-import { LiveApp } from "../../components/LiveApp";
+import { redirect } from "next/navigation";
 export default function Page() {
-  return <LiveApp />;
+  redirect("/faithful/app.html#main");
 }

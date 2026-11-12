@@ -152,6 +152,71 @@ assert.equal(
   409,
 );
 log("single-use vehicle pairing");
+const devicePath = `/api/v1/devices/${device.id}`;
+assert.equal(
+  (await request(devicePath, "PATCH", { label: "무인증" })).status,
+  401,
+);
+assert.equal(
+  (await request(devicePath, "PATCH", { label: "다른 가족" }, other.client))
+    .status,
+  404,
+);
+for (const label of ["   ", "가".repeat(41)])
+  assert.equal(
+    (await request(devicePath, "PATCH", { label }, owner.client)).status,
+    422,
+  );
+assert.equal(
+  (
+    await request(
+      devicePath,
+      "PATCH",
+      { label: "  우리집 시험 차량  " },
+      owner.client,
+    )
+  ).json().label,
+  "우리집 시험 차량",
+);
+assert.equal(
+  (await request("/api/v1/me", "GET", undefined, undefined, bearer)).json()
+    .device_label,
+  "우리집 시험 차량",
+);
+assert.equal(
+  (
+    await request(
+      devicePath,
+      "PATCH",
+      { label: "차량에서 수정" },
+      undefined,
+      bearer,
+    )
+  ).status,
+  200,
+);
+assert.equal(
+  (
+    await request(
+      `/api/v1/devices/${randomUUID()}`,
+      "PATCH",
+      { label: "다른 기기" },
+      undefined,
+      bearer,
+    )
+  ).status,
+  403,
+);
+assert.equal(
+  (await request("/api/v1/devices", "GET", undefined, owner.client))
+    .json()
+    .devices.find((x: any) => x.id === device.id).label,
+  "차량에서 수정",
+);
+log(
+  "device alias owner/self updates, trim, invalid input, unauthenticated/cross-vault/other-device denial",
+);
+
 const id = randomUUID(),
   wav = Buffer.alloc(44 + 16000 * 2 * 2);
 wav.write("RIFF");
@@ -424,6 +489,23 @@ await request(
 );
 assert.equal(
   (await request("/api/v1/me", "GET", undefined, undefined, bearer)).status,
+  401,
+);
+assert.equal(
+  (await request(devicePath, "PATCH", { label: "해제 후 수정" }, owner.client))
+    .status,
+  404,
+);
+assert.equal(
+  (
+    await request(
+      devicePath,
+      "PATCH",
+      { label: "해제 후 수정" },
+      undefined,
+      bearer,
+    )
+  ).status,
   401,
 );
 log("CSRF, tombstone resurrection denial, sync deletion, device revocation");

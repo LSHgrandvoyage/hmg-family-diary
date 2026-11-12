@@ -41,6 +41,7 @@ class ReviewPanel(private val activity: Activity, parent: LinearLayout, private 
     private val feedback: TextView
     private val draft: TextView
     private val accept: Button
+    private var webCompletion: ((String?) -> Unit)? = null
     private var current: ReviewRecord? = null
     private var selectedId: String? = null
     private var binding = false
@@ -90,7 +91,7 @@ class ReviewPanel(private val activity: Activity, parent: LinearLayout, private 
         accept = button("검토한 일기 이 기기에 저장") {
             val r = current ?: return@button
             if (!allowed() || busy || dirty || r.draft == null || r.draftRevision != r.revision || r.confirmed != r.revision) return@button
-            if (persist(r.copy(accepted = r.revision), "${if (r.generationMode == "mock") "목업 " else ""}일기 저장 완료 · 이 실험 앱에만 보관됨. 휴대폰 동기화는 아직 없어요.")) onSaved()
+            if (persist(r.copy(accepted = r.revision), "${if (r.generationMode == "mock") "목업 " else ""}일기 저장 완료 · 차량에 보관했어요. 휴대폰이 연결돼 있으면 자동으로 동기화해요.")) onSaved()
         }
         val watcher = object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
@@ -123,10 +124,10 @@ class ReviewPanel(private val activity: Activity, parent: LinearLayout, private 
         }
         return true
     }
-    fun speechResult(file: File, value: String) {
+    fun speechResult(file: File, value: String, segments:List<io.hmg.familydiary.capture.SpeechSegment> = emptyList()) {
         if (file.name != selectedId || !allowed() || !save(false)) return
         val r = current ?: return
-        if (value.isNotBlank() && persist(r.withSpeech(value), "인식문을 받았어요. 원본을 들으며 확인해 주세요.")) bind()
+        if (value.isNotBlank() && persist(r.withSpeech(value,segments), "인식문을 받았어요. 원본을 들으며 확인해 주세요.")) bind()
     }
     private fun bind() {
         binding = true
@@ -163,7 +164,35 @@ class ReviewPanel(private val activity: Activity, parent: LinearLayout, private 
         }
         render(); onChange()
     }
-    fun cancel() { if (busy) feedback.text = "생성을 중단했어요. 원본·확인문·이전 초안은 보관했어요."; generator.cancel(); render() }
+    fun createFromWeb(value: String, member: String, done: (String?) -> Unit) {
+        if(!allowed() || !audioIdle() || busy) { done("녹음·인식이 끝난 뒤 다시 눌러 주세요.");return }
+        if(generator.mode!="mock") { done("목업 생성 서버 연결을 확인해 주세요.");return }
+        val before=current ?: run { done("선택한 녹음이 없어요.");return }
+        val r=try { before.edit(value,member.trim(),before.recordedAt).confirm() }
+            catch(_:Exception) { done("이야기와 함께 말한 사람을 입력해 주세요.");return }
+        if(!persist(r,"확인한 이야기로 일기를 만들고 있어요.")) {done("확인문을 저장하지 못했어요.");return}
+        bind();webCompletion=done
+        generator.run(r.input()) { response,error ->
+            val callback=webCompletion;webCompletion=null
+            if(!allowed() || current?.id!=r.id || current?.revision!=r.revision) callback?.invoke("내용이 변경돼 생성을 반영하지 않았어요.")
+            else if(response==null) callback?.invoke(error?:"생성하지 못했어요. 원본과 수정문은 보관돼요.")
+            else try {
+                if(persist(r.adopt(response),"일기를 확인한 뒤 저장해 주세요.")) callback?.invoke(null)
+                else callback?.invoke("초안을 저장하지 못했어요.")
+            } catch(_:Exception) {callback?.invoke("현재 이야기와 맞지 않는 응답이라 반영하지 않았어요.")}
+            render();onChange()
+        }
+        render();onChange()
+    }
+    fun acceptFromWeb(): Boolean {
+        val r=current ?: return false
+        if(!allowed() || busy || dirty || r.draft==null || r.draftRevision!=r.revision || r.confirmed!=r.revision)return false
+        val success=persist(r.copy(accepted=r.revision),"일기 저장 완료 · 차량에 보관했어요.")
+        if(success)bind()
+        return success
+    }
+    fun updateTheme(){ui.update()}
+    fun cancel() { val callback=webCompletion;webCompletion=null;callback?.invoke("생성을 중단했어요. 원본과 수정문은 보관돼요."); if (busy) feedback.text = "생성을 중단했어요. 원본·확인문·이전 초안은 보관했어요."; generator.cancel(); render() }
     fun forgetDeleted() {
         cancel(); current = null; selectedId = null; dirty = false; bind()
     }

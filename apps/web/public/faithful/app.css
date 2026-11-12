@@ -1,0 +1,1317 @@
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg);
+  font-family: "Noto Sans KR", sans-serif;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+a:hover {
+  color: inherit;
+}
+button,
+a,
+[role="button"] {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+#app {
+  margin: auto;
+  width: 100%;
+  max-width: 390px;
+}
+#app > div {
+  width: 100% !important;
+  min-height: 100dvh;
+}
+body.vehicle {
+  background: var(--bg);
+  overflow: hidden;
+}
+body.vehicle #app {
+  max-width: none;
+  transform-origin: top left;
+}
+body.vehicle #app > div {
+  width: 1280px !important;
+  height: 720px !important;
+  min-height: 0;
+}
+body.reference #app > div {
+  min-height: 0;
+}
+body:not(.reference) #app > div[data-page="detail"] {
+  height: auto !important;
+  min-height: 100dvh;
+}
+body:not(.reference) #app > div[data-page="main"] > .mobile-memory-list,
+body:not(.reference) #app > div[data-page="transcript"] > div:nth-child(2) {
+  overflow: auto;
+  min-height: 0;
+}
+body:not(.reference) #app > div[data-page="main"] > nav {
+  flex-shrink: 0;
+}
+body:not(.reference) #app > div[data-page="carlist"] > div {
+  overflow: auto;
+}
+body:not(.reference)
+  #app
+  > div[data-page="cardetail"]
+  > div
+  > div:first-child
+  > div:nth-child(3) {
+  overflow: auto;
+  min-height: 0;
+}
+button:active,
+a:active {
+  opacity: 0.8;
+}
+.photo-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: inherit;
+}
+.story-excerpt {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.native-busy {
+  pointer-events: none;
+  opacity: 0.6;
+}
+dialog {
+  font-family: "Noto Sans KR", sans-serif;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: 24px;
+  box-sizing: border-box;
+  width: min(92vw, 440px);
+  max-height: 88dvh;
+  background: var(--bg);
+  color: var(--ink);
+}
+dialog::backdrop {
+  background: #0008;
+}
+dialog h2 {
+  font-size: 20px;
+  margin: 0 0 16px;
+}
+dialog p {
+  font-size: 14px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+dialog button,
+dialog a.action {
+  font-family: inherit;
+  font-size: 15px;
+  min-height: 48px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  width: 100%;
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+dialog button.primary {
+  background: var(--solid-accent);
+  color: var(--on-accent);
+  border: 0;
+}
+dialog label {
+  display: block;
+  font-size: 14px;
+  margin: 12px 0;
+}
+dialog input,
+dialog textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 12px;
+  font: inherit;
+  border-radius: 12px;
+  border: 1px solid var(--muted);
+  background: var(--surface);
+  color: var(--ink);
+}
+dialog img {
+  max-width: 100%;
+  max-height: 55dvh;
+  object-fit: contain;
+}
+body.vehicle dialog {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--muted);
+  width: min(80vw, 720px);
+  font-size: 20px;
+}
+body.vehicle dialog button {
+  background: var(--surface-alt);
+  color: var(--ink);
+  border-color: var(--muted);
+  min-height: 64px;
+  font-size: 20px;
+}
+body.vehicle dialog p {
+  font-size: 20px;
+}
+.status-error {
+  color: var(--danger);
+}
+body.vehicle .status-error {
+  color: var(--danger);
+}
+.wave-progress {
+  position: relative;
+}
+.wave-progress input {
+  position: absolute;
+  inset: 50% 0 auto;
+  margin: 0;
+  height: 44px;
+  transform: translateY(-50%);
+  width: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.wave-progress:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto !important;
+  }
+}
+
+/* C015:keep the reference layout; refine only the requested interactions. */
+.photo-strip {
+  display: flex !important;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  gap: 8px !important;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+.photo-strip::-webkit-scrollbar {
+  display: none;
+}
+.photo-strip > * {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  height: auto !important;
+  scroll-snap-align: start;
+}
+.photo-strip > button {
+  flex-basis: 112px !important;
+  width: 112px !important;
+}
+.icon-button {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  flex-shrink: 0;
+}
+body.vehicle .icon-button {
+  width: 56px;
+  height: 56px;
+  min-width: 56px;
+}
+.memory-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 16px;
+  margin-top: auto;
+}
+.input-wave > span {
+  flex: 1;
+  height: 4px;
+  border-radius: 4px;
+  background: var(--coral);
+  transition: height 80ms linear;
+}
+dialog.photo-viewer {
+  position: fixed;
+  inset: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  background: var(--bg);
+  color: var(--ink);
+  overflow: hidden;
+}
+.photo-viewer > header {
+  height: 64px;
+  padding: max(8px, env(safe-area-inset-top)) 16px 8px;
+  box-sizing: content-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.photo-viewer .icon-button {
+  width: 48px;
+  height: 48px;
+  min-height: 48px;
+  min-width: 48px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface-alt);
+  color: inherit;
+}
+.photo-viewer-track {
+  display: flex;
+  width: 100%;
+  height: calc(
+    100% - 100px - env(safe-area-inset-top) - env(safe-area-inset-bottom)
+  );
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.photo-viewer-track::-webkit-scrollbar {
+  display: none;
+}
+.photo-slide {
+  flex: 0 0 100%;
+  height: 100%;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+dialog.photo-viewer img {
+  max-height: 100%;
+  max-width: 100%;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+}
+.photo-viewer .photo-prev,
+.photo-viewer .photo-next {
+  position: absolute;
+  top: 50%;
+  opacity: 0.82;
+}
+.photo-viewer .photo-prev {
+  left: 12px;
+}
+.photo-viewer .photo-next {
+  right: 12px;
+  transform: rotate(180deg);
+}
+.photo-viewer .photo-prev:disabled,
+.photo-viewer .photo-next:disabled {
+  visibility: hidden;
+}
+.photo-options {
+  position: absolute;
+  right: 16px;
+  top: calc(72px + env(safe-area-inset-top));
+  padding: 8px;
+  min-width: 160px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface-alt);
+  box-shadow: 0 8px 32px #0005;
+}
+.photo-options[hidden] {
+  display: none;
+}
+.photo-viewer .photo-options button {
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: var(--danger);
+  padding: 0 16px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .input-wave > span {
+    transition: none;
+  }
+}
+
+.memory-card {
+  height: auto !important;
+  min-height: 248px;
+}
+.memory-card-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.memory-footer > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.memory-footer > div > span {
+  font-size: 14px;
+  color: var(--accent);
+}
+
+/* C016:actions remain outside horizontally scrollable photos. */
+.photo-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 14px;
+  margin-bottom: -16px;
+}
+.photo-add {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font: inherit;
+  font-weight: 700;
+}
+.photo-add svg {
+  width: 18px;
+  height: 18px;
+}
+.photo-strip[hidden] {
+  display: none !important;
+}
+.review-screen {
+  width: 1280px;
+  height: 720px;
+  box-sizing: border-box;
+  background: var(--bg);
+  color: var(--ink);
+  display: flex;
+}
+.review-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  gap: 32px;
+  padding: 32px 40px;
+  width: calc(100% - 112px);
+  box-sizing: border-box;
+}
+.review-editor {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.review-editor header {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+.review-editor h1 {
+  font-size: 32px;
+  margin: 0;
+}
+.review-editor label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 16px;
+  color: var(--muted);
+}
+.review-editor input,
+.review-editor textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px 16px;
+  font: inherit;
+  font-size: 22px;
+}
+.review-text-label {
+  flex: 1;
+  min-height: 0;
+}
+.review-editor textarea {
+  flex: 1;
+  resize: none;
+  line-height: 1.6;
+  min-height: 120px;
+}
+.review-editor [data-review-status] {
+  min-height: 24px;
+  margin: 0;
+  font-size: 16px;
+  color: var(--muted);
+}
+.review-actions {
+  display: flex;
+  gap: 12px;
+}
+.review-actions button,
+.review-preview button {
+  min-height: 64px;
+  padding: 0 24px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--surface-alt);
+  color: var(--ink);
+  font: inherit;
+  font-size: 20px;
+}
+.review-actions button {
+  flex: 1;
+}
+.review-screen button.primary {
+  background: var(--ink);
+  color: var(--bg);
+  border: 0;
+  font-weight: 700;
+}
+.review-help {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.review-preview {
+  min-height: 0;
+  background: var(--surface);
+  border-radius: 28px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.review-preview h2 {
+  font-size: 22px;
+  margin: 0;
+}
+.review-preview [data-draft] {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  white-space: pre-wrap;
+  font-size: 22px;
+  line-height: 1.6;
+}
+.review-preview small {
+  display: block;
+  font-size: 14px;
+  color: var(--muted);
+}
+.review-preview button[hidden] {
+  display: none;
+}
+.review-editor [data-review-status][hidden],
+.review-actions button[hidden] {
+  display: none;
+}
+
+.playback-wave {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-height: 46px;
+}
+.playback-wave > [data-wave-bar] {
+  flex: 1;
+  min-width: 1px;
+  border-radius: 3px;
+  transition: height 0.12s linear;
+}
+.playback-wave > .is-current {
+  box-shadow: 0 0 7px #ff6a4d66;
+}
+
+.photo-status {
+  color: var(--muted);
+  font-size: 14px;
+  margin: 8px 0 12px;
+}
+.photo-status[hidden] {
+  display: none;
+}
+
+/* Photos keep their own ratio; only the loading/error state reserves a placeholder. */
+.photo-frame {
+  position: relative;
+  background: transparent !important;
+}
+.photo-frame[data-photo-state="loading"] > img,
+.photo-frame[data-photo-state="error"] > img {
+  visibility: hidden;
+}
+.photo-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  text-align: center;
+  color: var(--muted);
+  padding: 12px;
+}
+.photo-loading[hidden],
+.photo-spinner[hidden] {
+  display: none;
+}
+.photo-frame > .photo-loading {
+  position: absolute;
+  inset: 0;
+}
+.photo-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: photo-spin 0.8s linear infinite;
+}
+@keyframes photo-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.photo-strip {
+  align-items: center;
+}
+.photo-strip > .photo-frame {
+  padding: 0 !important;
+  min-height: 0;
+  overflow: hidden;
+}
+.photo-strip > .photo-frame > img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: min(340px, calc(100vw - 40px));
+  max-height: 240px;
+}
+.photo-strip > .photo-frame:not([data-photo-state="ready"]) {
+  min-width: 160px;
+  min-height: 160px;
+}
+.car-photo-row {
+  align-items: center;
+}
+.car-photo-row > .photo-frame {
+  height: auto !important;
+  background: transparent !important;
+}
+.car-photo-row > .photo-frame > img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 220px;
+  object-fit: contain;
+}
+.car-photo-row > .photo-frame:not([data-photo-state="ready"]) {
+  min-height: 140px;
+}
+body.vehicle .photo-loading,
+.photo-viewer .photo-loading {
+  color: var(--muted);
+}
+.photo-retry {
+  display: none;
+}
+.photo-slide[data-photo-state="error"] .photo-retry {
+  display: flex;
+  position: absolute;
+  top: 60%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .photo-spinner {
+    animation: none;
+  }
+}
+
+/* C020:supplied 1280×720 recording reference, with live rather than sample text. */
+.recording-story {
+  min-width: 0;
+  width: 572px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.recording-lines {
+  min-height: 0;
+  max-height: 500px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  scrollbar-width: none;
+}
+.recording-line p {
+  margin: 0;
+  font-size: 21px;
+  line-height: 1.5;
+  color: var(--muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.recording-line:first-child:not(.latest) p {
+  color: var(--muted);
+}
+.recording-line.latest p {
+  font-size: 30px;
+  line-height: 1.4;
+  font-weight: 700;
+  letter-spacing: -0.6px;
+  color: var(--ink);
+}
+.recording-empty {
+  color: var(--muted);
+  font-size: 21px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* C024 unified search and device-local appearance. */
+.library-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+.library-search,
+.library-listen {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  white-space: nowrap;
+}
+.library-search[data-active="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.library-tools [data-sync-state] {
+  color: var(--muted);
+  font-size: 16px;
+  max-width: 65%;
+}
+body.vehicle .library-search,
+body.vehicle .library-listen {
+  min-height: 56px;
+  font-size: 20px;
+  padding: 0 22px;
+  border-radius: 18px;
+}
+.library-search svg {
+  flex-shrink: 0;
+}
+.search-form input,
+.search-form select {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+.search-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.search-form {
+  margin: 0;
+}
+.theme-options {
+  display: flex;
+  gap: 8px;
+  margin: 16px 0;
+}
+.theme-options button {
+  margin: 0;
+  flex: 1;
+}
+.theme-options button[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.playback-notice {
+  color: var(--muted);
+  font-size: 14px;
+  margin: 8px 0 0;
+}
+.playback-notice:empty {
+  display: none;
+}
+
+/* C025: compact parked narration controls; original audio remains separate. */
+.tts-player {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 16px;
+  margin: 12px 0 20px;
+}
+.tts-player[hidden] {
+  display: none;
+}
+.tts-player p {
+  font-size: 18px;
+  line-height: 1.5;
+  margin: 0 0 12px;
+  overflow-wrap: anywhere;
+}
+.tts-actions {
+  display: flex;
+  gap: 12px;
+}
+.tts-actions button {
+  flex: 1;
+  min-width: 0;
+  min-height: 56px;
+  padding: 12px;
+  background: var(--surface-alt);
+  color: var(--ink);
+  border: 0;
+  border-radius: 14px;
+  font-size: 18px;
+  font-weight: 600;
+}
+.tts-actions button:disabled {
+  opacity: 0.45;
+}
+[data-page="cardetail"] .tts-player {
+  padding: 12px;
+  margin: 12px 0 0;
+}
+[data-page="cardetail"] .tts-actions {
+  gap: 8px;
+}
+[data-page="cardetail"] .tts-actions button {
+  font-size: 16px;
+  padding: 8px;
+}
+
+.library-listen:disabled {
+  opacity: 0.45;
+}
+
+.tts-active [data-narrate],
+.tts-active .playback-wave,
+.tts-active [data-time],
+.tts-active [data-playback-notice] {
+  display: none !important;
+}
+
+/* Original STT segments are separate from edited confirmation and generated prose. */
+.original-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  scroll-padding-bottom: 220px;
+}
+.timeline-segment {
+  box-sizing: border-box;
+  display: flex;
+  width: 100%;
+  gap: 16px;
+  align-items: flex-start;
+  text-align: left;
+  padding: 16px;
+  min-height: 56px;
+  background: var(--surface);
+  border: 1px solid transparent;
+  border-radius: 16px;
+  color: var(--ink);
+  font: inherit;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.timeline-segment > span:last-child {
+  min-width: 0;
+}
+.timeline-time {
+  flex-shrink: 0;
+  color: var(--muted);
+  font-size: 14px;
+  min-width: 42px;
+}
+.timeline-segment[aria-current="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.timeline-segment[aria-busy="true"] {
+  opacity: 0.65;
+}
+.timeline-segment[aria-busy="true"] .timeline-time::after {
+  content: " · 준비 중";
+}
+.timeline-note {
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.6;
+}
+.timeline-legacy {
+  white-space: pre-wrap;
+  line-height: 1.8;
+}
+.original-tabs {
+  display: flex;
+  gap: 12px;
+  margin: 16px 0;
+}
+.original-tabs button {
+  background: var(--surface);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  min-height: 56px;
+  padding: 12px 24px;
+  font: inherit;
+  font-size: 20px;
+}
+.original-tabs button[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+body.vehicle .timeline-segment {
+  font-size: 20px;
+}
+body.vehicle .timeline-time {
+  font-size: 18px;
+}
+
+/* Direct appearance controls use existing theme tokens and never replace page state. */
+.theme-shortcut,
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.theme-shortcut button {
+  box-sizing: border-box;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.theme-shortcut [data-theme-auto] {
+  border-radius: 16px;
+}
+.theme-shortcut [aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.theme-shortcut button:active {
+  background: var(--surface-alt);
+}
+.theme-shortcut button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.theme-shortcut button:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+.transcript-heading {
+  min-width: 0;
+  margin: 0 8px;
+  text-align: center;
+}
+.transcript-heading > span {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+body.vehicle .theme-shortcut {
+  margin-top: auto;
+  flex-direction: column;
+}
+body.vehicle .theme-shortcut button {
+  width: 80px;
+  height: 64px;
+  border-radius: 20px;
+  font-size: 16px;
+}
+body.vehicle .theme-shortcut svg {
+  width: 28px;
+  height: 28px;
+}
+
+/* C028: compact panel headers and explicit automatic appearance feedback. */
+dialog .panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+dialog .panel-header h2 {
+  margin: 0;
+  min-width: 0;
+}
+dialog .panel-close {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  min-height: 48px;
+  margin: 0;
+  border: 0;
+  border-radius: 50%;
+}
+dialog .panel-close:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+.theme-shortcut [data-theme-auto] {
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.2;
+}
+.theme-shortcut [data-theme-auto] span {
+  font-size: 10px;
+}
+body.vehicle .theme-shortcut [data-theme-auto] span {
+  font-size: 13px;
+}
+.theme-notice {
+  position: fixed;
+  z-index: 50;
+  left: 50%;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  padding: 12px 20px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 14px;
+  box-shadow: 0 4px 24px #0003;
+  pointer-events: none;
+}
+body.vehicle .theme-notice {
+  font-size: 20px;
+}
+
+/* C029: supplied settings PNG, 112px rail and two independent card columns. */
+.vehicle-settings {
+  width: 1280px;
+  height: 720px;
+  display: flex;
+  background: var(--bg);
+  color: var(--ink);
+}
+.settings-rail {
+  width: 112px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 36px 16px 24px;
+  background: var(--surface);
+}
+.settings-rail strong {
+  font-size: 20px;
+  margin-bottom: 16px;
+}
+.settings-rail a {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  min-height: 80px;
+  border-radius: 20px;
+  font-size: 16px;
+  color: var(--muted);
+}
+.settings-rail a[href="#"] {
+  margin-top: auto;
+}
+.settings-rail a[aria-current] {
+  background: var(--surface-alt);
+  color: var(--ink);
+  font-weight: 700;
+}
+.settings-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 38px 48px 32px;
+  box-sizing: border-box;
+}
+.settings-content h1 {
+  margin: 0 0 22px;
+  font-size: 36px;
+  line-height: 1.4;
+  font-weight: 800;
+}
+.settings-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  min-height: 0;
+  overflow: auto;
+}
+.settings-column {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+.settings-card {
+  background: var(--surface);
+  padding: 24px;
+  border-radius: 28px;
+  min-width: 0;
+}
+.settings-card h2,
+.settings-card h3,
+.settings-card p {
+  margin: 0;
+}
+.settings-card h2 {
+  font-size: 24px;
+  line-height: 1.4;
+}
+.settings-card h3 {
+  font-size: 22px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.settings-card p {
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.5;
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+}
+.settings-card .settings-section-title {
+  font-size: 18px;
+  color: var(--accent);
+  margin-bottom: 20px;
+}
+.settings-connection-heading {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  min-width: 0;
+}
+.settings-device-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  flex-shrink: 0;
+  border-radius: 18px;
+  background: var(--surface-alt);
+  color: var(--accent);
+}
+.settings-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 18px;
+}
+.settings-card button {
+  min-height: 64px;
+  padding: 12px 20px;
+  border: 0;
+  border-radius: 20px;
+  background: var(--surface-alt);
+  color: var(--ink);
+  font: inherit;
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.settings-actions button {
+  flex: 1;
+}
+.settings-card button.settings-primary {
+  color: var(--bg);
+  background: var(--ink);
+}
+.settings-card button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+.settings-card button:focus-visible,
+.settings-rail a:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+.settings-wide {
+  width: 100%;
+  margin-top: 18px;
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+  font-size: 18px;
+}
+.settings-segments {
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 24px;
+  background: var(--bg);
+}
+.settings-segments button {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 8px;
+  background: transparent;
+  color: var(--muted);
+}
+.settings-segments button[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--bg);
+}
+.settings-card .settings-feedback:empty {
+  display: none;
+}
+.settings-card .settings-feedback {
+  font-size: 14px;
+  max-height: 42px;
+  overflow: auto;
+}
+.settings-content footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 20px;
+  font-size: 16px;
+  color: var(--muted);
+}
+.settings-profile-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 20px;
+}
+.settings-profile-form label {
+  margin: 0;
+}
+body.vehicle dialog .panel-close {
+  min-height: 64px;
+  width: 64px;
+}
+
+:root[data-theme="dark"] .settings-rail {
+  background: #11141b;
+}
+
+/* One shared vehicle theme control, in the same rail position on every tab. */
+body.vehicle .theme-shortcut [data-theme-cycle] {
+  width: 80px;
+  height: 80px;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+}
+body.vehicle .theme-shortcut [data-theme-cycle] svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* C032: reference recording proportions, no transcript or photos while driving. */
+.driving-audio-panel { box-sizing:border-box; width:572px; gap:24px!important; justify-content:space-between!important; }
+.driving-audio-panel h2 { margin:0 0 12px; font-size:24px; color:var(--ink); }
+.driving-audio-panel h3 { margin:0 0 12px; font-size:22px; color:var(--ink); }
+.driving-audio-panel p { margin:0; font-size:18px; line-height:1.6; color:var(--muted); }
+.driving-audio-panel section + section { margin-top:24px; }
+.driving-controls { display:flex; gap:12px; margin-top:12px; }
+.driving-audio-panel button { border:0; border-radius:20px; background:var(--surface-2,var(--bg)); color:var(--ink); font:inherit; font-weight:700; font-size:20px; min-height:64px; padding:12px 20px; }
+.driving-controls button:nth-child(2) { flex:1; background:var(--ink); color:var(--bg); }
+.driving-audio-panel .driving-stop { background:transparent; font-size:18px; min-height:48px; padding:8px 0; }
+[data-driving-surface] nav [aria-disabled="true"] { cursor:default; }
+[data-driving-surface] nav a:not([aria-current]) { opacity:.45; }
+[data-driving-listen][hidden] { display:none; }

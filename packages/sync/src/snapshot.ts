@@ -1,6 +1,8 @@
 import { HttpError, revision } from "../../contracts/src/http.ts";
 import { validateDiary } from "../../contracts/src/diary.ts";
 import { generationInput } from "../../diary/src/generator.ts";
+import { speechTimeline } from "./timeline.ts";
+import { recordingLocation } from "./location.ts";
 const fail = () => new HttpError(422, "INVALID_SNAPSHOT");
 function str(x: unknown, max: number, empty = false): string {
   if (typeof x !== "string" || x.length > max || (!empty && !x.trim()))
@@ -61,27 +63,28 @@ export function snapshot(value: unknown, id: string) {
       for (const k of ["nickname", "brand", "model", "type", "year", "plate"])
         vehicle[k] = str(c.vehicle[k], 120, true);
       if (
-        !["manual", "synthetic"].includes(c.vehicle.source) ||
-        !["synthetic", "unavailable"].includes(c.location.status)
+        ![
+          "manual",
+          "synthetic",
+          "vehicle_assisted",
+          "emulator_assisted",
+        ].includes(c.vehicle.source)
       )
         throw fail();
       vehicle.source = c.vehicle.source;
       context = {
         started_at: started,
         vehicle,
-        location: {
-          status: c.location.status,
-          observed_at: c.location.status === "synthetic" ? started : null,
-          label:
-            c.location.status === "synthetic" ? "샘플 나들이 주차장" : null,
-        },
+        location: recordingLocation(c.location, started),
       };
     }
+    const timeline = speechTimeline(v.speech_timeline, raw, duration);
     const result = {
       sha256: sha,
       duration_ms: duration,
       recorded_at: recorded,
       raw_history: raw,
+      ...(timeline ? { speech_timeline: timeline } : {}),
       text,
       speaker,
       revision: rev,
@@ -106,6 +109,11 @@ export type SyncedMemory = {
   revision: number;
   audio_ready: boolean;
   snapshot: Snapshot;
-  photos: { id: string; sha256: string; bytes: number }[];
+  photos: {
+    id: string;
+    sha256: string;
+    bytes: number;
+    created_at?: string | null;
+  }[];
   deleted: boolean;
 };

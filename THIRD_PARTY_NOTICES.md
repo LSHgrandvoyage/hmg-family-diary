@@ -48,3 +48,16 @@ Source: https://github.com/orioncactus/pretendard/tree/v1.3.9
 
 The variable WOFF2 is bundled locally under the SIL Open Font License 1.1.
 See `apps/web/public/fonts/LICENSE.txt` for the complete notice.
+
+## Space Grotesk (차곡 숫자 서체)
+
+사용자가 제공한 HTML 디자인에 포함된 Latin WOFF2를 변경 없이 사용한다.
+Copyright 2020 The Space Grotesk Project Authors. SIL Open Font License 1.1.
+원문: `apps/web/public/fonts/SpaceGrotesk-LICENSE.txt`.
+
+## Noto Sans KR (원본 차곡 디자인 서체)
+
+사용자가 제공한 HTML이 사용한 Noto Sans KR WOFF2 subset을 로컬 번들한다.
+Copyright 2014–2021 Adobe, Source reserved font name. SIL Open Font License 1.1.
+원문: `apps/web/public/faithful/fonts/NotoSansKR-OFL.txt`.
+동일 renderer의 Space Grotesk 원문은 `apps/web/public/faithful/fonts/SpaceGrotesk-LICENSE.txt`.

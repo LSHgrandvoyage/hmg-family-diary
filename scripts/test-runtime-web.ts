@@ -2,7 +2,7 @@ import { connect } from "node:tls";
 import { chromium, expect } from "@playwright/test";
 import { readFile, mkdir } from "node:fs/promises";
 import { X509Certificate, createHash } from "node:crypto";
-import { qa } from "./runtime-qa-client.ts";
+import { qa, qaRequest } from "./runtime-qa-client.ts";
 const url = new URL(qa.origin);
 const leaf = await new Promise<Buffer>((resolve, reject) => {
   // Verify the known CA with Node before allowing this exact leaf SPKI in the isolated browser.
@@ -30,8 +30,10 @@ const pin = createHash("sha256")
   .update(certificate.publicKey.export({ type: "spki", format: "der" }))
   .digest("base64");
 // Trust only this local CA in the test browser. No product trust bypass or global ignoreHTTPSErrors.
+// Launch a separate temporary profile; never attach to the user's Chrome session.
 const browser = await chromium.launch({
   channel: "chrome",
+  headless: true,
   args: [`--ignore-certificate-errors-spki-list=${pin}`],
 });
 await mkdir("docs/evidence/connected-ui", { recursive: true });
@@ -96,7 +98,6 @@ try {
     path: "docs/evidence/connected-ui/phone-original.png",
     fullPage: true,
   });
-  await page.getByRole("button", { name: "재생 종료" }).click();
   const [download] = await Promise.all([
     page.waitForEvent("download"),
     page.getByRole("link", { name: "원본 녹음 내려받기" }).click(),
@@ -105,11 +106,49 @@ try {
   expect(createHash("sha256").update(saved).digest("hex")).toBe(
     qa.snapshot.sha256,
   );
+  await page.getByRole("button", { name: "재생 종료" }).click();
   await page.goto(`${qa.origin}/devices`);
   await page.getByRole("button", { name: "차량 연결 코드 만들기" }).click();
   await expect(page.locator(".pair-code strong")).toHaveText(/^\d{8}$/);
   // Code is a short-lived capability: do not include it in a committed screenshot.
   await page.locator(".pair-code").evaluate((el) => el.remove());
+  const issued = await qaRequest("/api/v1/pairings", "POST", {});
+  const linked = await qaRequest("/api/v1/devices/claim", "POST", {
+    code: issued.code,
+    label: "웹 별칭 시험 차량",
+  });
+  try {
+    await page.reload();
+    await page
+      .getByLabel("연결 기기 별칭", { exact: true })
+      .fill("우리집 시험 아이오닉");
+    await page.getByRole("button", { name: "별칭 저장", exact: true }).click();
+    await expect(
+      page.getByRole("heading", { name: "우리집 시험 아이오닉", exact: true }),
+    ).toBeVisible();
+    await page.reload();
+    await expect(
+      page.getByLabel("연결 기기 별칭", { exact: true }),
+    ).toHaveValue("우리집 시험 아이오닉");
+    await page.getByLabel("연결 기기 별칭", { exact: true }).fill("   ");
+    await expect(
+      page.getByRole("button", { name: "별칭 저장", exact: true }),
+    ).toBeDisabled();
+    await page
+      .getByLabel("연결 기기 별칭", { exact: true })
+      .fill("우리집 시험 아이오닉");
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await page.screenshot({
+      path: "docs/evidence/connected-ui/phone-device-alias.png",
+      fullPage: true,
+    });
+  } finally {
+    await qaRequest(`/api/v1/devices/${linked.id}`, "DELETE");
+  }
   await page.screenshot({
     path: "docs/evidence/connected-ui/phone-devices.png",
     fullPage: true,
@@ -134,6 +173,7 @@ try {
   for (const img of await page.locator(".photo-open img").all()) {
     await img.scrollIntoViewIfNeeded();
     await expect(img).toHaveJSProperty("complete", true);
+    await expect(img).toHaveCSS("object-fit", "contain");
     expect(
       await img.evaluate((el) => (el as HTMLImageElement).naturalWidth),
     ).toBeGreaterThan(0);
@@ -143,6 +183,8 @@ try {
     path: "docs/evidence/connected-ui/desktop-diary.png",
     fullPage: true,
   });
+  await page.goto(`${qa.origin}/library`);
+  await page.getByRole("button", { name: "계정", exact: true }).click();
   await page.getByRole("button", { name: "로그아웃", exact: true }).click();
   await page.waitForURL("**/login");
   expect(errors).toEqual([]);

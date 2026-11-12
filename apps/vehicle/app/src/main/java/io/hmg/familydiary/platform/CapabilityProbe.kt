@@ -9,6 +9,6 @@ object CapabilityProbe {
         "ABI ${Build.SUPPORTED_ABIS.joinToString()}",
         "Automotive feature: ${context.packageManager.hasSystemFeature(PackageManager.FEATURE_AUTOMOTIVE)}",
         "G1 원본 음성 + 동일 입력 STT: 미검증",
-        "G2 실제 P 신호: 미검증 · 사용 잠금"
+        "G2 실제 주행/주차 신호 및 기능별 허용: 미검증 · 사용 잠금"
     ).joinToString("\n")
 }

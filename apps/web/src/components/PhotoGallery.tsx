@@ -8,8 +8,8 @@ import {
   PHOTO_LIMIT,
   type SavedPhoto,
 } from "../client/photos";
-import { Sheet } from "./Sheet";
-import { Icon } from "./Icon";
+import { PhotoCollection } from "./PhotoCollection";
+import { PhotoUploadAlert } from "./PhotoUploadAlert";
 export function PhotoGallery({ recordId }: { recordId: string }) {
   const input = useRef<HTMLInputElement>(null);
   const [photos, setPhotos] = useState<SavedPhoto[]>([]);
@@ -17,9 +17,9 @@ export function PhotoGallery({ recordId }: { recordId: string }) {
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [uploadError, setUploadError] = useState("");
   const [message, setMessage] = useState("");
   const [reload, setReload] = useState(0);
-  const [selected, setSelected] = useState<string | null>(null);
   useEffect(() => {
     let live = true;
     setLoaded(false);
@@ -51,10 +51,11 @@ export function PhotoGallery({ recordId }: { recordId: string }) {
     setError("");
     setMessage("");
     if (files.length + photos.length > PHOTO_LIMIT) {
-      setError(`일기마다 사진을 ${PHOTO_LIMIT}장까지 보관할 수 있어요.`);
+      setUploadError(`일기마다 사진을 ${PHOTO_LIMIT}장까지 보관할 수 있어요.`);
       return;
     }
     setBusy(true);
+    setMessage("사진을 저장하고 있어요…");
     try {
       const blobs: Blob[] = [];
       for (const file of files) blobs.push(await preparePhoto(file));
@@ -62,7 +63,8 @@ export function PhotoGallery({ recordId }: { recordId: string }) {
       setPhotos(await listPhotos(recordId));
       setMessage(`${files.length}장의 사진을 이 브라우저에 저장했어요.`);
     } catch (e) {
-      setError((e as Error).message);
+      setMessage("");
+      setUploadError((e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -74,24 +76,22 @@ export function PhotoGallery({ recordId }: { recordId: string }) {
     try {
       await removePhoto(recordId, id);
       setPhotos(await listPhotos(recordId));
-      setSelected(null);
       setMessage("일기에서 사진을 삭제했어요.");
     } catch (e) {
-      setError((e as Error).message);
+      throw e;
     } finally {
       setBusy(false);
     }
   }
-  const opened = previews.find((photo) => photo.id === selected);
   return (
     <section className="photo-section" aria-label="일기 사진">
-      <div className="block-head">
-        <h2 className="h2">그날의 사진</h2>
-        <span className="row-sub">
-          {photos.length}/{PHOTO_LIMIT}
-        </span>
-      </div>
-      <p className="row-sub">목소리 옆에, 함께 본 풍경도 남겨요.</p>
+      <PhotoCollection
+        photos={previews}
+        busy={busy || !loaded}
+        onDelete={erase}
+        onAdd={() => input.current?.click()}
+        deleteDescription="이 브라우저에 보관한 사진을 일기에서 삭제해요."
+      />
       <input
         ref={input}
         className="visually-hidden"
@@ -106,44 +106,11 @@ export function PhotoGallery({ recordId }: { recordId: string }) {
           void upload(files);
         }}
       />
-      {previews.length > 0 ? (
-        <div className="photo-grid">
-          {previews.map((photo, i) => (
-            <figure key={photo.id}>
-              <button
-                className="photo-open"
-                aria-label={`사진 ${i + 1} 크게 보기`}
-                onClick={() => setSelected(photo.id)}
-              >
-                <img src={photo.url} alt={`일기에 첨부한 사진 ${i + 1}`} />
-              </button>
-              <figcaption>
-                <span>사진 {i + 1}</span>
-                <button
-                  className="photo-delete"
-                  disabled={busy}
-                  aria-label={`사진 ${i + 1} 삭제`}
-                  onClick={() => void erase(photo.id)}
-                >
-                  <Icon name="close" />
-                  삭제
-                </button>
-              </figcaption>
-            </figure>
-          ))}
-        </div>
-      ) : (
+      {previews.length === 0 && (
         <div className="photo-empty">
           {loaded ? "이 날의 사진을 추가해 보세요." : "사진을 불러오고 있어요."}
         </div>
       )}
-      <button
-        className="btn tint full"
-        disabled={!loaded || busy || photos.length >= PHOTO_LIMIT}
-        onClick={() => input.current?.click()}
-      >
-        {busy ? "사진을 저장하고 있어요…" : "사진 추가"}
-      </button>
       {error && (
         <p className="photo-error" role="alert">
           {error}
@@ -161,19 +128,14 @@ export function PhotoGallery({ recordId }: { recordId: string }) {
         {message}
       </p>
       <p className="preview-footnote">
-        이 브라우저에만 저장돼요. 기기 간 공유는 아직 준비 중이에요.
-        <br />
-        JPG·PNG·WebP · 장당 10MB 이하 · 브라우저 데이터를 지우면 사진도
-        삭제돼요.
+        이 브라우저에만 저장돼요. 기기 간 공유는 아직 준비 중이에요. 브라우저
+        데이터를 지우면 사진도 삭제돼요.
       </p>
-      {opened && (
-        <Sheet title="그날의 사진" onClose={() => setSelected(null)}>
-          <img
-            className="photo-lightbox"
-            src={opened.url}
-            alt="선택한 일기 사진"
-          />
-        </Sheet>
+      {uploadError && (
+        <PhotoUploadAlert
+          message={uploadError}
+          onClose={() => setUploadError("")}
+        />
       )}
     </section>
   );

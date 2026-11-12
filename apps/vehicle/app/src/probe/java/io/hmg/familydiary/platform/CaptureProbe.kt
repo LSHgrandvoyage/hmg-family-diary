@@ -7,6 +7,7 @@ import android.media.MediaRecorder
 import android.os.Handler
 import android.os.Looper
 import io.hmg.familydiary.capture.PcmWave
+import io.hmg.familydiary.capture.InputLevel
 import java.io.File
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
@@ -18,10 +19,13 @@ class CaptureProbe(private val directory: File) {
     private val running = AtomicBoolean(false)
     @Volatile private var recorder: AudioRecord? = null
     @Volatile private var interrupted = false
+    @Volatile var paused = false; private set
+    val sessionId:Int get()=recorder?.audioSessionId?:-1
+    fun pauseOrResume() { if(busy) paused = !paused }
     @Volatile var busy = false; private set
 
     @SuppressLint("MissingPermission") // Activity requests permission before this explicit action.
-    fun start(onProgress: (Long) -> Unit, onResult: (Result) -> Unit) {
+    fun start(onProgress: (Long) -> Unit, onResult: (Result) -> Unit, onLevel: (Float) -> Unit = {}, onPcm: (ByteArray) -> Unit = {}) {
         check(!busy)
         directory.mkdirs()
         check(directory.usableSpace > 64L * 1024 * 1024) { "LOW_STORAGE" }
@@ -36,7 +40,7 @@ class CaptureProbe(private val directory: File) {
         try { input.startRecording(); check(input.recordingState == AudioRecord.RECORDSTATE_RECORDING) }
         catch (error: Exception) { input.release(); throw error }
         val id = UUID.randomUUID().toString()
-        recorder = input; interrupted = false; busy = true; running.set(true)
+        recorder = input; interrupted = false; paused = false; busy = true; running.set(true)
         Thread({
             var writer: PcmWave.Writer? = null
             var result: Result
@@ -51,7 +55,11 @@ class CaptureProbe(private val directory: File) {
                         error("MIC_READ_$size")
                     }
                     if (size == 0) continue
+                    if (paused) { handler.post { onLevel(0f) }; continue }
+                    val level = InputLevel.fromPcm(buffer, size)
+                    handler.post { onLevel(if (busy && !paused) level else 0f) }
                     writer.append(buffer, size)
+                    onPcm(buffer.copyOf(size))
                     if (writer.bytes - lastProgress >= PcmWave.BYTES_PER_SECOND) {
                         lastProgress = writer.bytes
                         val duration = writer.bytes * 1_000 / PcmWave.BYTES_PER_SECOND
@@ -72,9 +80,9 @@ class CaptureProbe(private val directory: File) {
                 runCatching { input.stop() }
                 input.release(); recorder = null
                 runCatching { writer?.close() }
-                busy = false
+                busy = false; paused = false
             }
-            handler.post { onResult(result) }
+            handler.post { onLevel(0f); onResult(result) }
         }, "capture-probe").start()
     }
 

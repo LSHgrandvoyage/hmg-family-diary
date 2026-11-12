@@ -3,10 +3,12 @@ import { useEffect, useRef } from "react";
 import { Icon } from "./Icon";
 export function Sheet({
   title,
+  className = "",
   children,
   onClose,
 }: {
   title: string;
+  className?: string;
   children: React.ReactNode;
   onClose: () => void;
 }) {
@@ -28,7 +30,7 @@ export function Sheet({
   return (
     <dialog
       ref={ref}
-      className="sheet modal-sheet"
+      className={`sheet modal-sheet ${className}`}
       aria-label={title}
       onCancel={(e) => {
         e.preventDefault();

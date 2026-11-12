@@ -40,7 +40,7 @@ class CaptureProbeDeviceTest {
             ui {
                 assertFalse(button("녹음 시작").isEnabled)
                 checkboxes().take(2).forEach { it.isChecked = true }
-                button("새 이야기").performClick()
+                button("녹음").performClick()
                 assertTrue(button("녹음 시작").isEnabled)
                 button("녹음 시작").performClick()
                 startedAt = SystemClock.elapsedRealtime()
@@ -49,7 +49,7 @@ class CaptureProbeDeviceTest {
             Thread.sleep(30_000)
             ui {
                 stoppedAt = SystemClock.elapsedRealtime()
-                button("녹음 마치기").performClick()
+                button("끝내고 이야기 확인").performClick()
             }
             awaitFinals(1)
             val original = finals().single()
@@ -65,7 +65,7 @@ class CaptureProbeDeviceTest {
             ui {
                 assertFalse(button("원본 재생").isEnabled)
                 checkboxes().first().isChecked = true
-                button("새 이야기").performClick()
+                button("녹음").performClick()
                 assertTrue(button("녹음 시작").isEnabled) // Playback did not auto-resume.
                 button("녹음 시작").performClick()
             }

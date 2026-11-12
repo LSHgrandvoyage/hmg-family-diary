@@ -20,7 +20,7 @@ class CloudSyncDeviceTest {
         original.writeBytes(File(root,"fixture.wav").readBytes())
         store.save(ReviewRecord(original.name,s.getString("sha256"),s.getLong("duration_ms"),s.getString("recorded_at"),listOf(s.getString("text")),s.getString("text"),s.getString("speaker"),1,1,s.getString("draft"),1,1,s.getString("model"),s.getString("prompt_version"),"mock"))
         contexts.create(original.name,MemoryContext(s.getString("recorded_at"),VehicleSnapshot("합성 차량","현대","시험 모델","SUV","2026","","synthetic"),true))
-        val client=sync();client.pair(f.getString("code"));client.share(original)
+        val client=sync();client.pair(f.getString("code"), "합성 연결 별칭");client.rename("차량에서 바꾼 시험 별칭");client.pull();assertEquals("차량에서 바꾼 시험 별칭", client.deviceLabel);client.share(original)
         assertTrue(client.linked(original.name));assertEquals(s.getString("sha256"),io.hmg.familydiary.capture.PcmWave.sha256(original))
         // Existing server record also downloads into this isolated directory with the identical SHA.
         assertTrue(recordings.listFiles()!!.size>=2)

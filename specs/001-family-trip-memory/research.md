@@ -108,3 +108,32 @@ DB dump/restore, 파일 checksum manifest와 삭제 표식 대조, 원본 재생
 **Gate:** HTTPS 인증서·허용 origin·두 기기의 접근, DB 준비 상태·마이그레이션 실패 시 시작 차단,
 DB와 파일의 일관된 백업·복원을 T039/T040에서 검증한다. 실제 이전 작업은 향후 배포 범위다.
 [HTTPS](https://caddyserver.com/docs/automatic-https) · [Postgres RLS](https://www.postgresql.org/docs/current/ddl-rowsecurity.html)
+
+## R4 보충 — 2026-11-11 공식 정책 재확인
+
+현재의 모든 녹음/읽기/재생을 P에서만 허용하는 정책은 이 프로젝트의 보수적인 MVP 결정이다. 모든 차량용 앱에 동일한 P 전용 동작이 강제된다고 일반화하지 않는다. 공식 [앱 카테고리](https://document.pleos.ai/docs/pleos-only/vehicle-app-planning-guide/app-category)는 Music/Audio·Maps/Navigation·Mobility Services의 일부 주행 중 기능 예시를 제공한다. 오디오 콘텐츠 청취 허용이 장시간 대화 녹음 허용의 근거는 아니다.
+
+[지역별 정책](https://document.pleos.ai/docs/pleos-only/vehicle-app-planning-guide/driving-restiction-policy)은 DO 미선언 앱의 Parking 사용 가능/Drive 사용 불가를 설명한다. [개발 가이드](https://document.pleos.ai/docs/pleos-only/vehicle-app-developer-guide/driving-restriction-development-guide)는 DO 선언 앱도 CarUxRestrictions/ActiveRestrictions에 따라 기능별 제한을 구현해야 한다고 명시한다. 공개 문서에서 가족 일기 장시간 원본 녹음의 주행 중 허용을 명시적으로 확인하지 못했다. 주행 전 시작/주행 중 계속과 음성 명령 시작을 각각 플랫폼 카테고리/검수 대상으로 확인해야 하며, 이번 문의만으로 DO 선언이나 기존 gate 해제를 하지 않는다.
+
+동기화5초 polling/P gate 연동은 현재 단일 프로세스 CloudSync와 검토/재생/파일 변경 충돌을 피하기 위한 프로토타입 구현 선택이다. 네트워크 수신 자체가 공식적으로 P 전용이라고 확인한 것이 아니다. [앱 구조 및 동작 모델](https://document.pleos.ai/docs/pleos-only/vehicle-app-planning-guide/app-structure-screen-model)은 foreground 상태 복원, background 지속 통신의 실행/중단 조건, 불필요한 background timer/polling 최소화를 요구한다. 후속 서비스 설계 후보는 앱 시작/복귀/연결 복구 시 cursor 기반 증분 조회와 foreground 변경 알림(SSE/WebSocket), 알림 누락 시 재조회이며 차량-휴대폰 직접 전송이 아니라 기존 서버 경유를 유지한다.
+
+## C021 검증된 구현 경로
+
+2026-11-11 공개 Maven의 FusedLocation1.1.3/TextToSpeech3.3.1을 probe에 추가했다. 위치 permission은 dangerous이며 사용자별 runtime 허용이 필요하다. system user0 grant는 AAOS 사용자10의 앱 허용을 대신하지 않는다. 해당 사용자에 허용 후 실제 SDK available을 확인했다. 실패 상태에서 좌표를 보관하지 않고 30초 이내 시작 전 관측만 스냅샷으로 고정한다.
+
+TTS는 initialize onSuccess 이후 listener를 등록하고 ko-KR(Locale.KOREA)을 설정해야 한다. ON_DEVICE로 onStart·내비 전환 후 유지·알림 stop을 확인했다. 앱 MediaPlayer와 동일한 서비스 수명으로 연결했으나 공식 TTS에는 앱측 gain 조절을 확인하지 못해 duck 시 중단한다. SDK 실행 성공과 원본 AudioRecord의 정책 허용은 별개다.
+
+구현과 검증 세부는 docs/evidence/compose-runtime.md의 C021 및 docs/contest/README.md가 정본이다. 자동차 화자 프롬프트 v4는 준비만 했으며 모델 품질 증거를 추가하지 않았다. v3의 기존 실험을 v4에 전용하지 않는다.
+
+
+## C026 화자 분리 검토 (2026-11-11)
+
+현재 Pleos SpeechToText3.3.1 AAR의 ResultListener에는 text/completed, EPD on/off, RMS, started/ended, ready/error가 있고 화자 ID·단어별 speaker·좌석별 오디오 채널은 없다. 공개 문서도 화자 결과를 정의하지 않는다. 이것은 현재 사용 중 인터페이스의 지원 범위 확인이며 향후 OEM 비공개 기능까지 불가능하다는 주장은 아니다. 공모전 추가 제공 범위는 운영진 문의가 필요하지만 이번에 메일은 보내지 않았다.
+
+자동 분리 후보는 서버에서 원본 WAV를 처리하는 pyannote `speaker-diarization-community-1`이다. 공식 모델 카드는 16kHz mono 입력, 화자별 시간 구간, 전사 시각과 결합하기 쉬운 exclusive diarization 및 모델을 받은 뒤 오프라인 실행을 지원한다고 설명한다. 모델 접근 조건 동의/HF 토큰과 별도 Python 실행 환경이 필요하다. 이번에는 다운로드·설치·실행·사용자 음성 전송을 하지 않았으므로 실제 차량 소음/아이 음성/처리시간 정확도는 미검증이다.
+
+권장 후속: 원본을 보존하면서 익명 화자 A/B와 시간 구간을 먼저 추정하고, 주차 후 사용자가 가족 이름을 연결/수정한다. 자동 분리는 같은 목소리의 구간을 묶는 것이며 엄마/아빠/아이의 실명을 자동으로 알아내는 기능이 아니다. 두 사람이 겹쳐 말한 음성을 각자의 깨끗한 오디오로 분리하는 기능도 별개다. 하나의 STT 발언에 화자가 바뀌면 EPD 전체를 한 사람에게 지정하지 않고, 더 세밀한 전사 정렬이나 수동 검토가 필요하다. 텍스트 내용만으로 화자·감정·가족 관계를 LLM이 추정해 확정하지 않는다.
+
+검토 결론: 현재 SDK만으로 자동 화자 분리는 미지원이다. 로컬 서버의 별도 음성 분석으로 익명 화자 구분은 기술적으로 가능하지만 실차 녹음 평가와 공모전 SDK/외부 처리 허용 확인 뒤 도입한다. 현 버전은 세션 참여자 표시와 실제 원문 구간만 제공한다.
+
+근거: [Pleos STT 결과](https://document.pleos.ai/docs/pleos-only/connect-sdk-pleos/SpeechToText/result-listeners), [pyannote 공식 모델 카드](https://huggingface.co/pyannote/speaker-diarization-community-1). 로컬 확인: SpeechToText3.3.1 classes.jar의 `javap ai.pleos.playground.stt.listener.ResultListener`.

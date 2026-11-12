@@ -1,6 +1,9 @@
 import { readFile } from "node:fs/promises";
 import { request } from "node:https";
+import { loadEnvFile } from "node:process";
+loadEnvFile(".env.runtime");
 export const qa = JSON.parse(await readFile(".tools/runtime/qa.json", "utf8"));
+qa.origin = process.env.APP_ORIGIN ?? qa.origin;
 const ca = await readFile(".tools/runtime/local-ca.crt");
 export async function qaRequest(
   path: string,
@@ -39,6 +42,7 @@ export async function qaRequest(
         });
       },
     );
+    r.setTimeout(15000, () => r.destroy(Error("QA request timed out")));
     r.on("error", reject);
     if (data) r.write(data);
     r.end();

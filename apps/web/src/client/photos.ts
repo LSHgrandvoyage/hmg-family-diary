@@ -121,21 +121,30 @@ export async function removePhoto(recordId: string, id: string): Promise<void> {
     };
   });
 }
-/** Decode local raster input and save a resized JPEG copy, without original EXIF data. */
-export async function preparePhoto(file: File): Promise<Blob> {
-  if (file.size === 0 || file.size > PHOTO_MAX_BYTES)
-    throw new Error("사진 한 장의 크기는 10MB 이하여야 해요.");
+/** Validate bytes rather than trusting a filename or browser MIME type. */
+export async function validatePhotoFile(file: File): Promise<void> {
+  if (file.size > PHOTO_MAX_BYTES)
+    throw new Error(
+      `선택한 사진은 ${(file.size / 1024 / 1024).toFixed(1)}MB예요. 사진은 한 장에 10MB까지 추가할 수 있어요. 크기를 줄인 뒤 다시 선택해 주세요.`,
+    );
+  if (file.size === 0)
+    throw new Error("내용이 없는 파일이에요. 다른 사진을 선택해 주세요.");
   const bytes = new Uint8Array(await file.slice(0, 12).arrayBuffer());
-  const png =
-    bytes[0] === 137 && bytes[1] === 80 && bytes[2] === 78 && bytes[3] === 71;
+  const png = [137, 80, 78, 71, 13, 10, 26, 10].every(
+    (value, i) => bytes[i] === value,
+  );
   const jpeg = bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255;
   const webp =
     String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" &&
     String.fromCharCode(...bytes.slice(8, 12)) === "WEBP";
   if (!png && !jpeg && !webp)
     throw new Error(
-      "JPG·PNG·WebP 사진을 골라 주세요. HEIC 사진은 JPG로 변환한 뒤 추가할 수 있어요.",
+      "지원하지 않는 사진 형식이에요. JPG·PNG·WebP 사진을 선택해 주세요. HEIC 사진은 JPG로 변환한 뒤 추가할 수 있어요.",
     );
+}
+/** Decode local raster input and save a resized JPEG copy, without original EXIF data. */
+export async function preparePhoto(file: File): Promise<Blob> {
+  await validatePhotoFile(file);
   const url = URL.createObjectURL(file);
   const picture = new Image();
   try {

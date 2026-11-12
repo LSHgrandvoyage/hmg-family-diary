@@ -314,7 +314,7 @@ body {
 }
 .reading-tabs {
   margin: var(--stack-l) 0;
-  background: var(--c-line);
+  background: transparent;
 }
 .diary-body > p {
   font-size: 18px;
@@ -887,7 +887,7 @@ body {
 .photo-open img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
 }
 .photo-grid figcaption {
@@ -1120,7 +1120,7 @@ body {
 .live-layout .photo-open img {
   width: 100%;
   aspect-ratio: 4/3;
-  object-fit: cover;
+  object-fit: contain;
 }
 .live-layout .story-row {
   display: flex;
@@ -1187,4 +1187,84 @@ body {
   .live-layout .detail-columns {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+.device-alias {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+  max-width: 360px;
+}
+.device-alias input {
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  border: 1px solid var(--c-line);
+  border-radius: var(--r-s);
+  padding: 12px;
+  background: var(--c-bg);
+  color: var(--c-text-1);
+  font: inherit;
+}
+.live-device > div {
+  min-width: 0;
+  flex: 1;
+}
+.live-device .h2 {
+  overflow-wrap: anywhere;
+}
+
+.photo-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.photo-heading .h2 {
+  min-width: 0;
+}
+.photo-menu {
+  position: relative;
+  flex: 0 0 auto;
+}
+.photo-menu-options {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 3;
+  min-width: 140px;
+  padding: 4px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: var(--r-m);
+  box-shadow: 0 4px 16px #00000014;
+}
+.photo-menu-options button {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px;
+  text-align: left;
+  border-radius: var(--r-s);
+}
+.photo-menu-options button:hover {
+  background: var(--c-bg);
+}
+
+.diary-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.diary-card-heading .eyebrow {
+  margin: 0;
+  padding-top: 12px;
+  min-width: 0;
+}
+.photo-menu-options {
+  min-width: 176px;
+}
+.photo-menu-options button:disabled {
+  opacity: 0.45;
+  cursor: default;
 }

@@ -3,7 +3,7 @@
 ## Platform ports
 
 - `ParkedStateProvider`: PARKED/NOT_PARKED/UNKNOWN + observation timestamp + source.
-  확인한 주차 신호와 UX restriction이 모두 허용할 때만 CaptureCoordinator 활성화.
+  확인한 주차 또는 명시적으로 허용된 주행 음성 상태와 UX restriction/포커스가 허용할 때 CaptureCoordinator 활성화. 검토·사진은 PARKED만 허용.
 - `AudioCapture`: 시작·종료·중단, 실제 format·sample count·monotonic session offset,
   검증된 원본 조각. 휴대폰 신규 캡처는 첫 버전에서 제공하지 않는다.
 - `SpeechRecognizer`: 같은 PCM의 완료/중간 텍스트와 검증 가능한 구간 참조.
@@ -20,7 +20,7 @@
 주제별 입력·발화 길이를 강제하지 않는다. 내부 오디오 조각은 복구용이며 입력 양식이 아니다.
 발화자 전환 시 이전 완료 결과가 새 사람에 붙지 않도록 session/utterance generation ID를 고정한다.
 임시 파일은 주기적으로 flush하고 조각 완료 후 atomic rename·checksum을 기록한다.
-주차/포커스 상실 시 마이크·재생을 중단한다. 완료 조각은 남기고 미완료 tail은 별도 표시한다.
+플랫폼 음성 허용/상태 확인/포커스 상실 시 마이크·재생을 중단한다. 허용된 주행 전환 자체는 미디어를 중단하지 않고 검토 UI를 잠근다. 완료 조각은 남기고 미완료 tail은 별도 표시한다.
 
 ## Generation input
 
@@ -116,3 +116,34 @@ YYYY-MM-DD 유효 날짜로 검증하며, source span의 end>start와 발화 범
 사진은 같은 ID 아래 JPG로 디코딩/방향 보정/재인코딩하며 원본 EXIF를 복사하지 않는다.
 기기 전용 프로토타입 저장이며 암호화·공유 보관함·서버 동기화 계약을 대신하지 않는다.
 원문 시간축은 현재 전체 원본 하나이며 단어/문장별 구간을 추측하지 않는다.
+
+
+## C020 — 녹음 소유권
+명시적 사용자 시작→전면 microphone service→단일 PCM 분기→WAV+STT. UI detach는 capture.stop이 아니다. service는 최종 결과를 ReviewStore/MemoryContextStore에 저장한 뒤 종료하며 Activity 참조를 보유하지 않는다. 알림 종료/상태불명/포커스 상실은 WAV finalize, STT 확보분 보존. 프로세스 강제 종료 후 자동 재개하지 않고 partial을 남긴다. 주행 중 결과는 native 저장만 하고 검토 UI는 P+UX 제한 없음에서 연다.
+
+## C021 — 위치 및 청취
+location.status는 available/unavailable/synthetic/stale/denied/unsupported/error를 사용한다. 유효 관측만 latitude/longitude/observed_at/source를 포함한다. 녹음 시작 이후 현재 위치로 재작성하지 않는다. 정밀 좌표와 번호는 생성 입력에서 제외한다.
+PlaybackService는 명시적 재생 요청의 원본/일기 ID와 재생 상태를 소유한다. UI detach로 재생을 끊지 않으며 task 제거/알림 종료/플랫폼 상태불명/배타적 포커스 상실에 종료한다. 프로세스 사망 후 자동 재개하지 않는다. 녹음 서비스와 오디오 소유권을 중복 획득하지 않는다.
+자동차 화자는 서술 관점이다. Gleo 호출/차량 제어/실제 자동차 감정이 아니며, 확인문에 없는 여행/동승자/감정을 만들지 않는다. 현재 mock 출력은 확인문 보존 동작을 유지한다.
+
+
+## C025 TTS 큐 계약
+
+`ttsQueue {memoryIds: string[]}`는 주차 검토 권한으로만 시작한다. 배열은 1~500개 고유한 로컬 WAV 식별자이며 모든 항목이 현재 revision으로 확정된 일기여야 한다. 실패 시 부분 큐를 시작하지 않는다. `tts`는 한 편 읽기이며 주차 권한을 유지한다. `ttsPrevious`, `ttsNext`, `stopPlayback`은 허용된 주행 음성 권한에서도 가능하며 종료된 큐를 되살리지 않는다. 주행의 시작 버튼은 native에서 완성본 목록만 구성한다.
+
+state: `tts_active`, `tts_index`(0부터), `tts_count`, `tts_title`(주차에서만), `tts_previous`, `tts_next`. 본문은 상태 응답에 추가하지 않는다. 정상 완료 외에는 큐를 비운다. 변경 수신은 기존 주차/유휴 gate를 유지하여 큐 실행 중 텍스트·파일을 교체하지 않는다. 서버 API/DB 변경 없음.
+
+### C028 종료와 표시 계약
+`stopPlayback`은 즉시 다음 항목 예약을 무효화하고 공식 SDK의 stop 처리 완료 후 엔진을 해제한다. 종료 처리 중 새로운 재생 요청을 허용하지 않아 이전 엔진과 겹치지 않는다. UI의 큐 종료와 실제 엔진 종료 확인은 검증에서 구분한다. 테마 및 차량 필터/모달 변경은 서버 데이터 계약을 변경하지 않는다.
+
+### C029 설정 bridge
+`getSettings`, `lookupVehicle`, `saveVehicle`, `pairVehicle`, `renameVehicle`, `syncSettings`, `locationSettings`는 주차 검토 권한을 요구한다. 변경/동기화는 유휴 상태도 요구한다. 차량 문자열은 공백 정리·60자 상한, 연결 별칭1~40자/코드8자리 검증 후 기존 prefs/CloudSync에 저장한다. 현재 설정 변경은 과거 snapshot을 변경하지 않는다. 연결 토큰/보관함 비밀은 응답하지 않는다. 모바일 테마 기존 auto는 light로 이행하며 native auto는 유지한다.
+
+### C030 테마 제어
+기존 `setTheme`/theme_mode/theme_dark와 주차 권한 계약을 재사용한다. 순환 순서는 auto→light→dark→auto이며 모바일에는 auto를 추가하지 않는다. 서버/저장 스키마 변경 없음.
+
+### C031 차 별명
+현재 이름은 연결 시 CloudSync의 pending_label 또는 label, 미연결 시 차량 profile.nickname이다. 최초 설정 접근 시 profile.nickname 우선 이행한다. 저장과 연결은1~40자 검증 후 같은 이름을 사용하며 기존 개별 renameVehicle 제어를 제거한다. 오프라인 이름 작업은 앱 전용 동기화 상태에 보존한다. 과거 MemoryContext/snapshot은 수정하지 않는다.
+
+### C032 주행 화면
+차량 주행 여부는 native state가 결정한다. 주행 DOM은 녹음/청취와 최소 제어만 제공하고 list/read/settings는 주차 권한을 계속 요구한다. 주행 전용 음성 제어는 audio 권한과 native idle 조건으로 검증한다. 검토 복귀 대상은 새 녹음 완료 이벤트로만 지정한다.

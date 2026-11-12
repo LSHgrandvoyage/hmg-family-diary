@@ -1,12 +1,19 @@
 "use client";
 import Link from "next/link";
+import { ChagokShell as Shell } from "./ChagokShell";
+import { MemoryList } from "./MemoryList";
 import { useEffect, useState, useRef, type FormEvent } from "react";
 import type { SyncedMemory } from "../../../../packages/sync/src/snapshot";
 import type { DiaryOutput } from "../../../../packages/contracts/src/diary";
 import { AudioPlayer } from "./AudioPlayer";
 import { Sheet } from "./Sheet";
 import { Icon } from "./Icon";
+import { validatePhotoFile } from "../client/photos";
+import { ActionMenu } from "./ActionMenu";
+import { PhotoCollection } from "./PhotoCollection";
+import { PhotoUploadAlert } from "./PhotoUploadAlert";
 const messages: Record<string, string> = {
+  INVALID_DEVICE_LABEL: "차 별명을 1~40자로 입력해 주세요.",
   LOGIN_REQUIRED: "로그인 후 다시 열어 주세요.",
   REVISION_CONFLICT:
     "다른 기기에서 변경됐어요. 새로고침 후 다시 시도해 주세요.",
@@ -51,36 +58,6 @@ async function call(
     );
   }
   return b;
-}
-function Shell({ children }: { children: React.ReactNode }) {
-  return (
-    <>
-      <header className="site-header">
-        <Link className="brand-lockup" href="/library">
-          <span className="brand-symbol">
-            <Icon name="mic" />
-          </span>
-          가족의 이야기
-        </Link>
-        <nav className="live-nav" aria-label="주 메뉴">
-          <Link href="/devices">차량 연결</Link>
-          <button
-            onClick={async () => {
-              try {
-                await call("/api/auth/sign-out", "POST", {});
-                location.assign("/login");
-              } catch {
-                alert("로그아웃하지 못했어요. 다시 시도해 주세요.");
-              }
-            }}
-          >
-            로그아웃
-          </button>
-        </nav>
-      </header>
-      {children}
-    </>
-  );
 }
 export function Login() {
   const [mode, setMode] = useState<"login" | "signup" | "forgot" | "reset">(
@@ -240,6 +217,64 @@ export function Login() {
     </main>
   );
 }
+function DeviceAlias({
+  id,
+  label,
+  busy,
+  save,
+}: {
+  id: string;
+  label: string;
+  busy: boolean;
+  save: (name: string) => Promise<void>;
+}) {
+  const [name, setName] = useState(label);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    if (!editing) setName(label);
+  }, [label, editing]);
+  return (
+    <form
+      className="device-alias"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        if (!name.trim() || saving) return;
+        setSaving(true);
+        setError("");
+        try {
+          await save(name.trim());
+          setEditing(false);
+        } catch (e) {
+          setError((e as Error).message);
+        } finally {
+          setSaving(false);
+        }
+      }}
+    >
+      <label htmlFor={`alias-${id}`}>차 별명</label>
+      <input
+        id={`alias-${id}`}
+        value={name}
+        maxLength={40}
+        required
+        disabled={busy || saving}
+        onChange={(e) => {
+          setEditing(true);
+          setName(e.target.value);
+        }}
+      />
+      <button
+        className="btn secondary"
+        disabled={busy || saving || !name.trim() || name.trim() === label}
+      >
+        {saving ? "저장 중…" : "차 별명 저장"}
+      </button>
+      {error && <p role="alert">{error}</p>}
+    </form>
+  );
+}
 export function LiveApp({
   id,
   devices = false,
@@ -248,6 +283,7 @@ export function LiveApp({
   devices?: boolean;
 }) {
   const fileInput = useRef<HTMLInputElement>(null);
+  const [photoError, setPhotoError] = useState("");
   const [items, setItems] = useState<SyncedMemory[]>([]),
     [record, setRecord] = useState<SyncedMemory | null>(null),
     [list, setList] = useState<
@@ -266,7 +302,6 @@ export function LiveApp({
     [notice, setNotice] = useState(""),
     [query, setQuery] = useState(""),
     [playing, setPlaying] = useState(false),
-    [photo, setPhoto] = useState<string | null>(null),
     [remove, setRemove] = useState(false),
     [tab, setTab] = useState("diary");
   async function refresh() {
@@ -278,7 +313,6 @@ export function LiveApp({
     } catch (e) {
       setLoading(false);
       setPlaying(false);
-      setPhoto(null);
       setRecord(null);
       setNotice((e as Error).message);
     }
@@ -316,10 +350,14 @@ export function LiveApp({
   );
   return (
     <Shell>
-      <main id="main" className="detail-layout live-layout">
+      <main
+        id="main"
+        className={`detail-layout live-layout ${devices ? "chagok-devices" : id ? "chagok-memory" : "chagok-library"}`}
+      >
         <div className="detail-nav">
           <Link href="/library" className="back-link">
-            ← 우리 보관함
+            <Icon name="back" />{" "}
+            <span className="visually-hidden">우리 보관함</span>
           </Link>
           <button
             className="btn secondary"
@@ -334,8 +372,13 @@ export function LiveApp({
         </p>
         {devices ? (
           <section className="block live-stack">
-            <p className="eyebrow">우리 차와 연결</p>
-            <h1 className="title">추억이 이어지는 자리</h1>
+            <p className="eyebrow">차량 연결</p>
+            <h1 className="title">우리 차와 이야기를 이어요</h1>
+            <div className="connection-illustration" aria-hidden="true">
+              <Icon name="car" />
+              <span>·····</span>
+              <Icon name="book" />
+            </div>
             <p className="lead">
               차량에서 코드를 입력하면 같은 가족 보관함을 열 수 있어요. 연결
               후에도 직접 선택한 기록만 전송해요.
@@ -369,6 +412,20 @@ export function LiveApp({
               <div className="live-device" key={x.id}>
                 <div>
                   <h2 className="h2">{x.label}</h2>
+                  {!x.revoked_at && (
+                    <DeviceAlias
+                      id={x.id}
+                      label={x.label}
+                      busy={busy}
+                      save={async (name) => {
+                        await call(`/api/v1/devices/${x.id}`, "PATCH", {
+                          label: name,
+                        });
+                        await refresh();
+                        setNotice("차 별명을 저장했어요.");
+                      }}
+                    />
+                  )}
                   <p className="row-sub">
                     {x.revoked_at
                       ? "연결 해제됨"
@@ -406,114 +463,63 @@ export function LiveApp({
           record && draft ? (
             <div className="detail-columns">
               <article className="detail-paper">
-                <p className="eyebrow">
-                  {new Date(record.snapshot.recorded_at).toLocaleDateString(
-                    "ko-KR",
-                  )}{" "}
-                  · {record.snapshot.speaker}
-                </p>
+                <div className="diary-card-heading">
+                  <p className="eyebrow">
+                    {new Date(record.snapshot.recorded_at).toLocaleDateString(
+                      "ko-KR",
+                    )}{" "}
+                  </p>
+                  <ActionMenu
+                    label="일기 옵션"
+                    disabled={busy}
+                    actions={[
+                      {
+                        label: "일기와 원본 삭제",
+                        onSelect: () => setRemove(true),
+                      },
+                    ]}
+                  />
+                </div>
                 <h1 className="title">
                   {draft.groups[0]?.label ?? "우리의 이야기"}
                 </h1>
-                <p className="diary-context-summary">
-                  확인문으로 만든 목업 일기 · 원본 음성{" "}
-                  {record.audio_ready ? "동기화됨" : "전송 대기"}
-                </p>
-                <div
-                  className="live-actions reading-tabs"
-                  role="group"
-                  aria-label="일기 보기"
-                >
-                  <button
-                    className="btn secondary"
-                    aria-pressed={tab === "diary"}
-                    onClick={() => setTab("diary")}
-                  >
-                    일기 읽기
-                  </button>
-                  <button
-                    className="btn secondary"
-                    aria-pressed={tab === "source"}
-                    onClick={() => setTab("source")}
-                  >
-                    원래 이야기
-                  </button>
+                <div className="chagok-metadata">
+                  <span>
+                    <Icon name="mic" />
+                    녹음{" "}
+                    {Math.max(
+                      1,
+                      Math.ceil(record.snapshot.duration_ms / 60000),
+                    )}
+                    분
+                  </span>
+                  <span>{record.snapshot.speaker}</span>
+                  <span className="chagok-badge">
+                    <Icon name="check" />
+                    {record.audio_ready ? "원본 보관됨" : "원본 전송 대기"}
+                  </span>
                 </div>
-                {tab === "diary" ? (
-                  <div className="diary-body">
-                    {draft.groups.map((g) => (
-                      <section className="live-group" key={g.id}>
-                        {draft.groups.length > 1 && (
-                          <h2 className="h2">{g.label}</h2>
-                        )}
-                        {g.statements.map((s, i) => (
-                          <p key={i}>{s.text}</p>
-                        ))}
-                      </section>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="diary-body">
-                    <h2 className="h2">확인한 이야기</h2>
-                    <p>{record.snapshot.text}</p>
-                    <details>
-                      <summary>처음 인식한 내용</summary>
-                      {record.snapshot.raw_history.map((t, i) => (
-                        <p key={i}>{t}</p>
-                      ))}
-                    </details>
-                  </div>
-                )}
                 <section className="photo-section">
-                  <h2 className="h2">
-                    그날의 사진{" "}
-                    <span className="row-sub">{record.photos.length}/8</span>
-                  </h2>
-                  <div className="photo-grid">
-                    {record.photos.map((p, i) => (
-                      <div key={p.id}>
-                        <button
-                          className="photo-open"
-                          onClick={() => setPhoto(p.id)}
-                          aria-label={`사진 ${i + 1} 크게 보기`}
-                        >
-                          <img
-                            src={`/api/v1/sessions/${id}/photos/${p.id}`}
-                            alt={`그날 첨부한 사진 ${i + 1}`}
-                            loading="lazy"
-                          />
-                        </button>
-                        <button
-                          className="btn secondary full"
-                          disabled={busy}
-                          onClick={() => {
-                            if (
-                              confirm(
-                                "이 사진을 가족 보관함과 연결한 차량에서 삭제할까요?",
-                              )
-                            )
-                              void act(async () => {
-                                setRecord(
-                                  await call(
-                                    `/api/v1/sessions/${id}/photos/${p.id}`,
-                                    "DELETE",
-                                  ),
-                                );
-                              });
-                          }}
-                        >
-                          사진 삭제
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  <button
-                    className="btn tint full"
-                    disabled={busy || record.photos.length >= 8}
-                    onClick={() => fileInput.current?.click()}
-                  >
-                    {busy ? "사진을 저장하고 있어요…" : "사진 추가하기"}
-                  </button>
+                  <PhotoCollection
+                    photos={record.photos.map((p) => ({
+                      id: p.id,
+                      url: `/api/v1/sessions/${id}/photos/${p.id}`,
+                    }))}
+                    busy={busy}
+                    onAdd={() => fileInput.current?.click()}
+                    deleteDescription="이 사진을 가족 보관함에서 삭제해요. 차량에는 다음 동기화 때 반영돼요."
+                    onDelete={async (photoId) => {
+                      setRecord(
+                        await call(
+                          `/api/v1/sessions/${id}/photos/${photoId}`,
+                          "DELETE",
+                        ),
+                      );
+                      setNotice(
+                        "사진을 삭제했어요. 차량에서 동기화하면 반영돼요.",
+                      );
+                    }}
+                  />
                   <label className="visually-hidden">
                     사진 첨부
                     <input
@@ -522,46 +528,122 @@ export function LiveApp({
                       tabIndex={-1}
                       accept="image/jpeg,image/png,image/webp"
                       disabled={busy || record.photos.length >= 8}
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const f = e.target.files?.[0];
                         e.target.value = "";
-                        if (f)
-                          void act(async () => {
-                            if (f.size > 10 * 1024 * 1024)
-                              throw Error(messages.TOO_LARGE);
-                            setRecord(
-                              await call(
-                                `/api/v1/sessions/${id}/photos`,
-                                "POST",
-                                f,
-                                { "idempotency-key": crypto.randomUUID() },
-                              ),
-                            );
-                            setNotice(
-                              "사진을 저장했어요. 차량에서 동기화하면 함께 볼 수 있어요.",
-                            );
-                          });
+                        if (!f || busy) return;
+                        setBusy(true);
+                        setNotice("사진을 저장하고 있어요…");
+                        setPhotoError("");
+                        try {
+                          await validatePhotoFile(f);
+                          setRecord(
+                            await call(
+                              `/api/v1/sessions/${id}/photos`,
+                              "POST",
+                              f,
+                              { "idempotency-key": crypto.randomUUID() },
+                            ),
+                          );
+                          setNotice(
+                            "사진을 저장했어요. 차량에서 동기화하면 함께 볼 수 있어요.",
+                          );
+                        } catch (error) {
+                          setNotice("");
+                          setPhotoError(
+                            error instanceof Error
+                              ? error.message
+                              : "사진을 저장하지 못했어요. 다시 시도해 주세요.",
+                          );
+                        } finally {
+                          setBusy(false);
+                        }
                       }}
                     />
                   </label>
-                  <p className="context-note">
-                    JPG·PNG·WebP · 한 장에 10MB까지. iPhone 사진이 HEIC라면
-                    JPEG로 변환해 주세요.
-                  </p>
                 </section>
+                <div className="chagok-diary-card">
+                  <p className="chagok-generation">목업 일기 · AI 정리 전</p>
+                  <div
+                    className="live-actions reading-tabs"
+                    role="group"
+                    aria-label="일기 보기"
+                  >
+                    <button
+                      className="btn secondary"
+                      aria-pressed={tab === "diary"}
+                      onClick={() => setTab("diary")}
+                    >
+                      일기 읽기
+                    </button>
+                    <button
+                      className="btn secondary"
+                      aria-pressed={tab === "source"}
+                      onClick={() => setTab("source")}
+                    >
+                      원래 이야기
+                    </button>
+                  </div>
+                  {tab === "diary" ? (
+                    <div className="diary-body">
+                      {draft.groups.map((g) => (
+                        <section className="live-group" key={g.id}>
+                          {draft.groups.length > 1 && (
+                            <h2 className="h2">{g.label}</h2>
+                          )}
+                          {g.statements.map((s, i) => (
+                            <p key={i}>{s.text}</p>
+                          ))}
+                        </section>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="diary-body">
+                      <h2 className="h2">확인한 이야기</h2>
+                      <p>{record.snapshot.text}</p>
+                      <details>
+                        <summary>처음 인식한 내용</summary>
+                        {record.snapshot.raw_history.map((t, i) => (
+                          <p key={i}>{t}</p>
+                        ))}
+                      </details>
+                    </div>
+                  )}
+                </div>
               </article>
               <aside className="memory-panel">
-                <button
-                  className="whole-recording"
-                  disabled={!record.audio_ready}
-                  onClick={() => setPlaying(true)}
-                >
-                  <span>
+                <section className="chagok-audio-card">
+                  <div className="chagok-audio-heading">
+                    <strong>녹음 원문</strong>
+                    <span>
+                      {Math.floor(record.snapshot.duration_ms / 60000)}:
+                      {String(
+                        Math.floor(record.snapshot.duration_ms / 1000) % 60,
+                      ).padStart(2, "0")}
+                    </span>
+                  </div>
+                  <button
+                    className="whole-recording"
+                    disabled={!record.audio_ready}
+                    onClick={() => setPlaying(true)}
+                  >
+                    <span className="chagok-play">
+                      <Icon name="play" />
+                    </span>
                     <strong>그날의 목소리 듣기</strong>
-                    <small>전체 녹음 · 구간을 눌러 이어 듣기</small>
-                  </span>
-                  <Icon name="play" />
-                </button>
+                  </button>
+                  <p className="chagok-source-preview">
+                    <strong>{record.snapshot.speaker}</strong>
+                    <span>{record.snapshot.text}</span>
+                  </p>
+                  <button
+                    className="btn full"
+                    disabled={!record.audio_ready}
+                    onClick={() => setPlaying(true)}
+                  >
+                    원문 전체 보기 <Icon name="chevron" />
+                  </button>
+                </section>
                 <section className="block live-stack">
                   <h2 className="h2">기록했던 우리 차</h2>
                   <p>
@@ -575,7 +657,13 @@ export function LiveApp({
                   <p className="context-note">
                     {record.snapshot.context?.vehicle.source === "synthetic"
                       ? "샘플 차량 정보"
-                      : "기록 당시 직접 입력한 정보"}
+                      : record.snapshot.context?.vehicle.source ===
+                          "emulator_assisted"
+                        ? "에뮬레이터 조회 후 확인한 정보 · 실제 차량 아님"
+                        : record.snapshot.context?.vehicle.source ===
+                            "vehicle_assisted"
+                          ? "차량 조회 후 확인·수정한 정보"
+                          : "기록 당시 직접 입력한 정보"}
                   </p>
                   <p className="context-note">
                     녹음 시작 위치:{" "}
@@ -585,19 +673,6 @@ export function LiveApp({
                       : ""}
                   </p>
                 </section>
-                <a
-                  className="btn secondary"
-                  href={`/api/v1/sessions/${id}/audio`}
-                  download="family-memory.wav"
-                >
-                  원본 녹음 내려받기
-                </a>
-                <button
-                  className="btn secondary"
-                  onClick={() => setRemove(true)}
-                >
-                  일기와 원본 삭제
-                </button>
                 <p className="context-note">
                   휴대폰에서도 운전 중 조작하지 마세요. 차량에서 주차 후 사용해
                   주세요.
@@ -615,97 +690,30 @@ export function LiveApp({
             )
           )
         ) : (
-          <div className="archive-layout live-archive">
-            <section className="archive-primary">
-              <div className="hero">
-                <p className="eyebrow">우리 가족 보관함</p>
-                <h1 className="title">
-                  지나온 길마다,
-                  <br />
-                  다시 꺼낼 이야기.
-                </h1>
-                <p className="lead">
-                  우리 차에서 나눈 이야기를
-                  <br />
-                  목소리 그대로 간직해요.
-                </p>
-              </div>
-              <section className="block live-stack">
-                <h2 className="h2">새로운 추억은 차 안에서</h2>
-                <p className="row-sub">
-                  차량 앱에서 일기를 저장한 뒤 ‘휴대폰에 공유’를 눌러 주세요.
-                </p>
-                <Link className="btn tint" href="/devices">
-                  차량 연결 관리 →
-                </Link>
-              </section>
-            </section>
-            <section className="archive-list">
-              <div className="list-heading">
-                <h2 className="h2">
-                  모아 둔 이야기 <span>{items.length}</span>
-                </h2>
-              </div>
-              <label className="search">
-                <span className="visually-hidden">이야기와 차량 검색</span>
-                <Icon name="search" />
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="이야기나 차량 이름으로 찾아보세요"
-                />
-              </label>
-              <div className="block story-list">
-                {filtered.map((m) => (
-                  <Link
-                    className="story-row row"
-                    href={`/library/${m.id}`}
-                    key={m.id}
-                  >
-                    <span className="row-main">
-                      <strong className="row-title">
-                        {(JSON.parse(m.snapshot.draft) as DiaryOutput).groups[0]
-                          ?.label ?? "우리의 이야기"}
-                      </strong>
-                      <span className="row-sub">
-                        {new Date(m.snapshot.recorded_at).toLocaleDateString(
-                          "ko-KR",
-                        )}{" "}
-                        · {m.snapshot.speaker}
-                      </span>
-                      <span className="record-car-label">
-                        {m.snapshot.context?.vehicle.nickname ||
-                          m.snapshot.context?.vehicle.model ||
-                          "차량 정보 없음"}{" "}
-                        · {m.audio_ready ? "목소리 보관됨" : "원본 전송 대기"}
-                      </span>
-                    </span>
-                    <Icon name="chevron" />
-                  </Link>
-                ))}
-                {!loading && !filtered.length && (
-                  <div className="empty">
-                    <h3 className="row-title">
-                      {query
-                        ? "찾는 이야기가 없어요"
-                        : "첫 이야기를 기다리고 있어요"}
-                    </h3>
-                    <p className="row-sub">
-                      {query
-                        ? "다른 단어로 찾아보세요."
-                        : "차량에서 공유한 기록이 여기에 모여요."}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </section>
-          </div>
+          <MemoryList
+            items={items}
+            filtered={filtered}
+            query={query}
+            setQuery={setQuery}
+            loading={loading}
+          />
+        )}
+        {photoError && (
+          <PhotoUploadAlert
+            message={photoError}
+            onClose={() => setPhotoError("")}
+          />
         )}
         {playing && record && (
-          <Sheet title="원래 이야기" onClose={() => setPlaying(false)}>
+          <Sheet
+            title="원래 이야기"
+            className="chagok-listening"
+            onClose={() => setPlaying(false)}
+          >
             <AudioPlayer
               src={`/api/v1/sessions/${id}/audio`}
               synthetic={false}
+              downloadName="family-memory.wav"
               segments={[
                 {
                   id: "original",
@@ -718,19 +726,6 @@ export function LiveApp({
               ]}
               request={null}
               onClose={() => setPlaying(false)}
-            />
-            <p className="context-note">
-              현재 녹음 전체를 한 구간으로 연결해요. 세부 발화 시각은 아직 검증
-              전이에요.
-            </p>
-          </Sheet>
-        )}
-        {photo && (
-          <Sheet title="그날의 사진" onClose={() => setPhoto(null)}>
-            <img
-              className="photo-full"
-              src={`/api/v1/sessions/${id}/photos/${photo}`}
-              alt="크게 보는 첨부 사진"
             />
           </Sheet>
         )}

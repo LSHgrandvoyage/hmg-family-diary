@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+"""Build a local review bundle from explicit source paths. Never publish or include runtime state."""
+from pathlib import Path
+import hashlib, json, shutil, subprocess, zipfile
+
+root = Path(__file__).resolve().parent.parent
+out = root / 'dist' / 'contest'
+apk = root / 'apps/vehicle/app/build/outputs/apk/probe/debug/app-probe-debug.apk'
+if not apk.is_file():
+    raise SystemExit('Build :app:assembleProbeDebug first.')
+roots = ('apps/', 'packages/', 'workers/', 'db/', 'infra/', 'scripts/', 'tests/', 'specs/', 'docs/contest/', '.specify/memory/')
+fixed = {'docs/evidence/compose-runtime.md', 'docs/evidence/g0-environment.md', 'docs/product-brief.md', 'docs/evidence/connected-ui/c021-phone-filter.png', 'docs/evidence/connected-ui/c021-car-filter.png', 'README.md', 'THIRD_PARTY_NOTICES.md', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.json', 'vitest.config.ts', 'playwright.config.ts', 'compose.yaml', 'compose.preview.yaml', '.dockerignore', '.gitignore', '.env.example', '.env.probe.example'}
+fixed.update('docs/evidence/connected-ui/'+name for name in ('c025-car-1280-light.png','c025-car-1280-dark.png','c025-detail-active-dark.png','c025-driving.png'))
+fixed.update('docs/evidence/connected-ui/'+name for name in ('c026-phone-light.png','c026-phone-dark.png','c026-car-light.png','c026-car-dark.png'))
+fixed.add('docs/evidence/connected-ui/c026-runtime-phone-timeline.png')
+fixed.update({'docs/evidence/c026-original-timeline.md','docs/evidence/stt-timeline-diagnostic.json','docs/evidence/stt-timeline-tail.json','docs/evidence/stt-timeline-baseline.json'})
+fixed.add('docs/evidence/c027-navigation-theme-wave.md')
+fixed.add('docs/evidence/c028-controls-and-playback.md')
+fixed.add('docs/evidence/c029-settings-redesign.md')
+fixed.add('docs/evidence/c030-common-vehicle-rail.md')
+fixed.add('docs/evidence/c031-unified-vehicle-name.md')
+fixed.add('docs/evidence/c032-driving-reference-and-home.md')
+fixed.update('docs/evidence/connected-ui/c032-driving-'+state+'-'+theme+'.png' for state in ('idle','recording') for theme in ('dark','light'))
+fixed.add('docs/evidence/connected-ui/c031-phone-name.png')
+fixed.update('docs/evidence/connected-ui/'+name for name in ('c030-carsettings-dark.png','c030-carhome-dark.png','c030-carlist-dark.png','c030-carsettings-light.png'))
+fixed.update('docs/evidence/connected-ui/'+name for name in ('c029-settings-dark.png','c029-settings-light.png','c029-phone-375-dark.png'))
+fixed.update('docs/evidence/connected-ui/'+name for name in ('c028-phone-375-family-light.png','c028-phone-375-family-dark.png','c028-phone-375-search-light.png','c028-phone-375-search-dark.png'))
+fixed.update('docs/evidence/connected-ui/'+name for name in ('c027-phone-375-light.png','c027-phone-375-dark.png','c027-car-1280-light.png','c027-car-1280-dark.png','c027-recording-light.png','c027-recording-dark.png'))
+names = subprocess.check_output(['git','ls-files','-z','--cached','--others','--exclude-standard'],cwd=root).decode().split('\0')
+allowed_suffixes = {'.ts','.tsx','.js','.mjs','.cjs','.css','.html','.json','.yaml','.yml','.toml','.md','.txt','.sql','.sh','.py','.kt','.kts','.xml','.properties','.woff2','.ttf','.svg','.png'}
+selected = []
+for name in sorted(set(names)):
+    if not name or not (name in fixed or name.startswith(roots)):
+        continue
+    p = root/name
+    if not p.is_file() or p.is_symlink():
+        continue
+    if any(part in {'.git','.gradle','.tools','build','node_modules','.next','private-data','recordings','dist'} for part in p.relative_to(root).parts):
+        continue
+    if p.name.startswith('.env') and name not in {'.env.example','.env.probe.example'}:
+        continue
+    if name not in fixed and p.suffix not in allowed_suffixes and p.name not in {'gradlew','gradlew.bat','Caddyfile','runtime.Dockerfile','preview.Dockerfile','gradle-wrapper.jar'}:
+        continue
+    if p.suffix in {'.ts','.js','.json','.yaml','.yml','.txt','.md','.properties','.sh'}:
+        content=p.read_bytes()
+        if b'-----BEGIN PRIVATE KEY-----' in content or b'-----BEGIN RSA PRIVATE KEY-----' in content:
+            raise SystemExit('Private key material detected in source candidate. Packaging stopped.')
+    selected.append((name,p))
+out.mkdir(parents=True,exist_ok=True)
+shutil.copyfile(apk,out/'app-probe-debug.apk')
+with zipfile.ZipFile(out/'source.zip','w',zipfile.ZIP_DEFLATED) as archive:
+    for name,p in selected: archive.write(p, 'hmg-family-diary/'+name)
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+manifest={'kind':'emulator-prototype-review-bundle','source_state':'working-tree','base_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=root).decode().strip(),'apk_sha256':sha(out/'app-probe-debug.apk'),'source_zip_sha256':sha(out/'source.zip'),'source_files':{name:sha(p) for name,p in selected},'notes':['Uncommitted working tree snapshot; not a claimed final commit.','AI remains mock. No SDK/AVD, runtime secrets or private media included.','APK was built locally; rebuild from source for independently reproducible validation.']}
+(out/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n')
+shutil.copyfile(root/'docs/contest/README.md',out/'README.md')
+print(f'Created local review bundle: {out} ({len(selected)} source files)')

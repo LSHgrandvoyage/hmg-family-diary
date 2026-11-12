@@ -17,6 +17,7 @@ import {
   LocalAudioStore,
   inspectWav,
 } from "../../../../packages/storage/src/local-audio-store.ts";
+import { changeEvents } from "./change-events.ts";
 import { authentication } from "./auth.ts";
 export const digest = (v: string | Buffer) =>
   createHash("sha256").update(v).digest("hex");
@@ -92,7 +93,7 @@ async function memory(
     return { id, deleted: true, revision: m.revision };
   }
   const photos = await c.query(
-    "SELECT id,sha256,bytes FROM diary.photos WHERE vault_id=$1 AND session_id=$2 AND deleted_at IS NULL ORDER BY id",
+    "SELECT id,sha256,bytes,created_at FROM diary.photos WHERE vault_id=$1 AND session_id=$2 AND deleted_at IS NULL ORDER BY created_at DESC NULLS LAST,id DESC",
     [p.vault, id],
   );
   return {
@@ -109,6 +110,7 @@ async function changed(c: PoolClient, p: Principal, id: string) {
     "INSERT INTO diary.changes(vault_id,session_id) VALUES($1,$2)",
     [p.vault, id],
   );
+  await c.query("SELECT pg_notify('diary_changed',$1)", [p.vault]);
 }
 async function tx(p: Principal, fn: (c: PoolClient) => Promise<Response>) {
   const c = await db().connect();
@@ -178,12 +180,27 @@ export async function handleDomain(req: Request): Promise<Response> {
       return json({ ...r.rows[0], token }, 201);
     }
     const p = await identify(req);
+    if (path.length === 1 && path[0] === "events" && method === "GET")
+      return await changeEvents(req, p.vault, async () => {
+        const current = await identify(req);
+        if (current.vault !== p.vault)
+          throw new HttpError(401, "LOGIN_REQUIRED");
+      });
     return await tx(p, async (c) => {
       if (path[0] === "me" && method === "GET")
         return json({
           vault_id: p.vault,
           device_id: p.device ?? null,
+          device_label: p.device
+            ? ((
+                await c.query(
+                  "SELECT label FROM diary.devices WHERE id=$1 AND vault_id=$2",
+                  [p.device, p.vault],
+                )
+              ).rows[0]?.label ?? null)
+            : null,
           generation_mode: "mock",
+          speech_timeline_version: 1,
         });
       if (path[0] === "pairings" && method === "POST") {
         owner(p);
@@ -212,6 +229,25 @@ export async function handleDomain(req: Request): Promise<Response> {
         return json({ code, expires_at: r.rows[0].expires_at }, 201);
       }
       if (path[0] === "devices") {
+        if (path.length === 2 && method === "PATCH") {
+          const id = uuid(path[1]);
+          if (p.device && p.device !== id)
+            throw new HttpError(403, "FORBIDDEN");
+          const b = await body(req);
+          if (
+            typeof b.label !== "string" ||
+            !b.label.trim() ||
+            b.label.trim().length > 40
+          )
+            throw new HttpError(422, "INVALID_DEVICE_LABEL");
+          const r = await c.query(
+            "UPDATE diary.devices SET label=$3 WHERE vault_id=$1 AND id=$2 AND revoked_at IS NULL RETURNING id,label",
+            [p.vault, id, b.label.trim()],
+          );
+          if (!r.rowCount) throw new HttpError(404, "NOT_FOUND");
+          await c.query("SELECT pg_notify('diary_changed',$1)", [p.vault]);
+          return json(r.rows[0]);
+        }
         owner(p);
         if (path.length === 1 && method === "GET")
           return json({

@@ -17,17 +17,20 @@ export const stamp = (n: number) =>
 export function AudioPlayer({
   src,
   synthetic = true,
+  downloadName,
   segments,
   request,
   onClose,
 }: {
   src: string;
   synthetic?: boolean;
+  downloadName?: string;
   segments: AudioSegment[];
   request: PlaybackRequest | null;
   onClose: () => void;
 }) {
   const ref = useRef<HTMLAudioElement>(null);
+  const [downloadUrl, setDownloadUrl] = useState<string>();
   const appliedRequest = useRef<number | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [attempt, setAttempt] = useState(0);
@@ -41,6 +44,7 @@ export function AudioPlayer({
     let url: string | undefined;
     const player = ref.current;
     setState("loading");
+    setDownloadUrl(undefined);
     setPlaying(false);
     setNotice("");
     setTime(0);
@@ -57,6 +61,7 @@ export function AudioPlayer({
         const blob = await response.blob();
         if (disposed) return;
         url = URL.createObjectURL(blob);
+        setDownloadUrl(url);
         if (player) {
           player.src = url;
           player.load();
@@ -240,11 +245,20 @@ export function AudioPlayer({
           </li>
         ))}
       </ol>
-      <p className="preview-footnote">
-        {synthetic
-          ? "원문은 인식문 예시이고, 소리는 실제 목소리가 아닌 합성 시험음이에요."
-          : "확인한 이야기와 녹음 당시의 원본 목소리예요. 글을 수정해도 원본은 바뀌지 않아요."}
-      </p>
+      {downloadName && downloadUrl && (
+        <a
+          className="btn secondary full audio-download"
+          href={downloadUrl}
+          download={downloadName}
+        >
+          원본 녹음 내려받기
+        </a>
+      )}
+      {synthetic && (
+        <p className="preview-footnote">
+          원문은 인식문 예시이고, 소리는 실제 목소리가 아닌 합성 시험음이에요.
+        </p>
+      )}
     </section>
   );
 }

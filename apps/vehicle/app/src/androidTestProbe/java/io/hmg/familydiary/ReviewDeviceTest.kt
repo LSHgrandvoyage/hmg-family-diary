@@ -26,7 +26,7 @@ class ReviewDeviceTest {
     @Test fun editsPersistWithoutChangingAudioAndStaleResultsAreRejected() {
         val file = fixture(); val store = store(); val sha = PcmWave.sha256(file)
         try {
-            val first = store.load(file).withSpeech("점심 먹었어. 아, 아침이었지.").edit("점심 먹었어. 아, 아침이었지.", "보호자", "2026-11-08T04:00:00Z").confirm()
+            val first = store.load(file).withSpeech("점심 먹었어. 아, 아침이었지.").edit("점심 먹었어. 아, 아침이었지.", "보호자", "2099-11-08T04:00:00Z").confirm()
             store.save(first)
             val restored = store.load(file)
             assertEquals(first, restored)
@@ -53,9 +53,9 @@ class ReviewDeviceTest {
     @Test fun mockGenerationSavesReopensAndReplaysTheSameOriginal() {
         val file = fixture(); val store = store(); val sha = PcmWave.sha256(file)
         val story = "합성 UI 검증 이야기. 오늘 공원에서 쉬었어요. 어제 먹은 점심이 아니라 아침 이야기도 했어요."
-        store.save(store.load(file).withSpeech(story).edit(story, "목업 보호자", "2026-11-08T04:00:00Z"))
+        store.save(store.load(file).withSpeech(story).edit(story, "목업 보호자", "2099-11-08T04:00:00Z"))
         val context = io.hmg.familydiary.platform.MemoryContextStore(File(instrumentation.targetContext.filesDir, "memory-context"))
-        context.create(file.name, io.hmg.familydiary.platform.MemoryContext("2026-11-08T04:00:00Z",
+        context.create(file.name, io.hmg.familydiary.platform.MemoryContext("2099-11-08T04:00:00Z",
             io.hmg.familydiary.platform.VehicleSnapshot("우리의 첫 차", "현대", "아이오닉 5", "SUV", "2025", "샘플 00가0000", "synthetic"), true))
         var activity: MainActivity? = null
         fun ui(action: () -> Unit) = instrumentation.runOnMainSync(action)
@@ -96,10 +96,10 @@ class ReviewDeviceTest {
                 editor("날짜·이야기 검색").clearFocus()
             }
             screenshot("synthetic-vehicle-library.png")
-            ui { button("새 이야기").performClick() }
+            ui { button("녹음").performClick() }
             assertTrue("record screen", run { var visible = false; ui { visible = button("녹음 시작").isShown && button("녹음 시작").isEnabled }; visible })
             screenshot("synthetic-vehicle-record.png")
-            ui { button("이야기 보관함").performClick() }; openFixture()
+            ui { button("일기").performClick() }; openFixture()
             ui {
                 assertTrue(button("확인문 저장").isShown)
                 assertFalse(button("일기 초안 만들기").isEnabled)
@@ -128,11 +128,11 @@ class ReviewDeviceTest {
             bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, photoBytes); bitmap.recycle()
             context.addPhoto(file.name, photoBytes.toByteArray().inputStream())
             ui { button("일기 읽기").performClick() }
-            waitFor("Stored photo is visible on vehicle") { all().filterIsInstance<Button>().any { it.text == "사진 크게 보기" } }
+            waitFor("Stored photo is visible on vehicle") { all().any { it.contentDescription == "사진 1 크게 보기" } }
             assertEquals(1, context.photos(file.name).size)
-            ui { button("사진 크게 보기").requestRectangleOnScreen(android.graphics.Rect(0, 0, 100, 64), false) }
+            ui { all().first { it.contentDescription == "사진 1 크게 보기" }.requestRectangleOnScreen(android.graphics.Rect(0, 0, 100, 64), false) }
             screenshot("synthetic-vehicle-context-photo.png")
-            ui { button("사진 크게 보기").performClick() }
+            ui { all().first { it.contentDescription == "사진 1 크게 보기" }.performClick() }
             instrumentation.waitForIdleSync(); instrumentation.uiAutomation.waitForIdle(500, 5000)
             screenshot("synthetic-vehicle-photo-overlay.png")
             assertTrue("Photo overlay close action", instrumentation.uiAutomation.rootInActiveWindow.findAccessibilityNodeInfosByText("닫기").isNotEmpty())
@@ -142,7 +142,7 @@ class ReviewDeviceTest {
             assertTrue(instrumentation.uiAutomation.rootInActiveWindow.findAccessibilityNodeInfosByText("닫기").isEmpty())
             ui { all().filterIsInstance<CheckBox>().first().isChecked = true }
             ui { activity!!.finish() }; instrumentation.waitForIdleSync(); launch(); openFixture()
-            waitFor("Attached photo survives activity restart") { all().filterIsInstance<Button>().any { it.text == "사진 크게 보기" } }
+            waitFor("Attached photo survives activity restart") { all().any { it.contentDescription == "사진 1 크게 보기" } }
             ui {
                 assertTrue(all().filterIsInstance<TextView>().any { it.isShown && it.text == "목업 · AI 정리 전" })
                 button("원래 이야기").performClick(); button("원본 재생").performClick()
@@ -188,7 +188,7 @@ class ReviewDeviceTest {
         val file = fixture(); val other = fixture()
         val root = File(instrumentation.targetContext.cacheDir, "synthetic-context-${UUID.randomUUID()}")
         val store = io.hmg.familydiary.platform.MemoryContextStore(root)
-        val snapshot = io.hmg.familydiary.platform.MemoryContext("2026-11-08T04:00:00Z",
+        val snapshot = io.hmg.familydiary.platform.MemoryContext("2099-11-08T04:00:00Z",
             io.hmg.familydiary.platform.VehicleSnapshot("그때의 차", "현대", "아반떼", "세단", "2015", "샘플", "synthetic"), true)
         try {
             store.create(file.name, snapshot)

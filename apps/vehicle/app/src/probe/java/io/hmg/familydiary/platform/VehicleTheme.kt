@@ -10,25 +10,55 @@ import android.view.Gravity
 import android.view.View
 import android.widget.*
 
-/** Native adaptation of the approved web k-style tokens; deliberately light in both OS themes. */
+/** Device-local palette; existing views update without restarting the Activity or media. */
 class VehicleTheme(val context: Context) {
-    val bg = Color.rgb(241, 243, 245)
-    val surface = Color.WHITE
-    val ink = Color.rgb(25, 31, 38)
-    val muted = Color.rgb(73, 80, 86)
-    val line = Color.rgb(213, 219, 225)
-    val blue = Color.rgb(10, 112, 194) // white text contrast, web brand-text token
-    val tint = Color.rgb(231, 244, 253)
-    val danger = Color.rgb(200, 51, 35)
+    private var dark=resolvedDark(context)
+    private val bindings=mutableListOf<()->Boolean>()
+    private val palette get()=if(dark) intArrayOf(0xff0b0d12.toInt(),0xff161a22.toInt(),0xfff2f4f8.toInt(),0xffaeb7c6.toInt(),0xff414b5d.toInt(),0xffb4bcff.toInt(),0xff252b3a.toInt(),0xffff9b86.toInt(),0xffff6a4d.toInt())
+        else intArrayOf(0xfff4f5f7.toInt(),0xffffffff.toInt(),0xff151923.toInt(),0xff586170.toInt(),0xffd5dae3.toInt(),0xff3346c9.toInt(),0xffe9ecf2.toInt(),0xffb42318.toInt(),0xffff6a4d.toInt())
+    val bg get()=palette[0]
+    val surface get()=palette[1]
+    val ink get()=palette[2]
+    val muted get()=palette[3]
+    val line get()=palette[4]
+    val blue get()=palette[5]
+    val tint get()=palette[6]
+    val danger get()=palette[7]
+    val coral get()=palette[8]
+    private fun <T:Any> track(target:T, apply:(T)->Unit) {
+        val ref=java.lang.ref.WeakReference(target)
+        bindings.add {ref.get()?.let {apply(it);true}?:false}
+    }
+    private fun colorRole(color:Int)=palette.indexOf(color)
+    private fun resolve(role:Int,fallback:Int)=if(role<0)fallback else palette[role]
+    fun textColor(view:TextView,color:Int) {val role=colorRole(color);view.setTextColor(color);track(view){it.setTextColor(resolve(role,color))}}
+    fun update() {rememberSystem(context);val next=resolvedDark(context);if(next==dark)return;dark=next;bindings.removeAll { !it() }}
+    companion object {
+        private fun preferences(c:Context)=c.getSharedPreferences("vehicle-profile",Context.MODE_PRIVATE)
+        fun mode(c:Context)=preferences(c).getString("display-theme","auto").takeIf { it in setOf("auto","light","dark") }?:"auto"
+        fun rememberSystem(c:Context) {val night=c.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK
+            if(night in setOf(android.content.res.Configuration.UI_MODE_NIGHT_YES,android.content.res.Configuration.UI_MODE_NIGHT_NO))preferences(c).edit().putBoolean("last-system-dark",night==android.content.res.Configuration.UI_MODE_NIGHT_YES).apply()}
+        fun resolvedDark(c:Context):Boolean=when(mode(c)) {
+            "dark"->true;"light"->false;else->when(c.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) {
+                android.content.res.Configuration.UI_MODE_NIGHT_YES->true
+                android.content.res.Configuration.UI_MODE_NIGHT_NO->false
+                else->preferences(c).getBoolean("last-system-dark",true)
+            }
+        }
+        fun select(c:Context,mode:String){require(mode in setOf("auto","light","dark"));preferences(c).edit().putString("display-theme",mode).apply()}
+        fun state(c:Context)=org.json.JSONObject().put("theme_mode",mode(c)).put("theme_dark",resolvedDark(c))
+    }
     fun dp(n: Int) = (n * context.resources.displayMetrics.density).toInt()
-    fun shape(color: Int = surface, radius: Int = 12, stroke: Int? = null) = GradientDrawable().apply {
+    fun shape(color: Int = surface, radius: Int = 24, stroke: Int? = null) = GradientDrawable().apply {
+        val role=colorRole(color);val strokeRole=stroke?.let {colorRole(it)}
+        track(this) { it.setColor(resolve(role,color));if(stroke!=null)it.setStroke(dp(1),resolve(strokeRole!!,stroke)) }
         setColor(color); cornerRadius = dp(radius).toFloat()
         stroke?.let { setStroke(dp(1), it) }
     }
     fun column() = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
     fun row() = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
     fun text(value: String, size: Float = 20f, bold: Boolean = false, color: Int = ink) = TextView(context).apply {
-        text = value; textSize = size; setTextColor(color); setLineSpacing(dp(4).toFloat(), 1.08f)
+        text = value; textSize = size; textColor(this,color); setLineSpacing(dp(4).toFloat(), 1.08f)
         if (bold) typeface = Typeface.create("sans-serif", Typeface.BOLD)
         includeFontPadding = false
     }
@@ -45,10 +75,11 @@ class VehicleTheme(val context: Context) {
         button.setTextColor(ColorStateList(arrayOf(intArrayOf(-android.R.attr.state_enabled), intArrayOf()),
             intArrayOf(muted, if (primary) surface else ink)))
         val base = android.graphics.drawable.StateListDrawable().apply {
-            addState(intArrayOf(-android.R.attr.state_enabled), shape(line))
-            addState(intArrayOf(android.R.attr.state_focused), shape(if (primary) blue else tint, stroke = blue))
-            addState(intArrayOf(), shape(if (primary) blue else surface, stroke = if (primary) null else line))
+            addState(intArrayOf(-android.R.attr.state_enabled), shape(surface))
+            addState(intArrayOf(android.R.attr.state_focused), shape(if (primary) ink else tint, stroke = blue))
+            addState(intArrayOf(), shape(if (primary) ink else tint, stroke = null))
         }
+        track(button) { it.setTextColor(ColorStateList(arrayOf(intArrayOf(-android.R.attr.state_enabled),intArrayOf()),intArrayOf(muted,if(primary)surface else ink))) }
         button.background = RippleDrawable(ColorStateList.valueOf(0x226A9DC7), base, shape())
     }
     fun button(value: String, primary: Boolean = false, action: () -> Unit) = Button(context).apply {
@@ -56,13 +87,14 @@ class VehicleTheme(val context: Context) {
     }
     fun input(name: String, multiline: Boolean = false) = EditText(context).apply {
         id = View.generateViewId(); contentDescription = name; textSize = 20f
-        setTextColor(ink); setHintTextColor(muted); minimumHeight = dp(64)
+        textColor(this,ink); setHintTextColor(muted);track(this){it.setHintTextColor(muted)}; minimumHeight = dp(64)
         background = shape(surface, 8, line); setPadding(dp(16), dp(14), dp(16), dp(14))
         inputType = android.text.InputType.TYPE_CLASS_TEXT or if (multiline) android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE else 0
         if (multiline) { minLines = 4; gravity = Gravity.TOP }
     }
     fun check(value: String) = CheckBox(context).apply {
-        text = value; textSize = 20f; setTextColor(ink); minHeight = dp(64)
+        text = value; textSize = 20f; textColor(this,ink); minHeight = dp(64)
+        track(this){it.buttonTintList=ColorStateList.valueOf(blue)}
         buttonTintList = ColorStateList.valueOf(blue); setPadding(dp(8), dp(8), dp(8), dp(8))
     }
     fun heading(parent: LinearLayout, title: String, subtitle: String) {

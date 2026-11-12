@@ -11,8 +11,36 @@ type Name =
   | "volume"
   | "arrow"
   | "check"
-  | "alert";
+  | "alert"
+  | "more"
+  | "car"
+  | "book"
+  | "person";
 const paths: Record<Name, React.ReactNode> = {
+  car: (
+    <>
+      <path d="m5 8 2-4h10l2 4M4 8h16v9H4zM6 17v3M18 17v3M7 12h2M15 12h2" />
+    </>
+  ),
+  book: (
+    <>
+      <rect x="5" y="3" width="14" height="18" rx="2" />
+      <path d="M9 8h6M9 12h4" />
+    </>
+  ),
+  person: (
+    <>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21v-2a8 8 0 0 1 16 0v2" />
+    </>
+  ),
+  more: (
+    <>
+      <circle cx="5" cy="12" r="1" fill="currentColor" />
+      <circle cx="12" cy="12" r="1" fill="currentColor" />
+      <circle cx="19" cy="12" r="1" fill="currentColor" />
+    </>
+  ),
   back: <path d="m14 6-6 6 6 6" />,
   chevron: <path d="m9 6 6 6-6 6" />,
   play: <path d="m9 5 11 7-11 7z" />,

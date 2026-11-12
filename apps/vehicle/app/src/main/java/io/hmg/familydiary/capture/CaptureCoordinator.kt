@@ -7,12 +7,14 @@ class CaptureCoordinator(private val stopInputAndPlayback: () -> Unit) {
     data class Turn(val id: Long, val memberId: String)
     var state = State.IDLE; private set
     private var parked = Parked.UNKNOWN
+    private var drivingAudioAllowed = false
     private var uxAllowed = false
     private var focused = false
     private var nextTurn = 0L
     private val turns = mutableMapOf<Long, Turn>()
-    val allowed get() = parked == Parked.PARKED && uxAllowed && focused
-    fun observe(value: Parked, ux: Boolean, focus: Boolean) {
+    val allowed get() = (parked == Parked.PARKED || (parked == Parked.NOT_PARKED && drivingAudioAllowed)) && uxAllowed && focused
+    fun observe(value: Parked, ux: Boolean, focus: Boolean, drivingGrant: Boolean = false) {
+        drivingAudioAllowed = drivingGrant
         parked = value; uxAllowed = ux; focused = focus
         if (!allowed) {
             stopInputAndPlayback()

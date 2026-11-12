@@ -112,3 +112,44 @@ snapshot은 원본 SHA256/길이, 원래 인식문·확인문·화자·입력 re
 `GET /sessions`, `GET /sessions/{id}`, audio Range, photos, sync, pairing/device 관리로 공유한다.
 사진/서버 revision 변경을 차량의 input revision과 혼동하지 않는다. 서버 snapshot은 자동으로 사용자
 확인문을 다시 쓰지 않는다. 이 경로는 범용 다중 chunk·서버 generation job endpoint의 대체 완료 증거가 아니다.
+
+### 연결 별칭 보강 — 2026-11-09
+
+`PATCH /devices/{id}`: `{label}` (trim 1~40자), 보호자는 동일 vault 기기, 차량은 자신의 id만 변경. 없는/해제된 기기 404, 다른 기기 권한 403. 응답 `{id,label}`. `GET /me`의 `device_label`로 차량에 최신 별칭을 반영한다. `POST /devices/claim`의 label은 사용자 선택값이며 과거 일기 차량 snapshot을 바꾸지 않는다.
+
+### C017 사진 순서와 차량 변경 수신
+
+세션 응답과 sync 항목의 `photos`는 `created_at DESC NULLS LAST, id DESC`로 정렬한다. 새 업로드의 `created_at`은 DB 삽입 시각이며 멱등 재시도에서는 바꾸지 않는다. 마이그레이션 이전 사진은 `created_at: null`이고 알 수 없는 추가 시각을 추정하지 않는다. 차량은 서버 순서를 비공개 로컬 메타데이터에 보존한다. 연결된 차량의 foreground/주차/대기 상태에서 증분 GET sync를 약5초마다 호출하며, 편집·녹음·STT·재생 및 백그라운드에서는 보류한다. 실패 후30초 backoff. 자동 수신은 로컬 일기의 최초 공유나 원본 업로드를 수행하지 않는다.
+
+
+## C020 — GET /api/v1/events
+기존 session cookie/차량 Bearer 인증. text/event-stream, no-store. ready와 changed 이벤트는 데이터 없는 {}이며 요청 보관함의 변경만 전달한다. commit된 DB NOTIFY만 사용한다. 클라이언트는 ready/changed마다 마지막 적용 cursor부터 GET /sync를 수행하며 실패 시 cursor를 앞당기지 않는다. heartbeat에서 인증을 재확인하고 취소/만료/연결 단절 시 스트림 자원을 해제한다. 재접속은 backoff; 폴링 fallback 없음.
+
+## C021 기록 시작 위치 확장
+
+현재 구현의 snapshot context.location은 `available|unavailable|synthetic|stale|denied|unsupported|error`를 허용한다. available은 latitude/longitude 유한 범위, observed_at이 started_at 이전 0~30000ms, source=`pleos_fused_emulator`를 검증하고 label을 좌표에서 정규화한다. confidence는 SDK 원시 지표이며 미터 단위 정확도로 해석하지 않는다. 실패 상태에서는 좌표/외부 label을 제거한다. 이전 unavailable/synthetic JSON 형태를 유지한다. 기록 맥락의 불변성 및 인증된 가족 보관함 접근 정책은 그대로다. 생성 입력 allowlist에 context를 추가하지 않는다.
+
+## C023 자동 업로드 계약
+
+snapshot/audio API와 인증·원본/맥락 불변 계약은 유지한다. 호출 계기를 일기별 명시적 공유에서 최종 저장 이벤트로 바꾸고, 클라이언트의 영속 outbox가 전송 상태를 소유한다. 재시도는 같은 세션 ID/같은 payload의 같은 멱등 키를 사용하며, 서버에 이미 반영된 응답 유실을 새 일기로 생성하지 않는다. 사진 등 서버 revision과 로컬 input revision을 구분해 충돌을 처리한다. 원본 확인 전에 동기화 완료로 표시하지 않는다.
+
+대기 작업은 vault/device 소유권에 결속하고 인증 철회/만료 때 중단한다. DELETE/tombstone이 있는 세션은 재전송하지 않는다. 작성 중 초안과 미확정 수정은 업로드 대상이 아니다. 최초 연결의 미연결 완성본 이관은 안내된 범위로 처리하며 다른 vault의 기록은 제외한다. SSE 재연결과 outbox 재시도는 별개이며 서버 데이터 폴링을 추가하지 않는다.
+
+클라이언트 구현은 `sync-outbox.json`에 확정 snapshot과 요청 payload·멱등 키·snapshot/audio 단계·재시도 시각을 AtomicFile로 기록한다. 재연결 전 보관함 소유권은 남으며 다른 보관함에서 작업을 실행하지 않는다. 삭제는 먼저 tombstone을 영속화하고 원격 DELETE를 예약한다. 서버 응답 유실은 같은 키로 재전송한다. 사진만 달라진 409는 이전 snapshot과 구조 비교 후 재조정하고 내용 충돌은 차단한다.
+
+## C024 화면 설정
+
+서버 계약 변경 없음. 테마는 기기별 표시 설정이며 서버/가족 보관함에 동기화하지 않는다. native state/theme bridge는 `theme_mode: auto|light|dark`, `theme_dark: boolean`을 반환하고 `setTheme`은 주차 검토 권한에서만 허용한다. 시스템 주야간 변경은 읽기 전용 적용이며 일기 revision이나 미디어 상태를 변경하지 않는다.
+
+
+## C026 원본 타임라인 호환 계약
+
+`GET /me`는 `speech_timeline_version:1`을 제공한다. 이 필드가 없거나 1 미만인 서버에는 타임라인이 포함된 새 snapshot을 전송하지 않고 영속 대기열에 보관한다. 기존 서버가 알 수 없는 필드를 버리고 성공 처리하는 것을 막는다. 전송 대기는 기존 backoff/수동 재시도 흐름을 따른다.
+
+`snapshot.speech_timeline`은 선택 필드다. `{source:"pleos_epd_pcm_v1",raw_history_index,segments:[{id:"segment-1",text,start_ms,end_ms}]}`. raw_history_index는 마지막 원문 인식 결과를 가리키고 구간 text를 개행으로 합치면 그 원문과 정확히 같아야 한다. 검증된 시간은 정수이며 `0<=start_ms<end_ms<=duration_ms`, 시간 있는 구간끼리 순서/비겹침을 만족한다. 시각 미확인은 start/end 둘 다 null이다. 1~500개, 고유 ID, 원문·길이 제한을 검증한다. 화자 이름/임의 source 등 추가 필드는 반환하지 않는다. 필드가 없는 과거 snapshot은 기존 wire 형태를 유지한다.
+
+`playSegment {memoryId,segmentId}`는 차량 주차 검토 권한을 요구한다. native가 저장된 구간을 직접 조회해 원본 선택/seek/start를 한 동작으로 처리한다. 웹이 임의로 전달한 시각은 사용하지 않는다. 상태 `audio_memory`는 원본이 준비된 파일만 가리키며 TTS와 구간 강조를 혼동하지 않는다.
+
+
+## C027 테마·설정 복귀 UI
+서버/동기화 wire 변경 없음. 기존 setTheme(mode)/theme_mode/theme_dark bridge를 사용한다. 화면 직접 전환 버튼도 차량 주차 검토 권한을 유지한다. 녹음 파형은 기존 state.level(실제 PCM 기반 정규화 입력)만 소비한다.

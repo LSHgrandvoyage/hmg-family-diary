@@ -4,11 +4,12 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.AtomicFile
 import org.json.JSONObject
+import org.json.JSONArray
 import java.io.File
 import java.io.InputStream
 import java.util.UUID
 
-/** Local prototype context. No location permission, network, or provider payload. */
+/** Immutable recording-time vehicle and private location snapshot. */
 data class VehicleSnapshot(val nickname: String = "", val brand: String = "", val model: String = "",
     val type: String = "", val year: String = "", val plate: String = "", val source: String = "manual") {
     fun json() = JSONObject().put("nickname", nickname).put("brand", brand).put("model", model)
@@ -19,11 +20,14 @@ data class VehicleSnapshot(val nickname: String = "", val brand: String = "", va
             j.optString("type"), j.optString("year"), j.optString("plate"), j.optString("source", "manual"))
     }
 }
-data class MemoryContext(val startedAt: String, val vehicle: VehicleSnapshot, val mockLocation: Boolean = false) {
+data class MemoryContext(val startedAt: String, val vehicle: VehicleSnapshot, val mockLocation: Boolean = false,
+    val location:RecordedLocation=if(mockLocation)RecordedLocation("synthetic",startedAt) else RecordedLocation()) {
     fun json() = JSONObject().put("started_at", startedAt).put("vehicle", vehicle.json())
-        .put("location", JSONObject().put("status", if (mockLocation) "synthetic" else "unavailable")
-            .put("observed_at", if (mockLocation) startedAt else JSONObject.NULL)
-            .put("label", if (mockLocation) "샘플 나들이 주차장" else JSONObject.NULL))
+        .put("location", location.json())
+    companion object {
+        fun read(j:JSONObject)=MemoryContext(j.getString("started_at"),VehicleSnapshot.read(j.getJSONObject("vehicle")),
+            j.getJSONObject("location").getString("status")=="synthetic",RecordedLocation.read(j.getJSONObject("location")))
+    }
 }
 class MemoryContextStore(private val directory: File) {
     private fun folder(id: String): File {
@@ -34,8 +38,7 @@ class MemoryContextStore(private val directory: File) {
         val file = AtomicFile(File(folder(id), "context.json"))
         if (!file.baseFile.exists() && !File(file.baseFile.path + ".bak").exists()) return null
         val j = JSONObject(file.openRead().bufferedReader().use { it.readText() })
-        return MemoryContext(j.getString("started_at"), VehicleSnapshot.read(j.getJSONObject("vehicle")),
-            j.getJSONObject("location").getString("status") == "synthetic")
+        return MemoryContext.read(j)
     }
     fun create(id: String, snapshot: MemoryContext) {
         check(load(id) == null) { "CONTEXT_EXISTS" } // Profile changes cannot rewrite a recorded memory.
@@ -43,9 +46,19 @@ class MemoryContextStore(private val directory: File) {
         try { stream.write(snapshot.json().toString().toByteArray(Charsets.UTF_8)); file.finishWrite(stream) }
         catch (e: Exception) { file.failWrite(stream); throw e }
     }
-    fun photos(id: String): List<File> = folder(id).listFiles()?.filter { it.extension == "jpg" }?.sortedBy { it.name } ?: emptyList()
+    fun photos(id: String): List<File> {
+        val order=runCatching { JSONArray(AtomicFile(File(folder(id),"photo-order.json")).openRead().bufferedReader().use { it.readText() }) }.getOrNull()
+        val ranks=if(order==null) emptyMap() else (0 until order.length()).associate { order.getString(it) to it }
+        return folder(id).listFiles()?.filter { it.extension=="jpg" }?.sortedWith(compareBy<File> { ranks[it.name]?:-1 }.thenByDescending { it.lastModified() }.thenByDescending { it.name })?:emptyList()
+    }
+    fun setPhotoOrder(id:String,names:List<String>) {
+        require(names.all { Regex("[A-Za-z0-9.-]+\\.jpg").matches(it) })
+        val file=AtomicFile(File(folder(id),"photo-order.json"));val out=file.startWrite()
+        try { out.write(JSONArray(names).toString().toByteArray());file.finishWrite(out) } catch(e:Exception){file.failWrite(out);throw e}
+    }
     @Synchronized fun addPhoto(id: String, input: InputStream): File {
-        require(photos(id).size < 8) { "사진은 최대 8장까지 첨부할 수 있어요." }
+        val existing=photos(id)
+        require(existing.size < 8) { "사진은 최대 8장까지 첨부할 수 있어요." }
         val bytes = input.use { stream ->
             val out = java.io.ByteArrayOutputStream(); val buffer = ByteArray(8192)
             while (true) { val count = stream.read(buffer); if (count < 0) break
@@ -81,6 +94,7 @@ class MemoryContextStore(private val directory: File) {
         try {
             check(bitmap.compress(Bitmap.CompressFormat.JPEG, 88, stream)); atomic.finishWrite(stream)
         } catch (e: Exception) { atomic.failWrite(stream); throw e } finally { bitmap.recycle() }
+        setPhotoOrder(id,listOf(target.name)+existing.map { it.name })
         return target // Decoded pixels only: no copied EXIF/location metadata.
     }
     fun deletePhoto(id: String, photo: File): Boolean {

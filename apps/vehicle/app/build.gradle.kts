@@ -2,6 +2,7 @@ plugins { id("com.android.application"); id("org.jetbrains.kotlin.android") }
 android {
     namespace = "io.hmg.familydiary"
     compileSdk = 35
+    useLibrary("android.car", false)
     defaultConfig {
         applicationId = "io.hmg.familydiary"
         minSdk = 28
@@ -17,6 +18,7 @@ android {
         create("pleos") { dimension = "environment"; buildConfigField("boolean", "SYNTHETIC_DEMO", "false") }
         create("probe") { dimension = "environment"; applicationIdSuffix = ".probe"; buildConfigField("boolean", "SYNTHETIC_DEMO", "false") }
     }
+    sourceSets.getByName("probe").assets.srcDir("../../web/public/faithful")
     buildTypes { release { isMinifyEnabled = false } }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
@@ -27,6 +29,8 @@ androidComponents {
 dependencies {
     testImplementation("junit:junit:4.13.2")
     "probeImplementation"("ai.pleos.playground:SpeechToText:3.3.1")
+    "probeImplementation"("ai.pleos.playground:FusedLocation:1.1.3")
+    "probeImplementation"("ai.pleos.playground:TextToSpeech:3.3.1")
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("junit:junit:4.13.2")
 }

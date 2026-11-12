@@ -12,7 +12,7 @@ data class ReviewRecord(
     val rawHistory: List<String> = emptyList(), val text: String = "", val speaker: String = "",
     val revision: Int = 0, val confirmed: Int = -1,
     val draft: String? = null, val draftRevision: Int = -1, val accepted: Int = -1,
-    val model: String = "", val promptVersion: String = "", val generationMode: String = "openai"
+    val model: String = "", val promptVersion: String = "", val generationMode: String = "openai", val speechTimeline:String?=null
 ) {
     fun edit(text: String, speaker: String, recordedAt: String): ReviewRecord =
         if (this.text == text && this.speaker == speaker && this.recordedAt == recordedAt) this
@@ -22,8 +22,10 @@ data class ReviewRecord(
         Instant.parse(recordedAt)
         return copy(confirmed = revision)
     }
-    fun withSpeech(value: String): ReviewRecord = copy(rawHistory = rawHistory + value).let {
-        if (text.isBlank()) it.edit(value, speaker, recordedAt) else it
+    fun withSpeech(value:String,segments:List<io.hmg.familydiary.capture.SpeechSegment> = emptyList()):ReviewRecord {
+        val next=copy(rawHistory=rawHistory+value,speechTimeline=SpeechTimeline.encode(segments,value,rawHistory.size,durationMs))
+        return if(text.isBlank())next.edit(value,speaker,recordedAt)
+            else next.copy(revision=revision+1,confirmed=-1,accepted=-1)
     }
     fun input(): JSONObject {
         require(confirmed == revision)
@@ -48,12 +50,13 @@ data class ReviewRecord(
 
 /** Emulator-only plain local store. Product encrypted LocalStore remains separate. */
 class ReviewStore(private val directory: File) {
+    private val lock=locks.computeIfAbsent(directory.canonicalPath) { Any() }
     private fun atomic(id: String): AtomicFile {
         require(Regex("[A-Za-z0-9.-]+\\.wav").matches(id))
         directory.mkdirs()
         return AtomicFile(File(directory, "$id.json"))
     }
-    fun load(original: File): ReviewRecord {
+    fun load(original: File): ReviewRecord = synchronized(lock) {
         val file = atomic(original.name)
         val sha = PcmWave.sha256(original)
         val duration = PcmWave.payloadBytes(original) * 1000 / PcmWave.BYTES_PER_SECOND
@@ -65,18 +68,20 @@ class ReviewStore(private val directory: File) {
         return ReviewRecord(original.name, sha, duration, j.getString("recorded_at"),
             (0 until raw.length()).map { raw.getString(it) }, j.getString("text"), j.getString("speaker"),
             j.getInt("revision"), j.getInt("confirmed"), if (j.isNull("draft")) null else j.getString("draft"),
-            j.getInt("draft_revision"), j.getInt("accepted"), j.optString("model"), j.optString("prompt_version"), j.optString("generation_mode", "openai"))
+            j.getInt("draft_revision"), j.getInt("accepted"), j.optString("model"), j.optString("prompt_version"), j.optString("generation_mode", "openai"),j.optJSONObject("speech_timeline")?.toString())
     }
-    fun save(r: ReviewRecord) {
-        val j = JSONObject().put("sha256", r.sha256).put("duration_ms", r.durationMs).put("recorded_at", r.recordedAt)
+    fun snapshot(r: ReviewRecord): JSONObject = JSONObject().put("sha256", r.sha256).put("duration_ms", r.durationMs).put("recorded_at", r.recordedAt)
             .put("raw_history", JSONArray(r.rawHistory)).put("text", r.text).put("speaker", r.speaker)
             .put("revision", r.revision).put("confirmed", r.confirmed).put("draft", r.draft ?: JSONObject.NULL)
-            .put("draft_revision", r.draftRevision).put("accepted", r.accepted).put("model", r.model).put("prompt_version", r.promptVersion).put("generation_mode", r.generationMode)
+            .put("draft_revision", r.draftRevision).put("accepted", r.accepted).put("model", r.model).put("prompt_version", r.promptVersion).put("generation_mode", r.generationMode).apply{r.speechTimeline?.let{put("speech_timeline",JSONObject(it))}}
+    fun save(r: ReviewRecord) = synchronized(lock) {
+        val j = snapshot(r)
         val file = atomic(r.id)
         val stream = file.startWrite()
         try { stream.write(j.toString().toByteArray(Charsets.UTF_8)); file.finishWrite(stream) }
         catch (e: Exception) { file.failWrite(stream); throw e }
     }
-    fun delete(id: String) { atomic(id).delete() }
+    fun delete(id: String) = synchronized(lock) { atomic(id).delete() }
+    companion object { private val locks=java.util.concurrent.ConcurrentHashMap<String,Any>() }
     fun clear(): Boolean = directory.listFiles()?.map { it.delete() }?.all { it } ?: true
 }

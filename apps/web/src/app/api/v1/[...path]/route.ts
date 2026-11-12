@@ -4,4 +4,5 @@ export const dynamic = "force-dynamic";
 export const GET = handleDomain;
 export const POST = handleDomain;
 export const PUT = handleDomain;
+export const PATCH = handleDomain;
 export const DELETE = handleDomain;

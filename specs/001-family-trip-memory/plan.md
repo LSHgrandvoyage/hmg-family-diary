@@ -260,3 +260,157 @@ HTTPS·비공개 AudioStore/사진 볼륨, 동기화 cursor·삭제 표식·폐�
 ### 연결 상태 피드백 보정 — 2026-11-09
 
 사용자가 차량 코드를 입력한 뒤 성공 여부를 알기 어렵다고 보고했다. 인증된 `/me` 조회로 연결 및 동일 보관함을 확인했으며 아직 공유 기록은0개다. US2 연결/준비 상태와 헌장IV에 따라 차량 설정 상단·보관함에 연결 상태를 표시한다. 연결 후 코드 입력을 숨기고 마지막 서버 확인/완료된 동기화 시각·원본 전송이 끝난 사본 수·공유할 일기 고르기를 제공한다. 실패는 연결 해제와 구분하고, 연결됐다는 이유로 기존 녹음을 자동 전송하지 않는다. 이전 버전의 시각이 없으면 ‘시각 미기록’으로 표시한다.
+
+## 2026-11-09 연결 설정 보강
+
+C007: 웹/차량 사진 contain, 연결 별칭 입력/수정 및 서버 권한 검사. 기존 devices.label을 사용하며 DB 구조 변경 없음.
+C008: probe에 Android Automotive CarPropertyManager의 INFO_MAKE/MODEL/MODEL_YEAR 읽기 전용 adapter를 추가한다. 화면 진입에서 비동기 조회·시간 제한·release, 빈 필드만 병합, 수정/저장 후 기록 snapshot 불변. Pleos CarInfo 2.3.2 바이너리에는 CRN/VIN 조회만 확인돼 제조사/모델 API를 추측하지 않는다. 실차 지원과 공모전 제품 경로는 별도 검증한다.
+
+2026-11-10 C009: 공통 파일 크기/헤더 검증을 실제 업로드와 미리 보기에 적용하고, 기존 Sheet 기반 사진 업로드 오류 알림으로 현재 위치에서 원인/조치를 제공한다. 정상 업로드와 서버 파일 검증은 유지한다.
+
+2026-11-10 C010: native 사진 렌더링을 2열 공통 격자로 구성한다. inline 4장, 전체 사진 대화상자, 확대/삭제 확인 대화상자 순서. 빈 상태/4장 경계/삭제 후 더보기 숨김을 합성 기기 테스트로 확인한다.
+
+2026-11-10 C011: 실제/미리 보기 웹에 PhotoCollection 공통 컴포넌트(4장/전체/확대/삭제 선택)를 적용한다. 차량은 기존4장+더보기 유지. 읽기 탭 배경 transparent. 합성5장과 삭제 실패/취소/성공, 메뉴 키보드/모바일 레이아웃 검증.
+
+C012: 사진/일기 공통 ActionMenu, 빈 사진 메뉴 사용 가능, 원본 파일 링크를 재생 Sheet 하단으로 이동. 설명 제거는 실제 기록에 한정하고 합성음 미리 보기 출처 표시는 유지. 메뉴·파일 선택·다운로드·삭제 확인 동작을 합성 브라우저 검증한다.
+
+## C013 차곡 시각 체계와 기능 연결
+
+참조: 사용자 제공 HTML의8개 렌더링 화면 확인. 모바일 배경 #F4F5F7, 카드 #FFFFFF, 잉크 #14171E, 테두리 #DFE3EB, 강조 #3030FF. 차량 배경 #0B0E12, 카드 #171B22, 본문 #F3F4F7, 보조 #ABB2BF, 녹음 #FF6647. 20px 모바일 여백, 둥근20px 카드, 44px 이상 터치 영역. 한글은 로컬 Pretendard/Android sans-serif, 숫자는 참조에 포함된 Space Grotesk(웹, OFL 유지). 참조의 왼쪽 정렬과 날짜 위계를 우선하며 추천 도구의 일반 마케팅 패턴은 채택하지 않는다.
+
+웹: 기존 LiveApp 상태/API를 유지하고 셸·월별 목록·상세 레이아웃·연결 화면을 교체. 모바일 원문은 전체 화면 대화상자, desktop은 제한폭. 기존 AudioPlayer의 검증된 Blob을 다운로드에도 재사용. 차량: native View 테마와 adaptive rail/2열 배치를 교체하고 캡처·STT·검토/저장·동기화 콜백을 유지. 현재 실행 불가능한 디자인 예시 기능은 버튼을 만들지 않는다. 기존 기록에 대한 자동 전송은 추가하지 않는다.
+
+검증: 합성 자료로375/390/812/1440px 화면·빈값·월별검색·사진메뉴·원본재생/탐색/동일바이트다운로드·삭제확인·기기별칭. native 합성 instrumentation으로 탐색/사진 및 주차 gate 회귀, probe 빌드·설치. 실차 지원이나 iPhone 파일 앱 저장 완료로 확대하지 않는다.
+
+## C014 실행 계획
+
+C013의 수작업 CSS/native 근사 구현을 교체한다. 원본HTML에서8개 화면의 순수 DOM/SVG/인라인스타일을 추출하고, 외부 런타임 없이 공통 로컬 renderer로 사용한다. 웹은 동일 출처의 정적 UI와 기존 인증 API, 차량은 앱에 번들한 동일 DOM과 좁은 WebView bridge로 native 캡처/저장/주차 gate에 연결한다. WebView는 신뢰된 번들 origin만 허용하고 외부 navigation/파일 접근을 막는다. 데이터는 textContent로만 채우며 HTML 삽입하지 않는다. 원본 Noto Sans KR/Space Grotesk를 로컬 번들한다. 모의/실제 구분은 데이터 레이블과 동작 진입에서 설명하고 기본 화면에 별도 검증 패널을 추가하지 않는다. 8개 원본과 동일viewport 캡처를 비교하고 기능 검사를 별도 수행한다.
+
+## C015 실행 계획
+
+공통 renderer의 사용자 요청 부분만 수정하고 원본의 나머지 배치/폰트를 유지한다. 사진 확대는 CSS scroll-snap으로 구현하여 iOS 기본 터치 스크롤을 유지하고 overflow 메뉴로 삭제를 분리한다. CaptureProbe가 저장하는 PCM의 RMS만 bridge에 전달하며 음성 내용/샘플은 웹에 보내지 않는다. 기존 CloudSync.delete와 검토 저장을 재사용하여 로컬/서버 삭제를 구분한다. 합성 PCM 단위 검사, 합성 자료 WebView 삭제/파형 및 모바일 스와이프·삭제 취소/오류/성공 회귀, 실제 서버 기존 기능 회귀를 수행한다.
+
+## 개발 환경 IP 갱신
+
+`refresh-runtime.ts`는 기존 비밀/볼륨/페어링을 보존한 채 Mac 기본 인터페이스 IPv4 또는 명시 IP를 APP_HOST/APP_ORIGIN에 반영한다. Compose 상태·공개 CA·hostname 검증 HTTPS health를 확인한 후, 부팅된 에뮬레이터의 HTTPS 주소/CA와 실행 중인 목업 서버 연결만 갱신한다. 기록 업로드/생성이나 실제 공급자 호출을 하지 않는다.
+
+## C016 실행 계획
+
+단일 AudioRecord의 저장 성공 PCM 복사본을 용량 제한 큐로 STT sender에 전달한다. 초기화 대기·취소·큐 초과·끝 신호를 처리하며 별도 마이크를 열지 않는다. 기존 저장파일 재인식 경로를 유지한다. 중간 문장과 인식 상태는 nativeState로 표시하되 실제 화자 분리는 추정하지 않는다. 녹음 종료 후 carreview 화면에서 편집→확인/목업생성→초안검토→저장을 연결하며 원본 checksum과 revision 검증을 재사용한다. 실제 SDK에 합성 음원을 스트리밍하는 instrumentation과 WebView 생성/실패/저장/재열기 테스트, 사진 고정 버튼 및 스와이프 회귀로 검증한다.
+
+## C017 실행 계획
+
+사진 created_at nullable 추가와 새 업로드 기본값, 기존 행 NULL 유지 및 안정 fallback 순서. native photo-order metadata로 서버 순서를 유지한다. 전면 주차/idle에서만 증분 pull, 변경 없으면 화면 재생성 없음, 편집/재생/녹음 중 보류, 실패 backoff/백그라운드 취소. PCM envelope는 읽기 전용 샘플링으로 만들고 재생 시각과 결합한다. 합성 사진 최신순·자동수신·카드강조·빈칸·재생색/탐색/일시정지 및 검토문구 회귀로 확인한다.
+
+## C018 실행 계획
+
+사진 선택을 클릭 이벤트에서 직접 열고 input을 body에 유지한다. 한도 클릭은 안내, 선택 후 검증/전송 상태를 사진 영역에 표시한다. 파일 헤더 읽기 제한 시간과 업로드 AbortController 제한 시간을 두며 종료 시 상태를 정리한다. 합성 파일로18MB/HEIC/8장/진행/HTTP 오류/시간 초과·재시도를 독립 headless에서 검증한다. 실제 서버 업로드 회귀 후 배포한다. 동기화 방식/주행 정책은 이번 문의에서 설명과 공식 자료 확인만 하고 임의로 변경하지 않는다.
+
+## C019 실행 계획
+
+음성 허용과 시각적 검토 허용을 분리한 순수 정책을 도입한다. probe MainActivity는 기존 P 체크를 상태불명 해제의 의미로 유지하고 별도 모의 주행 상태와 시험 전환 버튼을 제공한다. native 음성 전용 패널은 기존 UI 색/큰 버튼을 사용하고 WebView를 숨김/정지한다. native bridge allowlist와 사진 resource 검증은 UI와 독립적으로 차단한다. 기존 AudioRecord/PCM/STT/MediaPlayer와 저장 계약을 재사용하고 캡처 완료 시 주행 여부에 따라 검토 진입을 보류한다. release는 실제 권한 확인 전 잠금을 유지한다. 동기화 SSE/WebSocket 전환은 이번 비교 요청에 대한 제안이며 별도 구현하지 않는다.
+
+### 동기화 전환 제안 — 아직 미구현
+
+추천 조합: 앱 실행/foreground 복귀/네트워크 복구 시 cursor 기반 조회 + foreground SSE 변경 알림 + 스트림 실패 시 느린 polling fallback. SSE는 vault 인증된 변경 존재/최신 cursor만 알리고 데이터는 기존 HTTPS GET으로 가져온다. 다시 연결되면 이벤트 수신 이력만 믿지 않고 기존 cursor에서 조회한다. 갱신 작업은 단일 실행으로 합치고 사용자 편집·재생 중 원본 교체/삭제 적용은 안전한 시점으로 미룬다. 서버 데이터 수신과 UI 주차 gate를 분리하되 현재 CloudSync의 파일 직접 변경을 고려해 staged apply가 선행해야 한다.
+
+실행/복귀 조회만 쓰면 비용과 복구 동작은 단순하지만 앱을 계속 보고 있을 때 변경을 놓친다.5초 polling은 지속 연결 없이 구현이 단순하지만 무변경 요청·지연이 있다. SSE는 단방향 알림에 적합하고 기존 HTTP API와 결합하기 쉽지만 연결 수·heartbeat·인증 만료·재연결 처리가 필요하다. WebSocket은 양방향 실시간 협업까지 필요할 때 유리하지만 현재 사진/일기 변경 알림에는 이점이 작고 연결/구독/배포 관리가 추가된다. SSE와 WebSocket을 동일 알림용으로 동시에 유지하지 않는다. fallback polling은 스트림 정상일 때 중지한다. 앱 background에서는 불필요한 연결/폴링을 정리하고 foreground 복귀 조회로 보완한다.
+
+근거: [MDN SSE](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events), [MDN WebSocket](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API). 최종 선택과 구현은 별도이며 이번 C019에서5초 polling 자체를 교체하지 않았다.
+
+
+## C020 실행 계획 — 이전 동기화 제안 대체
+느린 fallback 포함 모든 주기 데이터 polling을 제거한다. PostgreSQL commit NOTIFY→인증된 SSE(변경 있음만 알림), 재연결 후 기존 cursor pull. 서버 heartbeat는 인증/연결 유지 목적이며 변경 데이터 polling이 아니다. 전면에서만 스트림 유지, native 파일 적용은 기존 안전한 idle/P 시점까지 dirty flag로 합친다.
+
+차량 상태 adapter를 service 생명주기에 연결하고 Activity는 구독자로 변경한다. service는 AudioRecord/STT/저장/포커스를 소유하며 알림·종료 action·START_NOT_STICKY를 사용한다. 실차용 flavor 잠금과 미승인 카테고리 경계는 유지한다. PNG 기준 녹음 DOM을 재구성하고 실제 elapsed/PCM/STT를 연결한다.
+
+검증: SSE 인증/격리/commit/재연결 누락 복구/주기 pull 없음, background/Activity 재생성 녹음 및 최종 WAV, 플랫폼 기어/UX callback과 UNKNOWN 차단, 참조 화면/동적 내용/기존 사진 회귀. 합성 입력만 사용한다.
+
+## C021 실행 계획
+1. 공개 FusedLocation1.1.3 AAR/API 확인, 순수 freshness 정책과 lifecycle adapter 추가. 전면에서 관측 후 시작 순간 복사하고 서비스가 같은 context를 저장한다. 서버 import와 양쪽 표시 경로를 함께 갱신한다.
+2. TextToSpeech3.3.1 ON_DEVICE와 원본 MediaPlayer를 PlaybackService가 소유한다. Activity bind/rebind, notification stop, audio focus/vehicle restriction, UI seek와 실제 파형을 연결한다.
+3. 기존 faithful 디자인에 동기화 상태와 차량 필터만 추가한다. 최초 공유는 명시적이며 느린 polling은 재도입하지 않는다.
+4. 새 합성 회귀, Android 빌드/SDK 실행, 별도 headless UI 검증. 심사용 패키지 생성 스크립트와 실행·제한 안내를 작성하며 비밀값/실제 기록은 제외한다.
+
+## C022 후속 구현 계획 — 이번 작업은 보고서/요구사항 보완
+
+차량·시스템의 테마/조도 신호 지원 확인 후 라이트/다크 전환과 수동 선택을 설계한다. 주행 정책에 맞는 최소 TTS 조작과 PlaybackService 재생 목록을 추가하고, 정상 완료의 다음 항목 진행과 강제 중단 뒤 무재개를 구분해 검증한다. C023 자동 동기화를 먼저 구현한다. 테마는 차량뿐 아니라 모바일 웹에도 시스템 설정 연동과 수동 선택을 제공한다.
+
+## C023 자동 동기화 구현 계획
+
+1. 최종 저장/수정 확정 이벤트와 기존 CloudSync.share를 분리해 자동 업로드 coordinator에서 호출한다. UI 공유 버튼이 성공의 필수 조건이 되지 않는다.
+2. 세션·입력 revision·보관함 ID별 영속 outbox, 멱등 키, 전송 단계(snapshot/audio/확인), 재시도 시각을 저장한다. 최종 저장 직후 outbox 누락을 시작 시 재조정해 복구한다. 실행 중 새 revision은 같은 업로드 바이트를 바꾸지 않으며 후속 작업으로 처리한다.
+3. 앱 실행/복귀/네트워크 복구와 OS 허용 예약 작업을 연결한다. SSE는 전면 힌트+cursor로 유지하며 백그라운드 상시 연결이나 데이터 폴링을 도입하지 않는다. 파일 적용 gate와 업로드 작업은 분리해 이미 확정된 복사본을 전송한다. 사용 중 원본 이동/삭제 경합은 잠금/작업 취소로 처리한다.
+4. 서버 snapshot revision과 로컬 input revision을 분리한다. 409는 최신 서버 상태를 조회해 사진만 달라진 경우에만 안전하게 재조정하고, 내용 충돌은 사용자 확인을 위해 보존한다. 401/철회는 자동 재시도하지 않고 연결 복구를 요구한다.
+5. 미연결 완성본의 첫 연결 이관 범위를 안내하고 가족 보관함 소유권을 결속한다. 이전 보관함 기록을 다른 가족에 자동 게시하지 않는다. 삭제 tombstone을 업로드보다 우선하고 재실행 후 부활을 막는다.
+6. 상태 UI·실행 안내를 새 정책과 맞춘다. 지원서 1차 완료본은 이번 구현에서 수정하지 않는다. offline/중간 실패/프로세스 재시작/동시 사진 변경/삭제/연결 변경을 합성 데이터로 검증한다. 검증된 구현 범위만 자동 동기화 완료로 표시한다.
+
+### C023 실행 설계
+
+- 앱 전용 AtomicFile outbox에 확정 snapshot·vault/device·파일 소유권·멱등 키·단계·재시도 시각·삭제 의도를 기록한다. ReviewStore 저장 후 등록 누락은 시작 시 재조정한다.
+- 프로세스 내 CloudSync 인스턴스를 공유하고 네트워크 변경 작업을 직렬화한다. UI 저장은 별도 짧은 outbox 잠금으로 네트워크와 독립한다. 전송 중 snapshot은 변경하지 않는다.
+- Android JobScheduler의 네트워크 제약/지수 backoff를 사용한다. 최종 저장·연결·앱 복귀에서 즉시 작업을 요청하고, 서버 데이터는 SSE 힌트가 있을 때만 cursor로 받는다. 백그라운드 업로드는 로컬 화면/미디어 파일을 바꾸지 않는다.
+- 서버 삭제/철회로 필요한 로컬 사본 정리는 기존 주차/유휴 gate 안에서 수행한다. 삭제 요청은 로컬 tombstone을 먼저 저장하고 원격 삭제를 재시도한다.
+- 첫 연결 안내에 기존 완성본 포함을 명시한다. 다른 보관함 소유 기록은 자동 이관하지 않는다.
+
+C023 구현/합성 검증 완료: 네이티브 최종 저장, JobScheduler 화면 없는 실행, HTTPS 전송/재시작/멱등/삭제/내용 충돌, 모바일 SSE 자동 반영을 확인했다. 검증 상세와 미검증 실차 조건은 증거 문서를 따른다.
+
+
+## C024 실행 계획
+
+1. faithful 원본 레이아웃의 색상을 의미별 CSS 변수로 옮긴다. theme.js를 CSS 전 초기화해 모바일 저장값/시스템 설정 또는 native theme bridge를 읽는다. 적용은 루트 data-theme 갱신으로만 수행한다.
+2. 모바일 목록 헤더에서 소개 제목을 제거하고 검색·필터 버튼 하나를 둔다. 차량도 같은 검색어/차량 필터 패널과 결과 상태를 사용한다.
+3. 차량 SharedPreferences에 기기별 모드를 저장한다. uiMode configuration change를 Activity 재생성 없이 받고 native palette 및 WebView 토큰만 갱신한다. 기존 recording/playback service와 편집 상태를 그대로 둔다.
+4. native 설정과 모바일 가족 메뉴에 화면 설정을 제공한다. 서버 API/DB 변경은 없다. 변경한 범위의 웹 조합/키보드/뷰포트 검사, 실제 Android 주야간 신호 변경 및 원본/녹음 지속 검사를 수행한다.
+5. 최신 APK/개발 웹을 적용하고 테스트용 에뮬레이터를 종료한다. C022c TTS 플레이리스트는 후속으로 유지한다.
+
+C024 구현/검증 완료: CSS 토큰과 기기별 설정, 통합 검색, Android uiMode 처리 및 녹음·청취·입력 유지, HTTPS 배포 후 회귀를 확인했다. 자세한 범위는 `docs/evidence/compose-runtime.md` C024에 기록했다.
+
+
+## C025 실행 계획
+
+PlaybackService의 단일 narrate를 불변 NarrationItem 목록과 index로 확장한다. 큐 동안 하나의 엔진과 foreground/session/focus를 유지한다. 정상 완료는 다음 요청으로, 명시적 이동은 SDK onStop 확인 후 다음 요청으로 전환한다. 항목별 콜백 generation을 무효화해 늦은 이벤트를 차단한다. stop은 큐까지 폐기한다. MainActivity에서 파일·확정 revision·본문을 검증해 큐를 생성하고 주행 최소 조작과 native bridge를 연결한다. faithful 목록에는 이어 듣기 버튼, 목록/상세에는 공통 재생 제어를 붙이며 nativeStatus로 현재 항목과 경계를 갱신한다. 원본 버튼/파형과 구분하고 테마 토큰을 재사용한다. Android 실제 SDK 계측과 독립 브라우저 합성 UI 검증 후 최신 APK를 적용하고 테스트 프로세스를 정리한다.
+
+C025 구현/에뮬레이터 검증 완료. 초기 항목별 engine.stop/release 경합은 큐 동안 엔진 재사용과 onStop 확인 후 이동으로 보정했다. Docker 웹 재빌드는 엔진 응답 부재로 미완료이며 최종 차량 APK는 설치했다.
+
+
+## C026 실행 계획
+
+공식 STT ResultListener와 실제 AAR 인터페이스를 확인하고 합성 다중 발언 PCM의 EPD 기준/순서를 먼저 검사한다. 검증 결과에 따라 PCM byte→ms 변환과 확정 구간 결합기를 구현한다. ReviewRecord·로컬 저장·snapshot/서버 검증·CloudSync에 선택 필드를 추가하고 원문/확인문을 분리한다. 차량/모바일의 원본 플레이어에 클릭 탐색과 현재 구간을 연결한다. SDK·단위·계약·웹/차량 합성 검증으로 완료 범위를 기록한다.
+
+C026 SDK 진단 결과: 연속 요청의 두 번째 EPD는 세션 전체 좌표가 아니었다. 따라서 각 요청의 첫 확정 결과/EPD만 사용하고, EPD 끝 이후 아직 인식하지 않은 PCM을 보존해 명시적인 다음 입력 원점에서 재전송한다. 마이크는 계속 동일 파일을 기록하며 추가 녹음/이중 STT 파일/문장 길이 추정은 없다. 새 원점의 첫 EPD를 고정 PCM 32000 bytes/sec로 변환한다. SDK 구간 누락·부분 결과는 null 시간으로 보존한다. 실시간과 파일 재인식에서 같은 경로를 사용한다.
+
+C026d 서버 반영 검증: Docker 상태 확인 → 최신 이미지 빌드/현재 LAN 주소 반영 → 별도 합성 보관함에서 실제 Pleos 인식 원문·시각 저장 → 확정 outbox 업로드 → 이미 열린 모바일 화면의 SSE 수신/구간 재생 → 사진 업로드 후 차량 증분 수신 및 빈 로컬 저장소 재수신의 원문/시각/SHA 보존을 확인한다. 기존 사용자 연결·보관함에는 테스트 입력을 넣지 않는다. 테스트 에뮬레이터는 종료하고 요청된 개발 서버는 유지한다.
+
+C026d 실행 완료: 기존 Docker가 정상 응답해 강제 재시작 없이 최신 이미지를 반영했다. 실제 SDK/HTTPS/독립 모바일 브라우저/차량 증분 및 빈 저장소 복원 검증을 통과했다. 증거는 `docs/evidence/c026-original-timeline.md` 후속 절에 있다.
+
+
+## C027 실행 계획
+MainActivity.navigate에서 설정 전용 표시 상태를 해제하고 요청한 웹 route로 이동한다. 뒤로 가기는 기존 웹 화면을 보존한다. faithful에 inline 테마 제어를 추가하고 native bridge/DiaryTheme 저장을 재사용한다. 녹음 template의 시간/파형에 data 속성을 지정해 연결한다. 독립 웹 검사와 실제 WebView 설정 왕복·테마·합성 PCM 레벨 검사 후 최신 APK/서버에 반영한다.
+
+C027 구현/검증/적용 완료. native 실제 WebView와 독립 UI 및 HTTPS 서버 회귀 증거는 `docs/evidence/c027-navigation-theme-wave.md`에 있다.
+
+## C028 실행 계획
+1. 테마 제어에 자동 선택/현재 적용 색상과 시스템 기준 피드백을 추가한다. 모달 상단 X 헬퍼를 검색/가족에 적용한다.
+2. 검색 차량 키와 라벨의 정규화를 통일한다. 빈 차량/공백/차종만 있는 snapshot을 합성 입력으로 검사한다.
+3. 공식 TTS stop/release 경로를 확인하고 종료 확인까지 엔진을 유지한다. 실제 SDK 출력 상태와 큐 무재개·재시작·MediaSession 이전/다음을 에뮬레이터에서 확인한다.
+4. 독립 브라우저 두 테마/작은 모바일 패널, 실제 WebView/SDK 및 빌드를 검증하고 최신 APK/서버에 반영한다. 하드웨어 조사/미검증 범위와 실행 증거를 남긴다.
+
+C028 구현/검증/서버 및 APK 적용 완료. `docs/evidence/c028-controls-and-playback.md` 참조. 전체 CCP/터치패드 실차 적용은 후속 검증 범위다.
+
+## C029 실행 계획·디자인 검토
+PNG 기준 1280×720, 탐색112px, 본문 좌우48px, 카드 간격20px·반경28px를 사용한다. 글꼴은 기존 Noto Sans KR, 제목36px/카드24px/본문18px. 배경 #0b0d12, 탐색 #11141b, 카드 #161a22, 본문 #f2f4f8, 보조 #aeb7c6, 강조 #b4bcff를 기존 테마 토큰과 연결한다. 배치는 `탐색 | 연결 / 위치 | 우리 차 / 화면`의 두 열이며 카드 내부는 왼쪽 정렬, 설정 강조를 하단에 둔다. PNG의 자동녹음/안전해제 토글을 복제하지 않고 현재 제품의 필수 설정을 넣는다. 이는 시각 기준을 유지하면서 허구 기능과 정책 충돌을 없애기 위한 조정이다.
+faithful carsettings route에 새 설정 UI를 두고 MainActivity의 주차 검증 bridge로 기능을 연결한다. 기존 저장/API를 재사용하고 저장소 변경은 하지 않는다. 모바일는 manual-only theme migration을 적용한다. 합성 UI/실제 WebView 검증 후 APK 및 Docker 반영한다.
+
+C029 완료. PNG 기준 설정 UI와 기능 bridge, 모바일 수동 테마/검색 명칭을 구현·검증하고 최신 APK/서버에 반영했다. 증거: `docs/evidence/c029-settings-redesign.md`.
+
+## C030 실행 계획
+설정 PNG 기반 rail을 모든 차량 페이지의 공통 템플릿으로 사용하고 themeShortcut에 차량용 순환 버튼을 연결한다. 설정의 테마 UI/이벤트 코드는 제거한다. 탭별 rail 위치/선택 상태, 세 모드 반복/저장/자동 시스템 변경, 모바일 수동 유지와 실제 WebView 설정·녹음 입력 회귀를 확인한 후 APK/서버에 반영한다.
+
+C030 구현 및 합성 UI/실제 WebView 검증 완료. 단일 순환 버튼과 공통 탐색 자산을 APK·서버에 적용했다.
+
+## C031 실행 계획
+CloudSync의 현재 device label을 통합 차 별명으로 사용하고 로컬 pending name/이행 플래그를 보존한다. 이름 변경은 네트워크 호출을 UI 스레드에서 하지 않으며 기존 유한 업로드 작업에 재시도를 연결한다. 최초 설정 읽기에서 기존 차량 이름을 한 번 이행하고, 현재 프로필에는 통합 이름을 캐시한다. 모바일 device PATCH에 변경 알림을 추가해 서버 me.device_label을 차량에서 다시 받는다. 기존 snapshot은 변경하지 않는다. UI 중복 입력 제거, 실제 HTTPS 이름 양방향 변경/재시작·오프라인 복구·과거 snapshot 보존을 검증한다.
+
+## C032 실행 계획
+주행 중 WebView를 숨기고 예전 native drivingPanel을 표시하던 분기를 공통 디자인의 제한된 음성 화면으로 교체한다. 실제 bridge 권한으로 텍스트/미디어 조회를 차단한다. 디버그 에뮬레이터 시험 전환 노출을 현재 simulation 여부와 분리하고 최상위 배치를 보장한다. 새 녹음 검토 대기와 청취용 selected를 분리해 주차 복귀 목적지를 결정한다. 두 초기 진입 경로, 모드 왕복, 새 녹음/미녹음, 테마와 주행 제한을 실제 WebView 계측 및 독립 브라우저로 검증한다.

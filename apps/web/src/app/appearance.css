@@ -1,0 +1,32 @@
+/* Auth and React fallback surfaces share the faithful app's device preference. */
+:root[data-theme],
+[data-theme] .chagok {
+  --c-bg: var(--bg);
+  --c-surface: var(--surface);
+  --c-line: var(--line);
+  --c-text: var(--ink);
+  --c-text-1: var(--ink);
+  --c-text-2: var(--muted);
+  --c-text-3: var(--muted);
+  --c-brand: var(--solid-accent);
+  --c-on-brand: var(--on-accent);
+  --c-brand-text: var(--accent);
+  --c-brand-line: var(--accent);
+  --c-brand-tint: var(--accent-soft);
+  --c-brand-tint-text: var(--accent);
+  --c-focus: var(--accent);
+  --c-danger: var(--danger);
+  --c-danger-tint: var(--warm);
+  --c-danger-tint-text: var(--danger);
+  --c-disabled-bg: var(--surface-alt);
+  --c-text-disabled: var(--muted);
+  --c-line-strong: var(--line);
+}
+[data-theme] .chagok .auth-card,
+[data-theme] .chagok .live-device,
+[data-theme] .chagok .pair-code,
+[data-theme] .chagok-nav,
+[data-theme] .chagok-story {
+  background: var(--surface);
+  color: var(--ink);
+}

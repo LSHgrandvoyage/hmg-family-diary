@@ -1,9 +1,9 @@
-import { LiveApp } from "../../../components/LiveApp";
+import { redirect } from "next/navigation";
 export default async function Page({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return <LiveApp id={id} />;
+  redirect(`/faithful/app.html#detail?id=${encodeURIComponent(id)}`);
 }

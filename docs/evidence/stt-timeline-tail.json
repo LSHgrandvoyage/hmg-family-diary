@@ -1,0 +1,208 @@
+{
+  "synthetic": true,
+  "runs": [
+    {
+      "mode": "fresh-tail-at-6s",
+      "bytes": 569376,
+      "events": [
+        {
+          "ms": 7,
+          "kind": "initialized",
+          "sent": 0
+        },
+        {
+          "ms": 5253,
+          "kind": "started",
+          "sent": 345600
+        },
+        {
+          "ms": 5253,
+          "kind": "text",
+          "sent": 345600,
+          "text": "오",
+          "final": false
+        },
+        {
+          "ms": 5649,
+          "kind": "started",
+          "sent": 358400
+        },
+        {
+          "ms": 5650,
+          "kind": "text",
+          "sent": 358400,
+          "text": "오늘 가",
+          "final": false
+        },
+        {
+          "ms": 6050,
+          "kind": "started",
+          "sent": 371200
+        },
+        {
+          "ms": 6050,
+          "kind": "text",
+          "sent": 371200,
+          "text": "오늘 가족과",
+          "final": false
+        },
+        {
+          "ms": 6452,
+          "kind": "started",
+          "sent": 384000
+        },
+        {
+          "ms": 6453,
+          "kind": "text",
+          "sent": 384000,
+          "text": "오늘 가족과 바다에",
+          "final": false
+        },
+        {
+          "ms": 6854,
+          "kind": "started",
+          "sent": 396800
+        },
+        {
+          "ms": 6854,
+          "kind": "text",
+          "sent": 396800,
+          "text": "오늘 가족과 바다에 갔어",
+          "final": false
+        },
+        {
+          "ms": 7256,
+          "kind": "started",
+          "sent": 409600
+        },
+        {
+          "ms": 7257,
+          "kind": "text",
+          "sent": 409600,
+          "text": "오늘 가족과 바다에 갔어요",
+          "final": false
+        },
+        {
+          "ms": 7659,
+          "kind": "started",
+          "sent": 422400
+        },
+        {
+          "ms": 7659,
+          "kind": "text",
+          "sent": 422400,
+          "text": "오늘 가족과 바다에 갔어요 아이는",
+          "final": false
+        },
+        {
+          "ms": 8061,
+          "kind": "started",
+          "sent": 435200
+        },
+        {
+          "ms": 8062,
+          "kind": "text",
+          "sent": 435200,
+          "text": "오늘 가족과 바다에 갔어요 아이는 파도가",
+          "final": false
+        },
+        {
+          "ms": 8462,
+          "kind": "started",
+          "sent": 448000
+        },
+        {
+          "ms": 8462,
+          "kind": "text",
+          "sent": 448000,
+          "text": "오늘 가족과 바다에 갔어요 아이는 파도가 무서",
+          "final": false
+        },
+        {
+          "ms": 8865,
+          "kind": "started",
+          "sent": 460800
+        },
+        {
+          "ms": 8865,
+          "kind": "text",
+          "sent": 460800,
+          "text": "오늘 가족과 바다에 갔어요 아이는 파도가 무서웠고",
+          "final": false
+        },
+        {
+          "ms": 9269,
+          "kind": "started",
+          "sent": 473600
+        },
+        {
+          "ms": 9269,
+          "kind": "text",
+          "sent": 473600,
+          "text": "오늘 가족과 바다에 갔어요 아이는 파도가 무서웠고 저는",
+          "final": false
+        },
+        {
+          "ms": 9668,
+          "kind": "started",
+          "sent": 486400
+        },
+        {
+          "ms": 9669,
+          "kind": "text",
+          "sent": 486400,
+          "text": "오늘 가족과 바다에 갔어요 아이는 파도가 무서웠고 저는 바다",
+          "final": false
+        },
+        {
+          "ms": 10071,
+          "kind": "started",
+          "sent": 499200
+        },
+        {
+          "ms": 10071,
+          "kind": "text",
+          "sent": 499200,
+          "text": "오늘 가족과 바다에 갔어요 아이는 파도가 무서웠고 저는 바다가 좋았",
+          "final": false
+        },
+        {
+          "ms": 10473,
+          "kind": "started",
+          "sent": 512000
+        },
+        {
+          "ms": 10474,
+          "kind": "text",
+          "sent": 512000,
+          "text": "오늘 가족과 바다에 갔어요 아이는 파도가 무서웠고 저는 바다가 좋았어요",
+          "final": false
+        },
+        {
+          "ms": 10777,
+          "kind": "ended",
+          "sent": 521600
+        },
+        {
+          "ms": 10783,
+          "kind": "text",
+          "sent": 521600,
+          "text": "오늘 가족과 바다에 갔어요 아이는 파도가 무서웠고 저는 바다가 좋았어요",
+          "final": true
+        },
+        {
+          "ms": 10783,
+          "kind": "epd",
+          "sent": 521600,
+          "on": 128000,
+          "off": 320000
+        },
+        {
+          "ms": 12370,
+          "kind": "completeSend",
+          "sent": 569376
+        }
+      ]
+    }
+  ]
+}

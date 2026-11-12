@@ -55,7 +55,7 @@ class PlaylistDeviceTest {
    a=i.startActivitySync(Intent(i.targetContext,MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) as MainActivity
    ui{
     set(a!!,"directory",dir);set(a!!,"store",store);set(a!!,"contexts",contexts);set(a!!,"capture",CaptureProbe(dir));set(a!!,"sync",CloudSync(root,dir,store,contexts));set(get(a!!,"review")!!,"store",store)
-    views(a!!.window.decorView).filterIsInstance<CheckBox>().take(2).forEach{it.isChecked=true}
+    a!!.gateTestControls().take(2).forEach{it.isChecked=true}
    }
    waitFor("services bound"){service=get(a!!,"playbackService") as? PlaybackService;service!=null && get(a!!,"recordingService")!=null}
    ui{service!!.setSimulation(Motion.PARKED)}

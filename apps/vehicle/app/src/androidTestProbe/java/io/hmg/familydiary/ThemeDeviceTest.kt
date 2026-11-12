@@ -58,7 +58,7 @@ class ThemeDeviceTest {
    a=i.startActivitySync(Intent(i.targetContext,MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) as MainActivity
    ui {
     set(a!!,"directory",dir);set(a!!,"store",store);set(a!!,"contexts",contexts);set(a!!,"capture",CaptureProbe(dir));set(a!!,"sync",CloudSync(root,dir,store,contexts));set(get("review")!!,"store",store)
-    views(a!!.window.decorView).filterIsInstance<CheckBox>().take(2).forEach{it.isChecked=true}
+    a!!.gateTestControls().take(2).forEach{it.isChecked=true}
    }
    waitFor("bundled web ready"){eval("typeof window.openNativeMemory==='function'")=="true"}
    eval("window.openNativeMemory(${JSONObject.quote(first.name)})")

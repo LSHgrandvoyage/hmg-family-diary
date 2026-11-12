@@ -43,6 +43,7 @@ class MainActivity : Activity() {
             recordingService=service;capture=service.capture;speech=service.speech
             changingMotion=true;consent.isChecked=service.consent;changingMotion=false
             if(foreground)service.attach(::recordingChanged)
+            render()
         }
         override fun onServiceDisconnected(name:ComponentName){recordingService=null;signalMotion=VehicleInteractionPolicy.Motion.UNKNOWN;changingMotion=true;parked.isChecked=false;driving.isChecked=false;changingMotion=false;interrupt("녹음 서비스 연결을 확인해 주세요.")}
     }
@@ -72,7 +73,7 @@ class MainActivity : Activity() {
             val latest=store.load(selected!!)
             if(review.record?.revision!=latest.revision){review.select(null);review.select(selected,latest)}
         }
-        if(foreground){exact.state(referenceState());renderDriving();timer.text=time(captureElapsed)}
+        if(foreground){exact.state(referenceState());renderDriving();timer.text=time(captureElapsed);welcome.update(recordingService!=null,service.consent && service.motion==VehicleInteractionPolicy.Motion.UNKNOWN)}
     }
     private var playbackService:PlaybackService?=null
     private var playbackBound=false
@@ -102,6 +103,8 @@ class MainActivity : Activity() {
     private enum class Screen { LIBRARY, RECORD, DETAIL, SETTINGS }
     private lateinit var exact: ExactDiaryView
     private lateinit var nativeShell: View
+    private lateinit var nativeRail: View
+    private lateinit var welcome: WelcomePanel
     private var nativeEditor = false
     private var captureElapsed = 0L
     private var captureLevel = 0f
@@ -324,6 +327,7 @@ class MainActivity : Activity() {
             else navParent.addView(button, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = ui.dp(8) })
         }
         val railView: View = if (wide) ScrollView(this).apply { isFillViewport = true; addView(rail) } else rail
+        nativeRail=railView
         shell.addView(railView, if (wide) LinearLayout.LayoutParams(ui.dp(112), -1) else LinearLayout.LayoutParams(-1, -2))
         val main = ui.column()
         status = ui.text("주차 상태와 공동 녹음 안내를 확인해 주세요.", 14f, color = ui.muted).apply {
@@ -335,19 +339,16 @@ class MainActivity : Activity() {
         main.addView(frame, LinearLayout.LayoutParams(-1, 0, 1f))
         shell.addView(main, if (wide) LinearLayout.LayoutParams(0, -1, 1f) else LinearLayout.LayoutParams(-1, 0, 1f))
         fun attach(view: View) { frame.addView(view, FrameLayout.LayoutParams(-1, -1)) }
-        val (gateScroll, gateBody) = page(); gate = gateScroll
-        ui.heading(gateBody, "차 안의 이야기를 남겨요", "주행 중에는 녹음과 청취, 주차 후에는 일기를 확인해요.")
-        val gateCard = ui.card(gateBody, 32)
-        ui.add(gateCard, ui.text("시작하기 전에", 24f, true))
-        parked = ui.check("모의 P 상태 확인 · 실제 차량 신호 미연결")
-        consent = ui.check("참여자에게 공동 녹음과 보관을 알렸어요")
-        ui.add(gateCard, parked, 16); ui.add(gateCard, consent, 8)
-        driving=ui.check("모의 주행 · 음성 기능 허용 시험")
-        ui.add(gateCard,driving,8)
-        ui.add(gateCard,ui.button("차량 신호 사용") {recordingService?.setSimulation(null)},8)
-        ui.add(gateCard, ui.text("음성과 일기는 이 기기에 보관돼요. 지금은 에뮬레이터용이며, 일기 생성은 고정 목업이에요. 참여하지 않아도 괜찮아요. 휴대폰이 연결돼 있으면 완성한 일기·원본 음성·차량 및 녹음 위치가 가족 보관함에 자동 저장돼요.", 20f, color = ui.muted), 24)
-        ui.add(gateCard,ui.button("녹음 위치 사용 설정") {requestRecordingLocation()},12)
-        if(BuildConfig.LOCAL_MOCK) ui.add(gateCard,ui.button("연결 서버 설정") { importServerSettings() },12)
+        // Backing state controls are retained for the shared motion/access code, not displayed.
+        parked = ui.check("주차 상태")
+        consent = ui.check("공동 녹음 안내 확인")
+        driving = ui.check("주행 상태")
+        welcome=WelcomePanel(this,ui,{ beginWelcome() },{ finish() },{
+            val modes=listOf("auto","light","dark")
+            VehicleTheme.select(this,modes[(modes.indexOf(VehicleTheme.mode(this))+1)%modes.size])
+            applyAppearance()
+        })
+        gate=welcome
         attach(gate)
         buildLibrary().also { attach(it) }
         buildRecording().also { attach(it) }
@@ -371,13 +372,28 @@ class MainActivity : Activity() {
         val container=FrameLayout(this);container.addView(shell,FrameLayout.LayoutParams(-1,-1));container.addView(exact,FrameLayout.LayoutParams(-1,-1));exact.visibility=View.GONE
         drivingPanel=buildDrivingPanel()
         container.addView(drivingPanel,FrameLayout.LayoutParams(-1,-1))
-        modeSwitch=ui.button("시험: 주행으로 전환") {changeMotion(!driving.isChecked)}.apply { textSize=13f;minHeight=ui.dp(44) }
+        modeSwitch=ui.button("시험: 주행으로 전환") {changeMotion(parked.isChecked)}.apply { textSize=13f;minHeight=ui.dp(44) }
         container.addView(modeSwitch,FrameLayout.LayoutParams(-2,ui.dp(44),Gravity.TOP or Gravity.END).apply{topMargin=ui.dp(8);rightMargin=ui.dp(12)})
         drivingPanel.visibility=View.GONE;modeSwitch.visibility=View.GONE
         setContentView(container)
     }
+    private fun beginWelcome() {
+        val service=recordingService ?: return
+        if(!foreground || !benchAvailable || !welcome.acknowledgement.isChecked || !idle() || service.consent)return
+        // This explicit entry action supplies the emulator's initial state only.
+        // Later UNKNOWN events never restore P automatically; known motion is preserved.
+        if(service.motion==VehicleInteractionPolicy.Motion.UNKNOWN) {
+            if(service.simulation!=null)return
+            service.setSimulation(VehicleInteractionPolicy.Motion.PARKED)
+        }
+        screen=Screen.RECORD;nativeEditor=false
+        consent.isChecked=true
+        welcome.acknowledgement.isChecked=false
+        render()
+        if(allowed())exact.restore("carhome",null)
+    }
     private fun changeMotion(toDriving:Boolean,fromSignal:Boolean=false) {
-        if(!benchAvailable)return
+        if(!benchAvailable || (!fromSignal && recordingService==null))return
         if(!fromSignal){recordingService?.setSimulation(if(toDriving)VehicleInteractionPolicy.Motion.DRIVING else VehicleInteractionPolicy.Motion.PARKED);signalMotion=if(toDriving)VehicleInteractionPolicy.Motion.DRIVING else VehicleInteractionPolicy.Motion.PARKED}
         playbackService?.setSimulation(recordingService?.simulation)
         changingMotion=true
@@ -925,6 +941,10 @@ class MainActivity : Activity() {
     private fun render() {
         if (!initialized) return
         val allowed = allowed()
+        val showWelcome=!audioAllowed()
+        nativeRail.visibility=if(showWelcome)View.GONE else View.VISIBLE
+        status.visibility=if(showWelcome)View.GONE else View.VISIBLE
+        welcome.update(recordingService!=null,consent.isChecked && signalMotion==VehicleInteractionPolicy.Motion.UNKNOWN)
         gate.visibility = if (allowed) View.GONE else View.VISIBLE
         library.visibility = if (allowed && screen == Screen.LIBRARY) View.VISIBLE else View.GONE
         recording.visibility = if (allowed && screen == Screen.RECORD) View.VISIBLE else View.GONE
@@ -963,9 +983,10 @@ class MainActivity : Activity() {
             else if(audioAllowed() && driving.isChecked)exact.state(referenceState())
         }
         renderDriving()
-        modeSwitch.visibility=if(benchAvailable && audioAllowed())View.VISIBLE else View.GONE
+        modeSwitch.visibility=if(benchAvailable && foreground && consent.isChecked)View.VISIBLE else View.GONE
+        modeSwitch.isEnabled=recordingService!=null
         modeSwitch.bringToFront();modeSwitch.elevation=ui.dp(16).toFloat()
-        modeSwitch.text=if(driving.isChecked)"시험: 주차로 전환" else "시험: 주행으로 전환"
+        modeSwitch.text=if(parked.isChecked)"시험: 주행으로 전환" else "시험: 주차로 전환"
     }
     private fun focus(): Boolean {
         hasFocus = audio.requestAudioFocus(focusRequest) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED

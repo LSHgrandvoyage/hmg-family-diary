@@ -37,7 +37,7 @@ class AutoReceiveDeviceTest {
     set(a!!,"syncPending",true)
     set(a!!,"sync",sync);set(a!!,"directory",recordings);set(a!!,"store",store);set(a!!,"contexts",contexts)
     val review=a!!.javaClass.getDeclaredField("review").apply{isAccessible=true}.get(a!!);set(review,"store",store)
-    views(a!!.window.decorView).filterIsInstance<CheckBox>().take(2).forEach{it.isChecked=true}
+    a!!.gateTestControls().take(2).forEach{it.isChecked=true}
    }
    waitFor("home"){eval("!!document.querySelector('[data-page=carhome]')")=="true"}
    eval("window.openNativeMemory(${JSONObject.quote(file.name)})")
@@ -50,7 +50,7 @@ class AutoReceiveDeviceTest {
    assertEquals("false",eval("document.body.innerText.includes('사진이 없어요')"))
    Thread.sleep(2500);val quiet=sync.lastVerifiedAt;Thread.sleep(6500)
    assertEquals("No periodic pull while connected and idle",quiet,sync.lastVerifiedAt)
-   ui {views(a!!.window.decorView).filterIsInstance<CheckBox>().first().isChecked=false}
+   ui {a!!.gateTestControls().first().isChecked=false}
    Thread.sleep(1000);val stopped=sync.lastVerifiedAt;Thread.sleep(6000)
    assertEquals("No polling while parked gate is closed",stopped,sync.lastVerifiedAt)
   } finally {File(root,"ready").delete();ui{a?.finish()}}

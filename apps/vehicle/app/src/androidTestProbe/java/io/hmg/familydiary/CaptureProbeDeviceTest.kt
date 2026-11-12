@@ -25,7 +25,7 @@ class CaptureProbeDeviceTest {
             (0 until view.childCount).flatMap { views(view.getChildAt(it)) } else emptyList()
         fun all() = views(activity.window.decorView)
         fun button(text: String) = all().filterIsInstance<Button>().first { it.text.toString() == text }
-        fun checkboxes() = all().filterIsInstance<CheckBox>()
+        fun checkboxes() = activity.gateTestControls()
         fun ui(action: () -> Unit) { instrumentation.runOnMainSync(action) }
         fun finals() = directory.listFiles()?.filter { it !in before && it.name.endsWith(".wav") } ?: emptyList()
         fun awaitFinals(count: Int) {

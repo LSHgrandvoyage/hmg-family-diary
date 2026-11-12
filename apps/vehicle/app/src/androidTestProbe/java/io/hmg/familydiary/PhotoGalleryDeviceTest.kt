@@ -60,7 +60,7 @@ class PhotoGalleryDeviceTest {
         }
         try {
             activity = i.startActivitySync(Intent(i.targetContext, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) as MainActivity
-            ui { all().filterIsInstance<CheckBox>().take(2).forEach { it.isChecked = true }; all().filterIsInstance<EditText>().first { it.contentDescription == "날짜·이야기 검색" }.setText(story) }
+            ui { activity!!.gateTestControls().take(2).forEach { it.isChecked = true }; all().filterIsInstance<EditText>().first { it.contentDescription == "날짜·이야기 검색" }.setText(story) }
             waitFor("synthetic memory") { all().any { it.tag == "memory:${recording.name}" } }
             ui { all().first { it.tag == "memory:${recording.name}" }.performClick() }
             waitFor("detail") { button("일기 읽기").isShown }

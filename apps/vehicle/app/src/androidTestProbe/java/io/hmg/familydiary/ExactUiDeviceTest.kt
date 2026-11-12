@@ -41,7 +41,7 @@ class ExactUiDeviceTest {
   try{
    a=i.startActivitySync(Intent(i.targetContext,MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) as MainActivity
    waitFor("recording service attached"){a!!.javaClass.getDeclaredField("recordingService").apply{isAccessible=true}.get(a!!)!=null}
-   ui {a!!.javaClass.getDeclaredField("nextAutoPull").apply{isAccessible=true}.setLong(a,Long.MAX_VALUE);views(a!!.window.decorView).filterIsInstance<CheckBox>().take(2).forEach{it.isChecked=true}}
+   ui {a!!.javaClass.getDeclaredField("nextAutoPull").apply{isAccessible=true}.setLong(a,Long.MAX_VALUE);a!!.gateTestControls().take(2).forEach{it.isChecked=true}}
    waitFor("reference home visible"){eval("document.body.innerText.includes('오늘 가는 길의 이야기')")=="true"}
    assertEquals("false",eval("document.body.innerText.includes('이 기억과 함께 남는 것')"))
    capture("synthetic-exact-home.png")
@@ -58,13 +58,13 @@ class ExactUiDeviceTest {
    waitFor("completed original fully orange"){eval("document.querySelectorAll('[data-wave-bar][data-played=\"1.000\"]').length===32")=="true"}
    eval("[...document.querySelectorAll('button')].find(b=>b.textContent.includes('녹음 원문 듣기')).click()")
    waitFor("replay starts from beginning"){eval("Number(document.querySelector('input[type=range]').value)>.2 && Number(document.querySelector('input[type=range]').value)<4")=="true"}
-   ui {views(a!!.window.decorView).filterIsInstance<CheckBox>().first().isChecked=false}
+   ui {a!!.gateTestControls().first().isChecked=false}
    var hidden=false;ui {hidden=views(a!!.window.decorView).filterIsInstance<WebView>().first().visibility==View.GONE};assertTrue(hidden)
    // JS requests cannot bypass the native parked gate after the screen is hidden.
    eval("window.__gateResult='';window.__originalReply=window.NativeReply;window.NativeReply=(id,r)=>window.__gateResult=r.error||'unexpected';NativeDiary.invoke(JSON.stringify({id:999,cmd:'play',memoryId:${JSONObject.quote(file.name)}}))")
    waitFor("native gate rejects hidden bridge playback"){eval("window.__gateResult.includes('주차')")=="true"}
    eval("window.NativeReply=window.__originalReply")
-   ui {views(a!!.window.decorView).filterIsInstance<CheckBox>().first().isChecked=true}
+   ui {a!!.gateTestControls().first().isChecked=true}
    eval("location.hash='carlist'")
    waitFor("diary options in native list"){eval("!!document.querySelector('[aria-label=\"합성 가족의 바다 이야기 옵션\"]')")=="true"}
    assertEquals("false",eval("document.body.innerText.includes('오늘의 일기 녹음하기')"))

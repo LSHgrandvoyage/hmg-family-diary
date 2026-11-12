@@ -127,7 +127,7 @@ class AutoUploadDeviceTest {
                 set("sync",s);set("directory",recordings);set("store",reviews);set("contexts",contexts);set("syncPending",false);set("nextAutoPull",Long.MAX_VALUE);set("syncVersion",s.version)
                 val panel=activity!!.javaClass.getDeclaredField("review").apply { isAccessible=true }.get(activity)
                 panel.javaClass.getDeclaredField("store").apply { isAccessible=true }.set(panel,reviews)
-                views(activity!!.window.decorView).filterIsInstance<android.widget.CheckBox>().take(2).forEach { it.isChecked=true }
+                activity!!.gateTestControls().take(2).forEach { it.isChecked=true }
             }
             waitFor("review bridge") { eval("typeof openNativeReview==='function'")=="true" }
             waitFor("initial home rendered") { eval("!!document.querySelector('[data-page=carhome], [data-page=carlist]')")=="true" }

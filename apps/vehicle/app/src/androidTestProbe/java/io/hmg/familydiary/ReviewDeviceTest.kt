@@ -84,7 +84,7 @@ class ReviewDeviceTest {
         fun launch() {
             activity = instrumentation.startActivitySync(Intent(instrumentation.targetContext, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) as MainActivity
             instrumentation.waitForIdleSync()
-            ui { all().filterIsInstance<CheckBox>().take(2).forEach { it.isChecked = true } }
+            ui { activity!!.gateTestControls().take(2).forEach { it.isChecked = true } }
             waitFor("Library is visible") { button("새 이야기 녹음하기").isShown }
             ui { editor("날짜·이야기 검색").setText("합성 UI 검증 이야기") }
         }
@@ -137,10 +137,10 @@ class ReviewDeviceTest {
             screenshot("synthetic-vehicle-photo-overlay.png")
             assertTrue("Photo overlay close action", instrumentation.uiAutomation.rootInActiveWindow.findAccessibilityNodeInfosByText("닫기").isNotEmpty())
             // Parking loss closes the photo overlay and locks the underlying reading UI.
-            ui { all().filterIsInstance<CheckBox>().first().isChecked = false }
+            ui { activity!!.gateTestControls().first().isChecked = false }
             instrumentation.waitForIdleSync(); instrumentation.uiAutomation.waitForIdle(500, 5000)
             assertTrue(instrumentation.uiAutomation.rootInActiveWindow.findAccessibilityNodeInfosByText("닫기").isEmpty())
-            ui { all().filterIsInstance<CheckBox>().first().isChecked = true }
+            ui { activity!!.gateTestControls().first().isChecked = true }
             ui { activity!!.finish() }; instrumentation.waitForIdleSync(); launch(); openFixture()
             waitFor("Attached photo survives activity restart") { all().any { it.contentDescription == "사진 1 크게 보기" } }
             ui {
@@ -161,11 +161,11 @@ class ReviewDeviceTest {
             waitFor("Seek remains on same original") { all().filterIsInstance<TextView>().any { it.text.toString().startsWith("00:04 / ") || it.text.toString().startsWith("00:05 / ") } }
             ui { button("일시정지").performClick() }
             screenshot("synthetic-vehicle-original.png")
-            ui { all().filterIsInstance<CheckBox>().first().isChecked = false }
+            ui { activity!!.gateTestControls().first().isChecked = false }
             ui {
                 assertFalse(button("원본 재생").isEnabled)
                 assertFalse(button("원래 이야기").isShown)
-                all().filterIsInstance<CheckBox>().first().isChecked = true
+                activity!!.gateTestControls().first().isChecked = true
                 assertEquals("원본 재생", button("원본 재생").text.toString()) // No automatic resume.
                 button("내용 확인").performClick(); editor("확인할 이야기").setText("수정한 확인문")
                 assertFalse(button("검토한 일기 이 기기에 저장").isEnabled); button("확인문 저장").performClick()
@@ -241,7 +241,7 @@ class ReviewDeviceTest {
         try {
             activity = instrumentation.startActivitySync(Intent(instrumentation.targetContext, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) as MainActivity
             instrumentation.waitForIdleSync()
-            ui { all().filterIsInstance<CheckBox>().take(2).forEach { it.isChecked = true } }
+            ui { activity!!.gateTestControls().take(2).forEach { it.isChecked = true } }
             waitFor { all().any { it.tag == "memory:${file.name}" } }
             ui { (all().first { it.tag == "memory:${file.name}" } as Button).performClick() }
             waitFor { all().filterIsInstance<Button>().any { it.text == "음성을 글로 옮기기" && it.isShown && it.isEnabled } }

@@ -12,7 +12,7 @@
 | 005 사진·일기 목록·검색 | [spec](005-photos-library/spec.md) · [plan](005-photos-library/plan.md) · [tasks](005-photos-library/tasks.md) | 웹/에뮬레이터 구현 / 실기기 경계 검증 잔여 |
 | 006 차량 맥락·테마·설정·화면 | [spec](006-vehicle-experience/spec.md) · [plan](006-vehicle-experience/plan.md) · [tasks](006-vehicle-experience/tasks.md) | 웹/에뮬레이터 구현 / 실차 신호 검증 잔여 |
 | 007 로컬 실행·제출 패키지·클라우드 전환 | [spec](007-release-deployment/spec.md) · [plan](007-release-deployment/plan.md) · [tasks](007-release-deployment/tasks.md) | 로컬/제출 구현 / 클라우드는 계획 |
-| 008 첫 사용 안내 | [spec](008-first-run/spec.md) · [plan](008-first-run/plan.md) · [tasks](008-first-run/tasks.md) | C039 구현 예정 |
+| 008 첫 사용 안내 | [spec](008-first-run/spec.md) · [plan](008-first-run/plan.md) · [tasks](008-first-run/tasks.md) | C039 에뮬레이터 구현·검증 |
 
 ## 앞으로의 작업 순서
 

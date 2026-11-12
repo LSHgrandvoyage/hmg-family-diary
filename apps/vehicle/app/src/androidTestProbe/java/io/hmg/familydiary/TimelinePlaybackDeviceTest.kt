@@ -36,7 +36,7 @@ class TimelinePlaybackDeviceTest {
   fun position():Int {var value=0;ui{value=if(playback?.prepared==true)playback?.player?.currentPosition?:0 else 0};return value}
   try{
    a=i.startActivitySync(Intent(i.targetContext,MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) as MainActivity
-   ui{set(a!!,"directory",dir);set(a!!,"store",store);set(a!!,"contexts",contexts);set(a!!,"capture",CaptureProbe(dir));set(a!!,"sync",CloudSync(root,dir,store,contexts));set(get("review")!!,"store",store);views(a!!.window.decorView).filterIsInstance<CheckBox>().take(2).forEach{it.isChecked=true}}
+   ui{set(a!!,"directory",dir);set(a!!,"store",store);set(a!!,"contexts",contexts);set(a!!,"capture",CaptureProbe(dir));set(a!!,"sync",CloudSync(root,dir,store,contexts));set(get("review")!!,"store",store);a!!.gateTestControls().take(2).forEach{it.isChecked=true}}
    waitFor("service"){playback=get("playbackService") as? PlaybackService;playback!=null}
    val wire=command("read").getJSONObject("snapshot");assertEquals(r.speechTimeline,wire.getJSONObject("speech_timeline").toString());assertEquals(rows.joinToString("\n"){it.text},wire.getJSONArray("raw_history").getString(0))
    assertFalse(command("playSegment").has("error"));waitFor("seek 5s and play"){position()>=5000};assertTrue(position()<6500)

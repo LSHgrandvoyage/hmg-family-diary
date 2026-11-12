@@ -150,3 +150,6 @@ state: `tts_active`, `tts_index`(0부터), `tts_count`, `tts_title`(주차에서
 
 ### C033 고정 목업 응답
 mock-static-notice-v2는 단일 그룹/단일 shared placeholder statement로 `AI 생성 일기 목업 입니다.`를 반환한다. member_id=null이며 모든 입력 원본 구간은 참조로 유지한다. 이 참조는 테스트 흐름의 연결을 의미하고 의미적 요약 근거라고 주장하지 않는다. generation_mode=mock을 유지하고 실제 생성 API 오류를 목업으로 숨기지 않는다.
+
+### C035 심사용 로컬 목업
+contest flavor는 mock-static-notice-v2와 동일한 응답 계약을 앱 내부에서 만든다. generation_mode=mock, 현재 session_id/input_revision과 모든 utterance source_spans를 보존한다. 비동기 callback 취소와 stale revision 방어는 기존 ReviewPanel/ReviewRecord 계약을 따른다.

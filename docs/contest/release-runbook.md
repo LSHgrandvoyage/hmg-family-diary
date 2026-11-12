@@ -1,0 +1,108 @@
+# 차곡차곡 — 새벽개발팸
+
+차 안에서 가족이 자유롭게 나눈 이야기를 녹음하고, 일기와 당시 목소리·사진으로 다시 보는 차량용 가족 기록 앱입니다.
+
+이 묶음은 1차 제출 검토용 **서명된 contestRelease APK와 해당 소스**입니다. 앱은 공식 Pleos 에뮬레이터용이며 실제 차량/마켓 승인 완료 버전은 아닙니다. 일기 생성은 `AI 생성 일기 목업 입니다.`라는 고정 문구를 앱 내부에서 반환합니다. 실제 AI API·자동 화자 식별은 사용하지 않습니다.
+
+## 파일 구성
+
+- `apk/새벽개발팸_차곡차곡_release.apk`: 실행 가능한 release 빌드. 패키지 `io.hmg.familydiary.contest`, 버전0.2.0. 디버깅 비활성, 별도 전용 키 서명.
+- `source/`: 해당 커밋의 소스, Docker 실행 설정, 개발·검증 문서.
+- `manifest.json`, `SHA256SUMS.txt`: 소스 커밋, 빌드 환경, APK/소스 무결성 정보.
+- `검증결과.md`: 실제 실행 범위와 미검증 사항.
+
+개발용 `io.hmg.familydiary.probe`와 별도 설치되므로 기존 개발 앱의 데이터는 변경하지 않습니다. 키·비밀번호·개인 녹음·사진·DB·SDK/AVD·Docker 이미지는 포함하지 않습니다.
+
+## 1. 차량 앱만 먼저 실행하기
+
+[공식 설치 안내](https://document.pleos.ai/docs/connect/guide/getting-started/application-development/setup-connect-sdk-emulator)에 따라 Pleos Connect2.1.0 에뮬레이터를 설치하고 Cold boot합니다. Windows는 호스트에 맞는 공식 이미지를 사용하며, Mac ARM AVD를 복사하지 않습니다. [GPU·마이크 설정 안내](https://document.pleos.ai/docs/connect/guide/getting-started/application-development/configure-pleos-connect-emulator)도 확인합니다.
+
+검증 환경은 Mac ARM64 / Pleos Connect2.1.0 API34 ARM64 / Emulator37.2.13, 물리 화면2560×1440, 차량 UI 참조1280×720입니다. Windows 실제 실행은 별도 확인이 필요합니다.
+
+Windows PowerShell에서 제출 폴더로 이동한 뒤:
+
+```powershell
+$adb = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
+& $adb devices
+# 실제 출력된 serial을 사용합니다. 아래는 예시입니다.
+& $adb -s emulator-5554 install -r '.\apk\새벽개발팸_차곡차곡_release.apk'
+```
+
+SDK 경로가 다르면 `$adb`를 수정합니다. 에뮬레이터에서 **차곡차곡**을 실행하고 마이크 권한을 허용합니다. 초기 화면의 P 상태와 공동 녹음 안내를 확인합니다. 차량 신호가 준비되지 않았을 때 모의 P/D는 명시적인 에뮬레이터 시험 모드입니다.
+
+**별도 서버 없이 가능한 흐름:** 녹음 → 종료 → 확인문 수정 → 일기로 만들기 → 고정 목업 확인 → 저장 → 원본 목소리 재생 / 일기 TTS. 원본 음성과 인식문은 실제 입력으로 보존하며, 고정 목업으로 바꾸지 않습니다. 외부 AI·개발자 PC의 목업 서버·adb reverse4319가 필요하지 않습니다.
+
+## 2. 휴대폰 연동 서버 실행하기
+
+Docker Desktop(WSL2, Linux containers)과 Node24를 설치합니다. 개발 의존성의 별도 pnpm 설치는 필요하지 않습니다. PC와 휴대폰을 같은 네트워크에 연결합니다.
+
+```powershell
+cd .\source
+ipconfig
+# 아래 주소를 PC의 실제 LAN IPv4로 바꿉니다.
+node .\scripts\team-test.mjs init 192.168.0.25
+node .\scripts\team-test.mjs up
+node .\scripts\team-test.mjs configure-release emulator-5554 "$adb"
+```
+
+첫 실행은 인터넷에서 의존성과 기반 이미지를 받아 PC 아키텍처에 맞게 빌드합니다. 외부 클라우드 서버는 필요하지 않습니다. 팀원 PC마다 별도 보관함이 만들어집니다.
+
+`configure-release`는 **서버 주소·공개 CA만** 앱에 전달합니다. 차량 화면에서 본인 PC 주소인지 확인하고 **설정 적용**을 누릅니다. 비디버그 앱이므로 `run-as`를 쓰는 기존 debug 연결 명령은 사용하지 않습니다. 진행 중인 녹음/편집을 마치고 주차 상태에서 설정합니다. 이미 연결된 앱에는 기존 서버와 다른 CA를 적용할 수 없습니다.
+
+| 용도 | 주소 |
+|---|---|
+| 휴대폰/PC 웹 | `https://<PC-IP>:18443/library` |
+| 공개 개발 CA 설치 안내 | `http://<PC-IP>:18080/` |
+| 가입 확인 메일함 — PC에서만 | `http://localhost:18025` |
+
+휴대폰은18080 안내에 따라 인증서를 설치하고 신뢰한 뒤18443으로 접속합니다. Windows 인증서 설정과 방화벽 안내는 `source/docs/team/windows-testing.md`에 있습니다. 가입 메일은 실제 이메일로 발송하지 않으며 PC의18025 개발 메일함에서 확인합니다.
+
+웹에서 가입·로그인 → 차량 연결 코드 발급 → 차량 설정의 휴대폰 연결에 코드 입력 순서로 연결합니다. 이후 완성 일기는 매번 공유를 누르지 않아도 자동 전송됩니다. 사진 변경은 차량이 주차·유휴 상태일 때 반영됩니다.
+
+설정 파일이 필요한 경우 `node .\scripts\team-test.mjs export`로 `.tools/team/chagok-server.json`을 생성합니다. 앱의 ‘테스트 서버 설정 가져오기’에서 파일을 선택하거나 내용을 붙여넣을 수 있습니다. Pleos 활성 사용자에서 파일 선택기를 지원하지 않을 수 있으므로 `configure-release`를 권장합니다.
+
+## 3. 시연 순서
+
+1. 공동 녹음 안내 확인 후 자유롭게 이야기하고 파형/녹음 시간을 확인합니다.
+2. 종료 후 인식문을 수정하고 일기를 만듭니다. 본문은 고정 목업임을 확인합니다.
+3. 저장한 일기에서 전체 원본·발언별 타임라인을 확인합니다. 시간 정보가 없는 이전 기록은 전체 재생을 제공합니다.
+4. 연결된 휴대폰에서 자동 수신, 사진 추가, 원본 청취를 확인합니다.
+5. 차량의 TTS 이어듣기·종료, 라이트/다크/자동 전환을 확인합니다. 휴대폰 테마는 수동 전환입니다.
+6. 모의 주행에서는 문장 수정/사진/긴 본문을 숨기고 음성 기능만 제공합니다. 미녹음 상태에서 P로 복귀하면 녹음 홈으로 돌아옵니다.
+
+## 4. 종료와 다음 실행
+
+서버 명령은 `source` 폴더에서 실행합니다.
+
+```powershell
+node .\scripts\team-test.mjs stop
+# 에뮬레이터 창도 별도로 닫습니다.
+# 다음 실행
+node .\scripts\team-test.mjs up --no-build
+# IP 변경 시 비밀번호를 새로 만들지 않습니다.
+node .\scripts\team-test.mjs address 192.168.0.30
+node .\scripts\team-test.mjs up --no-build
+node .\scripts\team-test.mjs configure-release emulator-5554 "$adb"
+```
+
+일기·원본·사진은 named volume에 유지됩니다. `down -v`나 Docker volume 삭제는 데이터를 지우므로 종료 명령으로 쓰지 않습니다. Docker volume 유지 자체는 별도 백업을 뜻하지 않습니다.
+
+## 5. 소스 빌드
+
+Android SDK35/build-tools35.0.0, JDK17+, Gradle wrapper8.10.2, AGP8.8.2, Kotlin2.0.0을 사용합니다. 공식 SDK는 STT/TTS3.3.1, FusedLocation1.1.3입니다. Python3 및 Android SDK 경로를 설정한 뒤 `source`에서:
+
+```text
+python3 scripts/build-contest-release.py --init-key
+python3 scripts/build-contest-release.py
+```
+
+Windows의 Python 실행명은 설치에 따라 `py -3`일 수 있습니다. `apps/vehicle/local.properties` 또는 `ANDROID_HOME`에 SDK를 지정합니다. 최초 명령은 자신의 로컬 전용 키를 만들며 기존 키를 덮어쓰지 않습니다. 배포 APK의 서명 키는 포함하지 않으므로 본인이 재빌드한 APK는 새 키로 서명됩니다. 기존 배포 APK와 서명이 다른 재빌드 APK를 설치하려면 별도 시험 환경을 사용합니다.
+
+## 6. 구현 범위와 제한
+
+- 공식 STT/TTS와 원본 캡처·재생, 원본 구간, 사진, HTTPS 인증/동기화는 에뮬레이터/로컬 서버 구현입니다. 자동차 화자 LLM 정리와 자동 화자 분리는 목업/향후 계획입니다.
+- 차량 마이크 원본 취득·보관·휴대폰 전송의 전체 공식 허용 범위는 아직 확인되지 않았습니다. 현재 구현을 플랫폼 승인 완료로 주장하지 않습니다.
+- 실제 차량의 주행 UX·마이크·포커스·내비 음량 혼합과 마켓 심사는 별도입니다. 모의 P/D가 실차 허용을 입증하지 않습니다.
+- 자세한 근거는 `source/docs/contest/platform-review-2026-11-12.md`, 실제 실행 범위는 `검증결과.md`를 확인합니다.
+
+[공식 접수 안내](https://appdevchallenge.auto-hmg.io/guide/submission)에 따라 비공개 저장소 대신 소스+APK 압축파일의 다운로드 링크를 제출할 수 있습니다. 이 묶음의 생성은 메일 접수·링크 업로드·심사 승인 완료를 뜻하지 않습니다. 지원서와 전원 동의서는 별도로 첨부합니다.

@@ -277,7 +277,7 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        benchAvailable = BuildConfig.DEBUG && Build.HARDWARE in setOf("ranchu", "goldfish")
+        benchAvailable = BuildConfig.EMULATOR_BENCH && Build.HARDWARE in setOf("ranchu", "goldfish")
         if (!benchAvailable) { setContentView(TextView(this).apply { text = "이 버전은 에뮬레이터에서만 실행할 수 있어요." }); return }
         VehicleTheme.rememberSystem(this)
         ui = VehicleTheme(this)
@@ -340,8 +340,9 @@ class MainActivity : Activity() {
         driving=ui.check("모의 주행 · 음성 기능 허용 시험")
         ui.add(gateCard,driving,8)
         ui.add(gateCard,ui.button("차량 신호 사용") {recordingService?.setSimulation(null)},8)
-        ui.add(gateCard, ui.text("음성과 일기는 이 기기에 보관돼요. 지금은 에뮬레이터용이며, 일기 생성은 목업 서버로 확인문만 보내요. 참여하지 않아도 괜찮아요. 휴대폰이 연결돼 있으면 완성한 일기·원본 음성·차량 및 녹음 위치가 가족 보관함에 자동 저장돼요.", 20f, color = ui.muted), 24)
+        ui.add(gateCard, ui.text("음성과 일기는 이 기기에 보관돼요. 지금은 에뮬레이터용이며, 일기 생성은 고정 목업이에요. 참여하지 않아도 괜찮아요. 휴대폰이 연결돼 있으면 완성한 일기·원본 음성·차량 및 녹음 위치가 가족 보관함에 자동 저장돼요.", 20f, color = ui.muted), 24)
         ui.add(gateCard,ui.button("녹음 위치 사용 설정") {requestRecordingLocation()},12)
+        if(BuildConfig.LOCAL_MOCK) ui.add(gateCard,ui.button("테스트 서버 설정 가져오기") { importServerSettings() },12)
         attach(gate)
         buildLibrary().also { attach(it) }
         buildRecording().also { attach(it) }
@@ -1152,6 +1153,7 @@ class MainActivity : Activity() {
             }.show().also { styleDialog(it) }
     }
     private fun settingsState()=VehicleTheme.state(this)
+        .put("server_setup_available",BuildConfig.LOCAL_MOCK).put("server_configured",sync.configured())
         .put("paired",sync.paired).put("device_label",sync.deviceLabel).put("last_synced_at",sync.lastSyncedAt)
         .put("syncing",syncBusy || sync.uploading).put("sync_notice",sync.uploadNotice.ifBlank {syncNotice})
         .put("vehicle",vehicle().json()).put("version",BuildConfig.VERSION_NAME)
@@ -1240,6 +1242,7 @@ class MainActivity : Activity() {
                     }
                     settingsState()
                 }
+                "importServerSettings"->{check(BuildConfig.LOCAL_MOCK);importServerSettings();JSONObject()}
                 "locationSettings"->{check(idle()){ "진행 중인 작업을 마친 뒤 다시 눌러 주세요." };requestRecordingLocation();settingsState()}
                 "lookupVehicle"->{
                     check(idle()){ "진행 중인 작업을 마친 뒤 다시 눌러 주세요." };vehicleLookup.read { result ->
@@ -1343,9 +1346,76 @@ class MainActivity : Activity() {
     override fun onConfigurationChanged(configuration:android.content.res.Configuration) {
         super.onConfigurationChanged(configuration);applyAppearance()
     }
+    private fun canImportServerSettings() = initialized && idle() && !sync.uploading &&
+        ((signalMotion==VehicleInteractionPolicy.Motion.PARKED && consent.isChecked) || (gate.visibility==View.VISIBLE && signalMotion!=VehicleInteractionPolicy.Motion.DRIVING && !sync.paired))
+    private fun importServerSettings() {
+        if(!BuildConfig.LOCAL_MOCK || !canImportServerSettings()) {
+            Toast.makeText(this,"주차 상태에서 진행 중인 작업을 마친 뒤 다시 눌러 주세요.",Toast.LENGTH_LONG).show();return
+        }
+        runCatching { startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            type="*/*";addCategory(Intent.CATEGORY_OPENABLE)
+        },8035) }.onFailure { pasteServerSettings() }
+    }
+    @Deprecated("Legacy document picker result")
+    override fun onActivityResult(requestCode:Int,resultCode:Int,data:Intent?) {
+        super.onActivityResult(requestCode,resultCode,data)
+        if(requestCode!=8035 || resultCode!=RESULT_OK)return
+        if(!BuildConfig.LOCAL_MOCK || !canImportServerSettings())return
+        try {
+            val uri=data?.data ?: return
+            val bytes=contentResolver.openInputStream(uri)?.use { stream ->
+                val out=java.io.ByteArrayOutputStream();val buffer=ByteArray(4096)
+                while(true){val count=stream.read(buffer);if(count<0)break;require(out.size()+count<=ServerSettings.MAX_BYTES);out.write(buffer,0,count)}
+                out.toByteArray()
+            } ?: error("설정 파일을 읽지 못했어요.")
+            confirmServerSettings(ServerSettings.parse(bytes))
+        } catch(_:Exception) {Toast.makeText(this,"설정 파일이 올바르지 않아요. PC에서 만든 chagok-server.json(32KB 이하)을 선택해 주세요.",Toast.LENGTH_LONG).show()}
+    }
+    private fun confirmServerSettings(settings:ServerSettings) {
+        check(canImportServerSettings()){ "주차 상태에서 진행 중인 작업을 마친 뒤 다시 설정해 주세요." }
+        modal?.dismiss()
+        modal=AlertDialog.Builder(this).setTitle("이 테스트 서버를 사용하나요?")
+            .setMessage("서버: ${settings.origin}\n\nCA SHA-256\n${settings.fingerprint}\n\n본인 PC에서 만든 서버 설정인지 확인해 주세요.")
+            .setNegativeButton("취소",null).setPositiveButton("설정 적용") { _,_ ->
+                try {
+                    check(canImportServerSettings()){ "주차와 진행 중인 작업을 확인해 주세요." }
+                    // Verify the trust boundary before stopping an existing connection.
+                    if(sync.paired) check(ServerSettings.read(filesDir).certificate.encoded.contentEquals(settings.certificate.encoded)) {
+                        "연결된 보관함과 다른 인증서예요. 기존 서버 설정을 사용해 주세요."
+                    }
+                    syncEvents.stop();sync.cancel();settings.save(filesDir,sync.paired);sync.begin()
+                    syncPending=true;syncNotice="테스트 서버 설정을 적용했어요."
+                    Toast.makeText(this,"테스트 서버 설정을 적용했어요.",Toast.LENGTH_LONG).show();render()
+                } catch(e:Exception) {Toast.makeText(this,e.message?:"설정을 적용하지 못했어요. 기존 설정은 유지돼요.",Toast.LENGTH_LONG).show()}
+            }.show().also {styleDialog(it)}
+    }
+    private fun pasteServerSettings() {
+        val input=ui.input("서버 설정 JSON",true).apply {
+            hint="PC의 chagok-server.json 내용을 붙여넣어 주세요."
+            filters=arrayOf(android.text.InputFilter.LengthFilter(ServerSettings.MAX_BYTES))
+        }
+        val dialog=AlertDialog.Builder(this).setTitle("테스트 서버 설정")
+            .setMessage("파일 선택기를 지원하지 않는 환경이에요. PC에서 configure-release를 실행하거나 설정 내용을 붙여넣어 주세요.")
+            .setView(input).setNegativeButton("취소",null).setPositiveButton("서버 확인",null).create()
+        dialog.setOnShowListener {dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            try {val value=ServerSettings.parse(input.text.toString().toByteArray());dialog.dismiss();confirmServerSettings(value)}
+            catch(_:Exception){input.error="PC에서 내보낸 유효한 설정 JSON을 입력해 주세요."}
+        }}
+        modal=dialog;dialog.show();styleDialog(dialog)
+    }
+    override fun onNewIntent(value:Intent) {super.onNewIntent(value);intent=value}
+    private fun pendingServerSettings() {
+        val encoded=intent?.getStringExtra("chagok_server_config") ?: return
+        intent.removeExtra("chagok_server_config")
+        if(!BuildConfig.LOCAL_MOCK)return
+        try {
+            require(encoded.length<=45000)
+            confirmServerSettings(ServerSettings.parse(android.util.Base64.decode(encoded,android.util.Base64.DEFAULT)))
+        } catch(_:Exception) {Toast.makeText(this,"서버 설정을 가져오지 못했어요. 주차·작업 상태와 PC의 설정을 확인해 주세요.",Toast.LENGTH_LONG).show()}
+    }
     override fun onResume() {
         super.onResume();foreground=true
-        if(initialized)applyAppearance()
+        if(initialized){applyAppearance();handler.post {if(foreground)pendingServerSettings()}}
         if(benchAvailable)recordingLocation.start()
         if(benchAvailable && initialized){
             playbackService?.attach(::playbackChanged)

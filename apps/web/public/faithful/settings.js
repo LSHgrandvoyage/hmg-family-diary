@@ -29,7 +29,7 @@
         <div class="settings-column">
           <section class="settings-card settings-connection" aria-label="휴대폰 연결">
             <div class="settings-connection-heading"><span class="settings-device-icon">${phone}</span><div><h2 data-connection-title></h2><p data-connection-time></p></div></div>
-            <div class="settings-actions"><button data-sync-now class="settings-primary">지금 동기화</button><button data-connection-edit></button></div>
+            <div class="settings-actions"><button data-sync-now class="settings-primary">지금 동기화</button><button data-connection-edit></button><button data-server-import hidden>테스트 서버 설정</button></div>
             <p class="settings-feedback" data-connection-notice role="status"></p>
           </section>
           <section class="settings-card" aria-label="우리 차 정보">
@@ -79,6 +79,9 @@
       "[data-connection-notice]",
       current.syncing ? "동기화하고 있어요…" : current.sync_notice || "",
     );
+    root.querySelector("[data-server-import]").hidden =
+      !current.server_setup_available;
+    root.querySelector("[data-server-import]").disabled = !!current.syncing;
     const sync = root.querySelector("[data-sync-now]");
     sync.hidden = !current.paired;
     sync.disabled = !!current.syncing;
@@ -241,6 +244,8 @@
       root = element;
       api = helpers;
       await refresh();
+      root.querySelector("[data-server-import]").onclick = () =>
+        api.bridge("importServerSettings");
       root.querySelector("[data-vehicle-edit]").onclick = editVehicle;
       root.querySelector("[data-connection-edit]").onclick = editConnection;
       const bind = (selector, fn) =>

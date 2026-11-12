@@ -1,5 +1,7 @@
 # Windows 팀원 테스트 안내
 
+이 문서는 기존 debug 팀 패키지 안내입니다. `새벽개발팸_차곡차곡_제출용` 묶음을 받았다면 최상위 README 또는 [release 실행 안내](../contest/release-runbook.md)를 따르세요. release 연결은 `configure-release`이며 `connect`/`run-as`를 사용하지 않습니다.
+
 별도 클라우드·도메인·SMTP 계정 없이 **팀원 PC 자체에서** 테스트한다. Docker에는 웹/DB/동기화 worker/개발 메일함/목업 생성 서버가 들어가고, Pleos 에뮬레이터는 Windows에서 따로 실행한다. 개발자의 실제 일기나 계정은 전달하지 않는다.
 
 ## 1. 준비물

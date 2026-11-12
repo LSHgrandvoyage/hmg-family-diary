@@ -31,4 +31,5 @@
 - `probeDebug`: 현재 전체 UI와 테스트 기능이 있는 에뮬레이터용 debug 앱. BuildConfig.DEBUG와 에뮬레이터 하드웨어 검사에 의존한다.
 - `probeRelease`: Gradle에서 비활성화돼 있다.
 - `pleosRelease`: 현재는 기능 확인/잠금 화면이며 전체 서비스를 구현한 release APK가 아니다. release 서명 구성도 없다.
-- 따라서 어느 파일도 이름만 `release.apk`로 변경해 정상 제출용이라고 안내하지 않는다. [제출 체크리스트](submission-checklist.md)의 release 준비가 남아 있다.
+- C035에서 `contestRelease`를 추가했다. 별도 패키지·전용 서명·debuggable=false로 빌드하며 에뮬레이터 실행 경로를 제공한다. 이는 debug 파일 이름 변경이 아니다. 앱 내부 고정 목업과 사용자 확인 서버 설정을 포함한다. [release 실행 안내](release-runbook.md)와 검증 근거를 따른다.
+- release 빌드와 플랫폼 정책 승인은 별개다. 위 원본 취득/보관/전송 및 실차 허용 미확인은 계속 남아 있다.

@@ -19,3 +19,7 @@ test-results
 dist
 backups
 apk
+
+*.p12
+*.jks
+*.keystore

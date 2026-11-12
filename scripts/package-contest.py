@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Build a local review bundle from explicit source paths. Never publish or include runtime state."""
 from pathlib import Path
-import hashlib, json, shutil, subprocess, zipfile
+import hashlib, json, shutil, subprocess, zipfile, sys
 
 root = Path(__file__).resolve().parent.parent
 out = root / 'dist' / 'contest'
 apk = root / 'apps/vehicle/app/build/outputs/apk/probe/debug/app-probe-debug.apk'
-if not apk.is_file():
+source_only = "--source-only" in sys.argv
+if not source_only and not apk.is_file():
     raise SystemExit('Build :app:assembleProbeDebug first.')
 roots = ('apps/', 'packages/', 'workers/', 'db/', 'infra/', 'scripts/', 'tests/', 'specs/', 'docs/contest/', '.specify/memory/')
 fixed = {'docs/evidence/compose-runtime.md', 'docs/evidence/g0-environment.md', 'docs/product-brief.md', 'docs/evidence/connected-ui/c021-phone-filter.png', 'docs/evidence/connected-ui/c021-car-filter.png', 'README.md', 'THIRD_PARTY_NOTICES.md', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.json', 'vitest.config.ts', 'playwright.config.ts', 'compose.yaml', 'compose.preview.yaml', '.dockerignore', '.gitignore', '.env.example', '.env.probe.example'}
@@ -20,6 +21,7 @@ fixed.add('docs/evidence/c029-settings-redesign.md')
 fixed.add('docs/evidence/c030-common-vehicle-rail.md')
 fixed.add('docs/evidence/c031-unified-vehicle-name.md')
 fixed.add('docs/evidence/c032-driving-reference-and-home.md')
+fixed.update({'docs/evidence/c035-contest-release.md','docs/evidence/connected-ui/c035-settings-light.png','docs/evidence/connected-ui/c035-settings-dark.png'})
 fixed.update({'.gitattributes','compose.team.yaml','infra/Caddyfile.team','docs/team/windows-testing.md','docs/evidence/c033-fixed-mock.md','docs/evidence/c034-team-deployment.md'})
 fixed.update('docs/evidence/connected-ui/c032-driving-'+state+'-'+theme+'.png' for state in ('idle','recording') for theme in ('dark','light'))
 fixed.add('docs/evidence/connected-ui/c031-phone-name.png')
@@ -48,12 +50,12 @@ for name in sorted(set(names)):
             raise SystemExit('Private key material detected in source candidate. Packaging stopped.')
     selected.append((name,p))
 out.mkdir(parents=True,exist_ok=True)
-shutil.copyfile(apk,out/'app-probe-debug.apk')
+if not source_only: shutil.copyfile(apk,out/'app-probe-debug.apk')
 with zipfile.ZipFile(out/'source.zip','w',zipfile.ZIP_DEFLATED) as archive:
     for name,p in selected: archive.write(p, 'hmg-family-diary/'+name)
 sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
 dirty=bool(subprocess.check_output(['git','status','--porcelain'],cwd=root).strip())
-manifest={'kind':'emulator-prototype-review-bundle','source_state':'working-tree' if dirty else 'committed-tree','base_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=root).decode().strip(),'apk_sha256':sha(out/'app-probe-debug.apk'),'source_zip_sha256':sha(out/'source.zip'),'source_files':{name:sha(p) for name,p in selected},'notes':[('Uncommitted working tree snapshot; not a claimed final commit.' if dirty else 'Clean source checkout at base_commit; not automatically a final contest submission.'),'AI remains mock. No SDK/AVD, runtime secrets or private media included.','APK was built locally; rebuild from source for independently reproducible validation.']}
+manifest={'kind':'emulator-prototype-review-bundle','source_state':'working-tree' if dirty else 'committed-tree','base_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=root).decode().strip(),'apk_sha256':None if source_only else sha(out/'app-probe-debug.apk'),'source_zip_sha256':sha(out/'source.zip'),'source_files':{name:sha(p) for name,p in selected},'notes':[('Uncommitted working tree snapshot; not a claimed final commit.' if dirty else 'Clean source checkout at base_commit; not automatically a final contest submission.'),'AI remains mock. No SDK/AVD, runtime secrets or private media included.','APK was built locally; rebuild from source for independently reproducible validation.']}
 (out/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n')
 shutil.copyfile(root/'docs/contest/README.md',out/'README.md')
 print(f'Created local review bundle: {out} ({len(selected)} source files)')

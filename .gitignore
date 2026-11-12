@@ -44,3 +44,9 @@ backups/
 *.tar
 *.tar.gz
 *.dump
+
+# Release signing material stays local
+*.jks
+*.keystore
+
+*.p12

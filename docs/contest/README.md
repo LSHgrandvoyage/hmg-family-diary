@@ -1,4 +1,6 @@
-# 차곡차곡 프로토타입 실행 안내
+# 차곡차곡 개발용 프로토타입 실행 안내
+
+서명된 제출용 `contestRelease`는 [release 실행 안내](release-runbook.md)를 따릅니다. 아래는 기존 `probeDebug` 개발 환경 설명입니다.
 
 ## 실행물의 범위
 

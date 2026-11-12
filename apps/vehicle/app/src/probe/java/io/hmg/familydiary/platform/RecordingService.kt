@@ -39,7 +39,7 @@ class RecordingService:Service() {
     var simulation:Motion?=null;private set
     private var observed=Motion.UNKNOWN
     private var observedSource="차량 상태 확인 필요"
-    private val bench get()=io.hmg.familydiary.BuildConfig.DEBUG && Build.HARDWARE in setOf("ranchu","goldfish")
+    private val bench get()=io.hmg.familydiary.BuildConfig.EMULATOR_BENCH && Build.HARDWARE in setOf("ranchu","goldfish")
     private val monitor by lazy { VehicleStateMonitor(this) { state,label->
         observed=state;observedSource=label;applyMotion()
     } }

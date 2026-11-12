@@ -48,7 +48,7 @@ class PlaybackService:Service() {
     private var listener:((PlaybackService)->Unit)?=null
     private var observed=Motion.UNKNOWN
     private var simulation:Motion?=null
-    private val bench get()=io.hmg.familydiary.BuildConfig.DEBUG && Build.HARDWARE in setOf("ranchu","goldfish")
+    private val bench get()=io.hmg.familydiary.BuildConfig.EMULATOR_BENCH && Build.HARDWARE in setOf("ranchu","goldfish")
     val motion get()=simulation?:observed
     var player:MediaPlayer?=null;private set
     var prepared=false;private set

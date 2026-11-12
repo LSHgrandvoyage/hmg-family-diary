@@ -148,6 +148,26 @@ try {
     ca();
     await healthy(c);
     urls(c);
+  } else if (command === "export") {
+    const c = config();
+    ca();
+    await healthy(c);
+    mkdirSync(".tools/team", { recursive: true });
+    writeFileSync(
+      ".tools/team/chagok-server.json",
+      JSON.stringify(
+        {
+          schema_version: 1,
+          origin: c.APP_ORIGIN,
+          ca_pem: readFileSync(".tools/team/local-ca.crt", "utf8"),
+        },
+        null,
+        2,
+      ) + "\n",
+    );
+    console.log(
+      "Created .tools/team/chagok-server.json (server origin and PUBLIC CA only). Import it in the contest release app; no run-as or mock token required.",
+    );
   } else if (command === "check") {
     const c = config();
     ca();
@@ -158,6 +178,58 @@ try {
     config();
     docker(["stop"]);
     console.log("Team containers stopped. Volumes and records preserved.");
+  } else if (command === "configure-release") {
+    const c = config();
+    if (!arg || !/^emulator-\d+$/.test(arg))
+      throw Error("Specify the running Pleos emulator serial.");
+    const sdk =
+      process.env.ANDROID_HOME ||
+      process.env.ANDROID_SDK_ROOT ||
+      (process.platform === "win32" && process.env.LOCALAPPDATA
+        ? join(process.env.LOCALAPPDATA, "Android", "Sdk")
+        : resolve(".tools/android-sdk"));
+    const adb =
+      adbArg ||
+      join(
+        sdk,
+        "platform-tools",
+        process.platform === "win32" ? "adb.exe" : "adb",
+      );
+    ca();
+    await healthy(c);
+    const settings = {
+      schema_version: 1,
+      origin: c.APP_ORIGIN,
+      ca_pem: readFileSync(".tools/team/local-ca.crt", "utf8"),
+    };
+    const encoded = Buffer.from(JSON.stringify(settings)).toString("base64");
+    const user = exec(adb, ["-s", arg, "shell", "am", "get-current-user"], {
+      capture: true,
+    }).trim();
+    if (!/^\d+$/.test(user)) throw Error("Invalid Android user.");
+    exec(
+      adb,
+      [
+        "-s",
+        arg,
+        "shell",
+        "am",
+        "start",
+        "--user",
+        user,
+        "-f",
+        "0x24000000",
+        "-n",
+        "io.hmg.familydiary.contest/io.hmg.familydiary.MainActivity",
+        "--es",
+        "chagok_server_config",
+        encoded,
+      ],
+      { capture: true },
+    );
+    console.log(
+      "Review the server address and CA on the vehicle screen, then choose 설정 적용. No run-as, private key or token used.",
+    );
   } else if (command === "connect") {
     const c = config();
     if (!arg || !/^emulator-\d+$/.test(arg))
@@ -248,7 +320,7 @@ try {
     );
   } else {
     console.log(
-      "node scripts/team-test.mjs init <LAN-IPv4>\nnode scripts/team-test.mjs up [--no-build]\nnode scripts/team-test.mjs connect <emulator-serial> [adb-path]\nnode scripts/team-test.mjs check\nnode scripts/team-test.mjs address <new-LAN-IPv4>\nnode scripts/team-test.mjs stop",
+      "node scripts/team-test.mjs init <LAN-IPv4>\nnode scripts/team-test.mjs up [--no-build]\nnode scripts/team-test.mjs connect <emulator-serial> [adb-path]\nnode scripts/team-test.mjs export\nnode scripts/team-test.mjs configure-release <emulator-serial> [adb-path]\nnode scripts/team-test.mjs check\nnode scripts/team-test.mjs address <new-LAN-IPv4>\nnode scripts/team-test.mjs stop",
     );
     if (command) process.exitCode = 1;
   }

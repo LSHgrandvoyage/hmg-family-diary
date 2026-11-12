@@ -57,7 +57,7 @@ class ReviewPanel(private val activity: Activity, parent: LinearLayout, private 
         parent.addView(root, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(24) })
         label("이야기를 일기로", 28f)
         label(when(generator.mode) {
-            "mock" -> "목업 모드 · AI 정리 전\n확인한 이야기를 그대로 담아 저장 흐름을 시험해요. 외부 AI를 호출하지 않아요."
+            "mock" -> "목업 모드 · AI 정리 전\n고정 안내 문구로 저장 흐름을 시험해요. 외부 AI를 호출하지 않아요."
             "openai" -> "OpenAI 생성 모드 · 전송 동의 후 초안을 만들어요."
             else -> "생성 서버 연결 설정이 필요해요. 연결 후 앱을 다시 열어 주세요."
         })
@@ -77,7 +77,8 @@ class ReviewPanel(private val activity: Activity, parent: LinearLayout, private 
         text = editor("확인할 이야기", true); textLabel.labelFor = text.id
         confirm = button("확인문 저장") { save(true) }
         sendConsent = CheckBox(activity).apply {
-            text = if (generator.mode == "mock") "확인문·별칭·녹음 시각을 맥북의 목업 서버로 보내겠습니다. 외부 AI와 음성 파일 전송은 사용하지 않습니다."
+            text = if (io.hmg.familydiary.BuildConfig.LOCAL_MOCK) "이 기기에서 고정 목업 일기를 만듭니다. 외부 AI를 호출하지 않습니다."
+                else if (generator.mode == "mock") "확인문·별칭·녹음 시각을 맥북의 목업 서버로 보내겠습니다. 외부 AI와 음성 파일 전송은 사용하지 않습니다."
                 else "확인문·별칭·녹음 시각을 OpenAI에 보내 일기를 만들겠습니다. 음성 파일은 보내지 않습니다."
             textSize = 20f; setTextColor(ui.ink); buttonTintList = android.content.res.ColorStateList.valueOf(ui.blue); minHeight = dp(64); root.addView(this)
         }
@@ -156,7 +157,7 @@ class ReviewPanel(private val activity: Activity, parent: LinearLayout, private 
         feedback.text = "일기 초안을 만들고 있어요. 원본과 확인문은 이 기기에 보관돼 있어요."
         generator.run(r.input()) { response, error ->
             if (current?.id == r.id && current?.revision == r.revision && allowed()) {
-                if (response != null) try { persist(r.adopt(response), if (generator.mode == "mock") "목업 초안이 준비됐어요. AI 정리 없이 확인문을 그대로 담았어요." else "초안이 준비됐어요. 원본과 비교한 뒤 저장해 주세요.") }
+                if (response != null) try { persist(r.adopt(response), if (generator.mode == "mock") "고정 목업 초안이 준비됐어요. 원본과 확인문은 그대로 보관돼요." else "초안이 준비됐어요. 원본과 비교한 뒤 저장해 주세요.") }
                 catch (_: Exception) { feedback.text = "현재 확인문과 맞지 않는 응답이라 반영하지 않았어요." }
                 else feedback.text = error
             }
@@ -217,7 +218,7 @@ class ReviewPanel(private val activity: Activity, parent: LinearLayout, private 
     private fun renderDraft(r: ReviewRecord, json: String): String = try {
         val d = JSONObject(json)
         buildString {
-            if (r.generationMode == "mock") append("목업 · AI 정리 전\n확인문을 그대로 담은 시험용 응답이에요. 사건·장소·시점을 분류한 결과가 아니에요.\n\n")
+            if (r.generationMode == "mock") append("목업 · AI 정리 전\n고정 안내 문구를 담은 시험용 응답이에요. 사건·장소·시점을 분류한 결과가 아니에요.\n\n")
             append(when { dirty || r.draftRevision != r.revision -> "이전 확인문으로 만든 초안 · 다시 생성해 주세요.\n\n"
                 r.accepted == r.revision -> "이 기기에 저장한 일기\n\n"; else -> "검토 전 초안\n\n" })
             val groups = d.getJSONArray("groups")

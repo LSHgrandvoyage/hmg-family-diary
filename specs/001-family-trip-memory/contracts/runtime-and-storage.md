@@ -110,3 +110,6 @@ T040에서 다음 절차를 합성 데이터로 검증한다.
 운영 프로토타입의 PhotoStore는 별도 비공개 `photo_data` 볼륨을 사용한다. 서버의 파일 검증/재인코딩과 DB 메타데이터 저장이 완료돼야 ready를 반환한다. 원본 파일명은 저장 경로로 쓰지 않고 UUID를 쓴다. 볼륨은 정적 공개 경로로 마운트하지 않는다. 인증된 조회, 세션/개별 사진 삭제, tombstone 복원, 백업/복원에 사진 사본도 포함한다.
 
 현재 `compose.preview.yaml`에는 사진 서버 API나 이 볼륨이 없다. 사진은 브라우저 IndexedDB에만 저장되며 Docker 재시작/서버 백업과 별개다. 같은 기기에서도 localhost 주소와 LAN IP 주소는 서로 다른 origin이므로 사진 보관함이 공유되지 않는다. [IndexedDB의 origin 및 Blob 저장](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API), [Canvas 사본 생성](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toBlob)을 참고했다.
+
+### C035 심사용 서버 설정
+`chagok-server.json`은 schema_version=1, origin(HTTPS origin), ca_pem(유효 X.509 CA)만 포함한다. 사용자 파일 선택 후 목적지/CA 지문 확인을 거쳐 앱 전용 저장소에 적용한다. size≤32KiB, HTTP/userinfo/path/query/fragment/비CA/만료 CA를 거부한다. 연결된 앱은 다른 CA를 거부해 기존 토큰이 다른 서버로 전달되지 않게 한다. 원자적 단일 설정 파일이 있으면 기존 sync-origin.txt/sync-ca.crt보다 우선한다.

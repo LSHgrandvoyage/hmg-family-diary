@@ -1,0 +1,21 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="pleos.car.permission.STT_SERVICE" />
+    <uses-permission android:name="pleos.car.permission.TTS_SERVICE" />
+    <uses-permission android:name="pleos.car.permission.FUSED_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.car.permission.CAR_INFO" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.car.permission.CAR_POWERTRAIN" />
+    <application android:label="차곡차곡" android:icon="@drawable/ic_family_diary" android:forceDarkAllowed="false" android:networkSecurityConfig="@xml/contest_network_security" tools:replace="android:label">
+        <activity android:name=".MainActivity" android:configChanges="uiMode" />
+        <service android:name=".platform.RecordingService" android:exported="false" android:foregroundServiceType="microphone" />
+        <service android:name=".platform.SyncUploadJob" android:exported="true" android:permission="android.permission.BIND_JOB_SERVICE" />
+        <service android:name=".platform.PlaybackService" android:exported="false" android:foregroundServiceType="mediaPlayback" />
+    </application>
+</manifest>

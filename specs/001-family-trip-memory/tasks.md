@@ -297,3 +297,9 @@ C032 완료(2026-11-12): 합성 bridge 라이트/다크 주행 화면·녹음 �
 - [X] C034c 제출/공개 배포 잔여 조건 및 검증 범위 문서·dev 커밋.
 
 C034 준비 완료: Mac에서 격리 Compose의 가입/메일/연결/고정 목업/일기·원본 왕복 및 stop/up 보존을 검증했다. Windows 실기기·adb·Pleos 실행은 팀원의 첫 확인이 남는다. 현재 APK는 팀 테스트용 debug이며 제출용 release와 원본 음성의 플랫폼 허용은 미해결이다. [검증 근거](../../docs/evidence/c034-team-deployment.md).
+
+- [X] C035a contestRelease·전용 서명·에뮬레이터 제한·앱 내 고정 목업.
+- [X] C035b 비디버그 서버 설정 가져오기·로컬 서버 파일 내보내기.
+- [X] C035c release 서명/설치/음성·목업·저장·연동 검증 및 제출용 패키징.
+
+C035 구현·검증 완료: 전용 서명/비디버그 contestRelease, 앱 내 고정 목업, 사용자 확인 서버 설정, 실제 release 계측2개·Android 단위23개·Vitest111개·두 테마 설정 UI 검증. 소스/해시 고정 및 바탕화면 제출 묶음은 작업 커밋 기준으로 생성한다. 공식 원본 보관/전송 허용과 Windows 실기기는 미확인이다. [검증 근거](../../docs/evidence/c035-contest-release.md).

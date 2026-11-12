@@ -9,7 +9,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 class DiaryProbe(private val context: Context) {
-    val mode: String? = runCatching { File(context.filesDir, "diary-probe-mode").readText().trim() }
+    val mode: String? = if (io.hmg.familydiary.BuildConfig.LOCAL_MOCK) "mock" else runCatching { File(context.filesDir, "diary-probe-mode").readText().trim() }
         .getOrNull()?.takeIf { it == "mock" || it == "openai" }
     private val handler = Handler(Looper.getMainLooper())
     private val lock = Any()
@@ -19,6 +19,18 @@ class DiaryProbe(private val context: Context) {
     fun run(input: JSONObject, done: (JSONObject?, String?) -> Unit) {
         if (mode == null) { done(null, "생성 모드 연결 설정이 없어요. 맥북에서 연결 스크립트를 실행한 뒤 앱을 다시 열어 주세요."); return }
         cancel(); val token = generation; busy = true
+        if (io.hmg.familydiary.BuildConfig.LOCAL_MOCK) {
+            val snapshot = JSONObject(input.toString())
+            handler.post {
+                if (token == generation) {
+                    busy = false
+                    runCatching { LocalDiaryMock.generate(snapshot) }
+                        .onSuccess { done(it, null) }
+                        .onFailure { done(null, "확인문과 녹음 정보를 확인해 주세요.") }
+                }
+            }
+            return
+        }
         Thread({
             var result: JSONObject? = null; var error: String? = null
             var conn: HttpURLConnection? = null

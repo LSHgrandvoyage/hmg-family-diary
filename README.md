@@ -1,3 +1,5 @@
+> **새벽개발팸 · 차곡차곡 제출용 release:** [설치·실행 안내](docs/contest/release-runbook.md). `contestRelease`는 공식 에뮬레이터용 서명된 비디버그 앱이며, 기존 `probeDebug` 개발 환경과 별도입니다.
+
 > 팀원 Windows 테스트: [Docker 환경 구축 안내](docs/team/windows-testing.md). 공모전 준비: [제출 체크리스트](docs/contest/submission-checklist.md) · [플랫폼 지원 범위](docs/contest/platform-review-2026-11-12.md). 현재 일기 본문은 `AI 생성 일기 목업 입니다.`로 고정됩니다. 팀 테스트 APK와 제출용 release APK를 구분합니다.
 
 # HMG Family Diary

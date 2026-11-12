@@ -53,7 +53,7 @@ class CloudSync(private val root: File, private val recordings: File, private va
         val names=if(namePending) listOf((visible.optLong("name_next_at")-System.currentTimeMillis()).coerceAtLeast(0)) else emptyList()
         return (names+outbox.jobs(vault,device).filter { !it.optBoolean("blocked") }.map { (it.optLong("next_at")-System.currentTimeMillis()).coerceAtLeast(0) }).minOrNull()
     }
-    fun configured() = File(root,"sync-origin.txt").isFile && File(root,"sync-ca.crt").isFile
+    fun configured() = ServerSettings.configured(root)
     private fun save() { val stream=stateFile.startWrite();try {stream.write(state.toString().toByteArray());stateFile.finishWrite(stream);visible=JSONObject(state.toString());version++}catch(e:Exception){stateFile.failWrite(stream);throw e} }
     fun cancel() { cancelled=true;connection?.disconnect() }
     fun begin() {cancelled=false}
@@ -65,9 +65,9 @@ class CloudSync(private val root: File, private val recordings: File, private va
         setRequestProperty("Accept","text/event-stream")
     }
     private fun openConnection(path:String):HttpsURLConnection {
-        val origin=File(root,"sync-origin.txt").readText().trim();val url=java.net.URI(origin)
+        val settings=ServerSettings.read(root);val origin=settings.origin;val url=java.net.URI(origin)
         require(url.scheme=="https" && url.rawPath.isNullOrEmpty() && url.rawQuery==null && url.rawUserInfo==null)
-        val cert=File(root,"sync-ca.crt").inputStream().use{CertificateFactory.getInstance("X.509").generateCertificate(it)}
+        val cert=settings.certificate
         val ks=KeyStore.getInstance(KeyStore.getDefaultType()).apply{load(null);setCertificateEntry("local-development",cert)}
         val trust=TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm()).apply{init(ks)}
         val tls=SSLContext.getInstance("TLS").apply{init(null,trust.trustManagers,null)}
@@ -77,7 +77,7 @@ class CloudSync(private val root: File, private val recordings: File, private va
     }
     private fun request(path:String, method:String="GET", data:ByteArray?=null, key:String?=null, claim:Boolean=false):ByteArray {
         checkActive();check(configured()){"개발 서버 연결 설정이 필요해요."}
-        val origin=File(root,"sync-origin.txt").readText().trim()
+        val origin=ServerSettings.read(root).origin
         val conn=openConnection(path);connection=conn
         try {
             conn.connectTimeout=10000;conn.readTimeout=30000;conn.requestMethod=method;conn.instanceFollowRedirects=false

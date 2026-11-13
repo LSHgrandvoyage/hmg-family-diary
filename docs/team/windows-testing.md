@@ -14,7 +14,13 @@
 
 이번 자동 검증은 Mac ARM64에서 수행했다. Windows 실기기·x64 Pleos 이미지의 실제 실행은 팀원의 첫 시험으로 확인해야 한다.
 
-## 2. 패키지 받기
+## 기존 버전 업데이트
+
+이 PC에서 이전에 실행했다면 새 ZIP에 대해 `init`을 반복하지 않는다. 이전 source의 `.env.team`과 `.tools/team`을 유지해 새 소스를 반영하고 `node .\scripts\team-test.mjs up`으로 재빌드한다. 폴더를 옮기면 이전 설정을 먼저 복사하고, 정상 실행을 확인하기 전 이전 폴더를 삭제하지 않는다.
+
+기존 `.env.team` 분실·migrate 비밀번호 오류는 [release 실행 안내의 복구 절차](../contest/release-runbook.md#기존-설정을-잃어버린-경우)를 따른다. 새 실행 도구는 기존 팀 데이터 볼륨이 있으면 비밀번호를 새로 생성하지 않는다.
+
+## 2. 패키지 받기 (최초 설치)
 
 전달받은 `hmg-family-diary-team-windows.zip`을 `C:\work\hmg-family-diary-team`처럼 로컬 폴더에 푼다. OneDrive 동기화 폴더는 피한다. 아래 명령은 `compose.team.yaml`이 있는 폴더의 **Windows PowerShell**에서 실행한다. WSL 셸에서 Windows 에뮬레이터를 연결하는 방법과 섞지 않는다.
 

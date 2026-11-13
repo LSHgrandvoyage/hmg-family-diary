@@ -6,12 +6,26 @@
 
 ## 파일 구성
 
-- `apk/새벽개발팸_차곡차곡_release.apk`: 실행 가능한 release 빌드. 패키지 `io.hmg.familydiary.contest`, 버전0.2.7. 디버깅 비활성, 별도 전용 키 서명.
+- `apk/새벽개발팸_차곡차곡_release.apk`: 실행 가능한 release 빌드. 패키지 `io.hmg.familydiary.contest`, 버전은 `manifest.json` 참조. 디버깅 비활성, 별도 전용 키 서명.
 - `source/`: 해당 커밋의 소스, Docker 실행 설정, 개발·검증 문서.
 - `manifest.json`, `SHA256SUMS.txt`: 소스 커밋, 빌드 환경, APK/소스 무결성 정보.
 - `검증결과.md`: 실제 실행 범위와 미검증 사항.
 
 개발용 `io.hmg.familydiary.probe`와 별도 설치되므로 기존 개발 앱의 데이터는 변경하지 않습니다. 키·비밀번호·개인 녹음·사진·DB·SDK/AVD·Docker 이미지는 포함하지 않습니다.
+
+## 먼저 선택: 처음 설치인가요, 기존 버전 업데이트인가요?
+
+**이 PC에서 이전 버전을 실행했다면 `init`을 다시 실행하지 않습니다.** 새 ZIP에는 이전 PC의 비밀번호가 들어 있지 않습니다. 기존 source의 `.env.team`과 `.tools/team`을 유지한 채 새 소스를 덮어쓰세요. 별도 폴더를 쓴다면 먼저 이전 `.env.team`과 `.tools/team`을 새 source로 복사합니다. 업데이트 전에 이전 폴더를 삭제하지 마세요.
+
+기존 설정을 보존한 `source`에서 업데이트할 때:
+
+```powershell
+node .\scripts\team-test.mjs up
+```
+
+APK는 `adb install -r`로 갱신합니다. IP만 바뀌면 `address <새-IP>`를 사용합니다. 기존 `.env.team`을 잃어버렸다면 아래 **기존 설정을 잃어버린 경우**부터 확인하세요.
+
+**이 PC에서 처음 실행하고 기존 팀 데이터도 없을 때만** 아래 최초 설치의 `init`을 한 번 실행합니다. 이후 재실행은 `up --no-build`, 소스 업데이트는 `up`입니다.
 
 ## 1. 차량 앱만 먼저 실행하기
 
@@ -32,13 +46,14 @@ SDK 경로가 다르면 `$adb`를 수정합니다. 에뮬레이터에서 **차�
 
 **별도 서버 없이 가능한 흐름:** 녹음 → 종료 → 확인문 수정 → 일기로 만들기 → 고정 목업 확인 → 저장 → 원본 목소리 재생 / 일기 TTS. 원본 음성과 인식문은 실제 입력으로 보존하며, 고정 목업으로 바꾸지 않습니다. 외부 AI·개발자 PC의 목업 서버·adb reverse4319가 필요하지 않습니다.
 
-## 2. 휴대폰 연동 서버 실행하기
+## 2. 휴대폰 연동 서버 최초 설치
 
 Docker Desktop(WSL2, Linux containers)과 Node24를 설치합니다. 개발 의존성의 별도 pnpm 설치는 필요하지 않습니다. PC와 휴대폰을 같은 네트워크에 연결합니다.
 
 ```powershell
 cd .\source
 ipconfig
+# 최초 설치에서만 실행합니다. 기존 사용자 업데이트는 위 안내를 따르세요.
 # 아래 주소를 PC의 실제 LAN IPv4로 바꿉니다.
 node .\scripts\team-test.mjs init 192.168.0.25
 node .\scripts\team-test.mjs up
@@ -86,6 +101,47 @@ node .\scripts\team-test.mjs configure-release emulator-5554 "$adb"
 ```
 
 일기·원본·사진은 named volume에 유지됩니다. `down -v`나 Docker volume 삭제는 데이터를 지우므로 종료 명령으로 쓰지 않습니다. Docker volume 유지 자체는 별도 백업을 뜻하지 않습니다.
+
+## 기존 설정을 잃어버린 경우
+
+새 폴더에서 `init`을 다시 실행하면 새 비밀번호가 만들어집니다. Docker의 기존 DB 볼륨은 이전 비밀번호를 유지하므로 `password authentication failed for user "diary_migrate"`로 migrate가 실패할 수 있습니다. DB가 healthy여도 web/proxy가 Created이면 웹 서버는 아직 실행되지 않은 상태입니다.
+
+새 실행 도구는 기존 팀 데이터 볼륨이 있으면 `init`을 막습니다. 이전 `.env.team`이 있다면 새 source에 복원하고 `up`을 실행하세요. 이전 파일이 없지만 기록을 보존해야 한다면 초기화하지 말고 별도 복구를 진행합니다.
+
+**서버 데이터를 지워도 되는 경우에만** 아래 초기화를 사용합니다. 팀 서버의 계정·연결·일기·원본·사진·목업 상태를 삭제합니다. `hmg-family-diary-team`의 공개 CA/설정 볼륨은 보존하므로 같은 주소라면 인증서 재설치가 필요 없습니다. 다른 Docker 프로젝트는 대상이 아닙니다.
+
+이미 새 `init`으로 만든 현재 `.env.team`이 있으면 그대로 유지합니다. `source` 폴더에서 각 명령이 정상 종료된 뒤 다음 명령을 실행하세요.
+
+```powershell
+docker compose --env-file .env.team -f compose.team.yaml -p hmg-family-diary-team down
+docker volume rm hmg-family-diary-team_pg_data hmg-family-diary-team_audio_data hmg-family-diary-team_photo_data hmg-family-diary-team_probe_data
+node .\scripts\team-test.mjs up --no-build
+```
+
+위 경로에서는 `init`을 다시 실행하지 않으며 `down -v`를 사용하지 않습니다.
+
+현재 `.env.team`도 없어서 새 도구의 `init`이 중단된 경우에는 위 Compose 명령을 쓸 수 없습니다. **동일하게 서버 데이터 삭제를 선택한 경우에만**, PowerShell에서 정확한 팀 프로젝트 컨테이너를 정리한 후 데이터 볼륨을 지우고 최초 설정을 만듭니다.
+
+```powershell
+$teamContainers = @(docker ps -aq --filter "label=com.docker.compose.project=hmg-family-diary-team")
+if ($teamContainers.Count -gt 0) { docker stop $teamContainers }
+if ($teamContainers.Count -gt 0) { docker rm $teamContainers }
+docker volume rm hmg-family-diary-team_pg_data hmg-family-diary-team_audio_data hmg-family-diary-team_photo_data hmg-family-diary-team_probe_data
+# 이 분기만 현재 .env.team이 없으므로 실제 PC IPv4로 최초 설정을 만듭니다.
+node .\scripts\team-test.mjs init 192.168.0.25
+node .\scripts\team-test.mjs up
+```
+
+ 서버 초기화로 기존 차량 인증도 무효가 됩니다. 차량이 접속하면 이전 보관함의 공유 사본이 정리될 수 있습니다. 웹에서 새로 가입하고, PC의 `http://localhost:18025`에서 이메일을 확인한 다음 휴대폰에서 새6자리 코드를 발급해 차량을 다시 연결하세요. APK 재설치/앱 데이터 초기화는 기본 복구 절차가 아닙니다.
+
+정상 완료는 `up`의 HTTPS health 확인과 Web 주소 출력으로 확인합니다. 웹은 `https://<PC-IP>:18443/library`입니다. 실패하면 상태와 로그를 확인합니다.
+
+```powershell
+node .\scripts\team-test.mjs status
+docker compose --env-file .env.team -f compose.team.yaml -p hmg-family-diary-team logs --no-color --tail 60 migrate
+```
+
+이전 실행 도구에 `status`가 없으면 `docker compose --env-file .env.team -f compose.team.yaml -p hmg-family-diary-team ps -a`를 사용합니다. `.env.team`의 비밀번호는 로그와 함께 공유하지 않습니다.
 
 ## 5. 소스 빌드
 

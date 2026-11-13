@@ -11,6 +11,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 process.chdir(root);
 const [command, arg, adbArg] = process.argv.slice(2);
 const envFile = ".env.team";
+const project = "hmg-family-diary-team";
 const base = [
   "compose",
   "--env-file",
@@ -18,7 +19,7 @@ const base = [
   "-f",
   "compose.team.yaml",
   "-p",
-  "hmg-family-diary-team",
+  project,
 ];
 // Deliberately do not inherit APP_HOST/passwords from another running development stack.
 const childEnv = { ...process.env };
@@ -52,6 +53,18 @@ function exec(bin, args, { capture = false, input } = {}) {
   return r.stdout || "";
 }
 const docker = (args, opts) => exec("docker", [...base, ...args], opts);
+// A freshly extracted ZIP must not generate new passwords for an old database.
+function ensureNewDataEnvironment() {
+  let volumes;
+  try {
+    volumes = exec("docker", ["volume", "ls", "--format", "{{.Name}}"], { capture: true })
+      .split(/\r?\n/).map(x => x.trim());
+  } catch {
+    throw Error("Docker Desktop에서 기존 데이터 볼륨을 확인하지 못했어요. Docker Desktop을 실행한 뒤 다시 시도하세요. .env.team은 생성하지 않았어요.");
+  }
+  if (["pg_data", "audio_data", "photo_data", "probe_data"].some(name => volumes.includes(`${project}_${name}`)))
+    throw Error("기존 팀 테스트 데이터 볼륨이 남아 있어요. 새 비밀번호를 만들면 기존 DB에 접속할 수 없어 init을 중단했어요. 이전 source/.env.team을 복원하세요. 이전 파일이 없고 데이터를 지워도 된다면 README의 '기존 설정을 잃어버린 경우'를 확인하세요. 데이터와 인증서는 변경하지 않았어요.");
+}
 function host(value) {
   if (typeof value !== "string" || isIP(value) !== 4 || value === "0.0.0.0")
     throw Error(
@@ -98,6 +111,7 @@ try {
     const ip = host(arg);
     if (existsSync(envFile))
       throw Error(".env.team already exists; use address to preserve secrets.");
+    ensureNewDataEnvironment();
     const c = {
       APP_HOST: ip,
       APP_ORIGIN: `https://${ip}:18443`,
@@ -137,14 +151,14 @@ try {
   } else if (command === "up") {
     const c = config();
     exec("docker", ["info", "--format", "{{.OSType}}"], { capture: true });
-    docker([
-      "up",
-      "-d",
-      arg === "--no-build" ? "--no-build" : "--build",
-      "--wait",
-      "--wait-timeout",
-      "120",
-    ]);
+    try {
+      docker([
+        "up", "-d", arg === "--no-build" ? "--no-build" : "--build",
+        "--wait", "--wait-timeout", "120",
+      ]);
+    } catch {
+      throw Error("서버 시작을 완료하지 못했어요. migrate가 실패하면 web/proxy도 시작되지 않아요.\n상태: node scripts/team-test.mjs status\n원인: docker compose --env-file .env.team -f compose.team.yaml -p hmg-family-diary-team logs --no-color --tail 60 migrate\npassword authentication failed가 보이면 이전 .env.team과 DB 비밀번호가 달라졌을 수 있어요. init 재실행 대신 README의 '기존 설정을 잃어버린 경우'를 확인하세요.");
+    }
     ca();
     await healthy(c);
     urls(c);
@@ -168,6 +182,9 @@ try {
     console.log(
       "Created .tools/team/chagok-server.json (server origin and PUBLIC CA only). Import it in the contest release app; no run-as or mock token required.",
     );
+  } else if (command === "status") {
+    config();
+    docker(["ps", "-a"]);
   } else if (command === "check") {
     const c = config();
     ca();
@@ -320,7 +337,7 @@ try {
     );
   } else {
     console.log(
-      "node scripts/team-test.mjs init <LAN-IPv4>\nnode scripts/team-test.mjs up [--no-build]\nnode scripts/team-test.mjs connect <emulator-serial> [adb-path]\nnode scripts/team-test.mjs export\nnode scripts/team-test.mjs configure-release <emulator-serial> [adb-path]\nnode scripts/team-test.mjs check\nnode scripts/team-test.mjs address <new-LAN-IPv4>\nnode scripts/team-test.mjs stop",
+      "node scripts/team-test.mjs init <LAN-IPv4>\nnode scripts/team-test.mjs up [--no-build]\nnode scripts/team-test.mjs connect <emulator-serial> [adb-path]\nnode scripts/team-test.mjs export\nnode scripts/team-test.mjs configure-release <emulator-serial> [adb-path]\nnode scripts/team-test.mjs check\nnode scripts/team-test.mjs status\nnode scripts/team-test.mjs address <new-LAN-IPv4>\nnode scripts/team-test.mjs stop",
     );
     if (command) process.exitCode = 1;
   }

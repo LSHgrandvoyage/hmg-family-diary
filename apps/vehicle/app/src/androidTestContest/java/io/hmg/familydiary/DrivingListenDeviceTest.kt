@@ -13,7 +13,7 @@ import org.junit.Test
 import java.io.File
 import java.util.UUID
 
-/** C046: cache-only synthetic diaries; never a discoverable or uploaded family recording. */
+/** C047: cache-only synthetic diaries; never a discoverable or uploaded family recording. */
 class DrivingListenDeviceTest {
  @Test fun pagesAndSentencePausePreserveSameMemory() {
   val i=InstrumentationRegistry.getInstrumentation();val ctx=i.targetContext
@@ -27,7 +27,7 @@ class DrivingListenDeviceTest {
    waitFor("services"){get("initialized")==true&&get("recordingService")!=null&&get("playbackService")!=null}
    val service=get("playbackService") as PlaybackService;val recording=get("recordingService") as RecordingService
    assumeTrue("Never interrupt user's media",!service.busy&&!recording.capture.busy)
-   val prefix="c046-${UUID.randomUUID()}"
+   val prefix="c047-${UUID.randomUUID()}"
    repeat(41){index->
     val bytes=if(index==20)1920000 else 3200
     val f=File(ctx.cacheDir,"$prefix-${index.toString().padStart(2,'0')}.wav").apply{writeBytes(PcmWave.header(bytes.toLong())+ByteArray(bytes))};files.add(f)
@@ -80,10 +80,31 @@ class DrivingListenDeviceTest {
    ui{service.narrateQueue(listOf(PlaybackService.NarrationItem(files[1],"하나.","하나"),PlaybackService.NarrationItem(files[2],"둘.","둘")))}
    waitFor("single TTS completes"){!service.busy};assertEquals(files[1],service.file)
    action("listenAutoplay");assertTrue(service.autoAdvance)
-   ui{service.playQueue(listOf(files[1],files[2]),0)}
-   waitFor("original queue completes without loop"){!service.busy&&service.file==files[2]}
-   ui{service.narrateQueue(listOf(PlaybackService.NarrationItem(files[1],"하나.","하나"),PlaybackService.NarrationItem(files[2],"둘.","둘")))}
-   waitFor("TTS queue completes without loop"){!service.busy&&service.file==files[2]}
+   // Start at the last item: a normal completion must wrap to the first.
+   ui{service.playQueue(listOf(files[20],files[1]),1)}
+   waitFor("original last wraps to first"){service.file==files[20]&&service.player?.isPlaying==true}
+   action("listenAutoplay");assertFalse(service.autoAdvance)
+   ui{service.player!!.seekTo(service.player!!.duration-30)}
+   waitFor("turning repeat off completes the current original"){!service.busy};assertEquals(files[20],service.file)
+   action("listenAutoplay")
+   ui{service.narrateQueue(listOf(PlaybackService.NarrationItem(files[1],"첫 번째 합성 일기를 듣고 있습니다.","하나"),PlaybackService.NarrationItem(files[2],"둘.","둘")),1)}
+   waitFor("TTS last wraps to first"){service.file==files[1]&&service.speaking}
+   action("listenAutoplay");assertFalse(service.autoAdvance)
+   waitFor("turning repeat off completes the current TTS"){!service.busy};assertEquals(files[1],service.file)
+   action("listenAutoplay")
+   ui{service.playQueue(listOf(files[20]),0)}
+   waitFor("single original starts"){service.player?.isPlaying==true}
+   val firstPlayer=service.player
+   ui{service.player!!.seekTo(service.player!!.duration-30)}
+   waitFor("one-item original repeats"){service.player!=null&&service.player!==firstPlayer&&service.player?.isPlaying==true}
+   action("listenExit");waitFor("stop prevents original repeat"){!service.busy}
+   ui{service.narrateQueue(listOf(PlaybackService.NarrationItem(files[1],"합성 한 편을 반복합니다.","하나")))}
+   waitFor("single TTS starts"){service.speaking}
+   val generation=PlaybackService::class.java.getDeclaredField("generation").apply{isAccessible=true}
+   val firstGeneration=generation.getInt(service)
+   waitFor("one-item TTS starts another rendition"){service.speaking&&generation.getInt(service)>firstGeneration}
+   action("listenExit");waitFor("stop acknowledgement prevents TTS repeat"){!service.busy&&!service.settling}
+   Thread.sleep(300);assertFalse(service.busy)
    ui{recording.setSimulation(Motion.UNKNOWN)}
    assertFalse(service.busy)
    ui{recording.setSimulation(Motion.PARKED)}

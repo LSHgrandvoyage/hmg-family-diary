@@ -1,6 +1,7 @@
 import { chromium, expect } from "@playwright/test";
 import { mkdir, readFile } from "node:fs/promises";
 import { extname, join } from "node:path";
+const evidenceCase=process.env.CHAGOK_EVIDENCE_CASE || "c046";
 const deployed = process.env.CHAGOK_UI_ORIGIN;
 const deployedHost = process.env.CHAGOK_UI_HOST;
 const origin = deployed || "https://c046.test";
@@ -9,7 +10,7 @@ const browser = await chromium.launch({
   headless: true,
   args: ["--mute-audio"],
 });
-await mkdir("test-results/c046", { recursive: true });
+await mkdir(`test-results/${evidenceCase}`, { recursive: true });
 const errors: string[] = [];
 try {
   for (const theme of ["dark", "light"]) {
@@ -237,6 +238,8 @@ try {
       }
     });
     await p.goto(origin + "/faithful/app.html#carhome");
+    await expect(p.locator("[data-listen-count]")).toHaveCount(0);
+    await expect(p.locator("[data-drive=listenAutoplay]")).toHaveAttribute("aria-label","전체 반복 켜기");
     const allRows=p.locator('[data-listen-upcoming] [data-memory]');
     const rest=p.locator('[data-listen-rows] > button'), pinned=p.locator('[data-listen-pinned] > button');
     await expect(allRows).toHaveCount(17);
@@ -279,7 +282,7 @@ try {
     await expect(pinned).toHaveAttribute('data-memory','synthetic-40.wav');
     await expect(rest.first()).toHaveAttribute('data-memory','synthetic-39.wav');
     await expect(rest.last()).toHaveAttribute('data-memory','synthetic-37.wav');
-    await p.screenshot({path:`test-results/c046/driving-list-${theme}.png`});
+    await p.screenshot({path:`test-results/${evidenceCase}/driving-list-${theme}.png`});
     await p.evaluate(()=>{const w=window as any;w.state.driving=false;w.state.playback.memory=w.state.driving_listen.memory;w.state.playback.title=w.state.driving_listen.title;w.publish();w.restoreNativeView('carhome',null)});
     const bar=p.locator('.parked-player');await expect(bar).toBeVisible();
     await expect(bar.locator('[data-player-command="listenAutoplay"]')).toHaveAttribute('aria-pressed','true');
@@ -296,17 +299,17 @@ try {
       const bounds=(await bar.boundingBox())!;expect(bounds.y+bounds.height).toBeLessThanOrEqual(721);
       expect(await bar.evaluate(e=>e.scrollWidth<=e.clientWidth)).toBe(true);
     }
-    await p.screenshot({path:`test-results/c046/parked-player-${theme}.png`});
+    await p.screenshot({path:`test-results/${evidenceCase}/parked-player-${theme}.png`});
     // A detail action remains visible, belongs to that diary, and toggles TTS pause/resume.
     await p.evaluate(()=>(window as any).restoreNativeView('cardetail','synthetic-39.wav'));
     const narrate=p.locator('[data-narrate]');await expect(narrate).toBeVisible();
     await narrate.click();await expect(narrate).toBeVisible();await expect(narrate).toContainText('일기 일시정지');
     await narrate.click();await expect(narrate).toBeVisible();await expect(narrate).toContainText('일기 이어 읽기');
     await narrate.click();await expect(narrate).toContainText('일기 일시정지');
-    await p.screenshot({path:`test-results/c046/detail-active-${theme}.png`});
+    await p.screenshot({path:`test-results/${evidenceCase}/detail-active-${theme}.png`});
     await p.evaluate(()=>(window as any).restoreNativeView('cardetail','synthetic-38.wav'));
     await expect(narrate).toContainText('일기 읽어주기');
-    await p.screenshot({path:`test-results/c046/detail-player-${theme}.png`});
+    await p.screenshot({path:`test-results/${evidenceCase}/detail-player-${theme}.png`});
     await bar.locator('[data-player-command="listenExit"]').click();await expect(bar).toHaveCount(0);
     await p.getByRole('button',{name:'일기 옵션',exact:true}).click();
     await p.getByRole('button',{name:'제목 수정',exact:true}).click();
@@ -372,7 +375,7 @@ try {
       "오늘 가족과 공원에 갔어요",
     );
     await p.screenshot({
-      path: `test-results/c046/driving-caption-${theme}.png`,
+      path: `test-results/${evidenceCase}/driving-caption-${theme}.png`,
     });
     await p.evaluate(() => {
       const w = window as any;
@@ -417,13 +420,13 @@ try {
       "새로 수신된 마지막 이야기입니다.",
     );
     await p.screenshot({
-      path: `test-results/c046/parked-transcript-${theme}.png`,
+      path: `test-results/${evidenceCase}/parked-transcript-${theme}.png`,
     });
     await p.close();
   }
   expect(errors).toEqual([]);
   console.log(
-    "PASS C046: newest cursor ±8/8 pages, active pinned, errors/stale replies, browse vs actual playback, autoplay opt-in, common controls, persistent diary TTS toggle, title editing, STT regressions; " +
+    "PASS " + evidenceCase.toUpperCase() + ": newest cursor ±8/8 pages, active pinned, errors/stale replies, browse vs actual playback, autoplay opt-in, common controls, persistent diary TTS toggle, title editing, STT regressions; " +
       (deployed ? "deployed" : "local") +
       " assets, synthetic bridge.",
   );

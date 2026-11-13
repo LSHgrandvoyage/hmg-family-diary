@@ -9,7 +9,7 @@
     if(!active){bar?.remove();return;}
     if(!bar){bar=document.createElement('section');bar.className='parked-player';bar.setAttribute('aria-label','현재 재생');
       bar.innerHTML='<div class="parked-player-info"><span data-player-mode></span><strong data-player-title></strong></div><div class="parked-player-modes" role="group" aria-label="듣기 방식"><button data-player-command="listenDiary">일기 읽어주기</button><button data-player-command="listenOriginal">그날의 목소리</button></div><span data-player-time></span><div class="parked-player-actions"></div>';
-      for(const [cmd,label,glyph]of [['listenPrevious','이전 일기','previous'],['listenToggle','재생','play'],['listenNext','다음 일기','next'],['listenAutoplay','자동 이어듣기 켜기','repeat'],['listenExit','재생 종료','close']]){
+      for(const [cmd,label,glyph]of [['listenPrevious','이전 일기','previous'],['listenToggle','재생','play'],['listenNext','다음 일기','next'],['listenAutoplay','전체 반복 켜기','repeat'],['listenExit','재생 종료','close']]){
         const b=document.createElement('button');b.type='button';b.dataset.playerCommand=cmd;b.setAttribute('aria-label',label);b.innerHTML=icon(glyph);bar.lastElementChild.append(b);
       }
       bar.querySelectorAll('button').forEach(b=>api.action(b,()=>api.command(({listenDiary:"listenSwitchDiary",listenOriginal:"listenSwitchOriginal"})[b.dataset.playerCommand]||b.dataset.playerCommand)));
@@ -26,7 +26,7 @@
     toggle.title=original?label:'일기는 멈춘 문장부터 이어 읽어요';
     for(const [cmd,on]of [['listenDiary',!browseOriginal],['listenOriginal',browseOriginal]]){const b=bar.querySelector(`[data-player-command="${cmd}"]`);b.setAttribute('aria-pressed',String(on));b.disabled=!!waiting||!eligible;}
     const autoplay=bar.querySelector('[data-player-command="listenAutoplay"]');
-    autoplay.setAttribute('aria-pressed',String(!!listen.auto_advance));autoplay.setAttribute('aria-label',listen.auto_advance?'자동 이어듣기 끄기':'자동 이어듣기 켜기');autoplay.title=autoplay.getAttribute('aria-label');autoplay.disabled=!!waiting||!eligible;
+    autoplay.setAttribute('aria-pressed',String(!!listen.auto_advance));autoplay.setAttribute('aria-label',listen.auto_advance?'전체 반복 끄기':'전체 반복 켜기');autoplay.title=autoplay.getAttribute('aria-label');autoplay.disabled=!!waiting||!eligible;
     bar.querySelector('[data-player-command="listenExit"]').disabled=!!p.settling;
   }
   window.DiaryParkedPlayer={render};

@@ -132,7 +132,7 @@ class PlaybackService:Service() {
                     prepared=true;p.seekTo(positionMs.coerceIn(0,p.duration));p.start();notice="원본 듣는 중";emit()
                 }
                 setOnCompletionListener {p->if(token==generation){
-                    val end=p.duration/1000.0;val rows=originals;val next=originalIndex+1
+                    val end=p.duration/1000.0;val rows=originals;val next=if(originalIndex==rows.lastIndex)0 else originalIndex+1
                     val advance=autoAdvance && hasFocus && motion!=Motion.UNKNOWN && originalIndex>=0 && next in rows.indices
                     stop("원본 재생 완료");completed=end
                     if(advance)playQueue(rows,next) else emit()
@@ -260,7 +260,7 @@ class PlaybackService:Service() {
                 freezeClock();submitted=false
                 if(!hasFocus || motion==Motion.UNKNOWN)stop("재생할 수 없는 상태예요.")
                 else if(sentenceIndex<utterances.lastIndex){sentenceIndex++;speakCurrent(false)}
-                else if(autoAdvance && hasNext){queueIndex++;speakCurrent()} else stop("일기 목록을 모두 들었어요.",terminal=true)
+                else if(autoAdvance){queueIndex=if(hasNext)queueIndex+1 else 0;speakCurrent()} else stop("일기 목록을 모두 들었어요.",terminal=true)
             }}
             override fun onStop(){update{
                 if(pauseRequested){confirmPause();return@update}

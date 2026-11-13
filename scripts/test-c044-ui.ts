@@ -255,7 +255,7 @@ try {
     await expect(v.locator(".parked-player")).toBeVisible();
     await fullArea(v);
     await expect(v.locator("[data-player-mode]")).toHaveText(
-      "그날의 목소리 · 재생 중",
+      "목소리 · 재생 중",
     );
     await expect(v.locator("[data-player-time]")).toHaveText("0:42 / 2:00");
     await expect(v.locator("[data-record-start]")).toBeDisabled();
@@ -307,7 +307,7 @@ try {
       w.nativeStatus(w.state);
     });
     await expect(v.locator("[data-player-mode]")).toHaveText(
-      "일기 읽어주기 · 재생 중",
+      "일기 · 재생 중",
     );
     await expect(
       v.locator('[data-player-command="listenToggle"]'),

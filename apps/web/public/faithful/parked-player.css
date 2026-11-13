@@ -20,3 +20,10 @@
 .parked-player-actions { gap:8px; }
 .parked-player { gap:12px; padding:14px 16px; }
 .parked-player-modes button { padding:0 8px; }
+
+/* C048: bare transport glyphs, with the same generous hit areas. */
+.parked-player .parked-player-actions button { background:transparent; border:0; box-shadow:none; color:var(--ink); border-radius:12px; }
+.parked-player .parked-player-actions button:hover:not(:disabled) { color:var(--accent); }
+.parked-player .parked-player-actions button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.parked-player .parked-player-actions button[data-player-command="listenAutoplay"][aria-pressed="true"] { background:transparent; color:var(--accent); }
+.parked-player-actions [aria-pressed="true"] svg { stroke-width:3.2; }

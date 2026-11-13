@@ -432,7 +432,7 @@
           else await api(`sessions/${m.id}/photos/${p.id}`, "DELETE");
           confirm.close();
           d.close();
-          await render();
+          if(await render()&&!native&&page==="detail"&&record?.id===m.id){rememberWeb([record]);savedSyncNotice();}
         },
         true,
       );
@@ -553,13 +553,36 @@
     if (m.sync_status === "pending") return "동기화 대기";
     return "기기에 저장됨 · 연결 필요";
   }
-  function syncLabel() {
-    if (!vehicleState.paired) return "휴대폰 연결 전";
-    if (vehicleState.syncing) return "동기화 중";
-    if (vehicleState.sync_notice) return vehicleState.sync_notice;
-    if (vehicleState.sync_pending)
-      return "수신 대기 · 주차 후 사용을 마치면 반영해요";
-    return vehicleState.sync_notice || "휴대폰과 연결됨";
+  const phoneConnectionSvg='<svg data-connection-icon="phone" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg>';
+  function paintConnection(el,connected) {
+    if(el.dataset.connected===String(connected)&&el.querySelector('[data-connection-icon]'))return;
+    el.dataset.connected=String(connected);
+    el.innerHTML=phoneConnectionSvg;
+    const label=connected?'연결 중':native?'휴대폰 연결 전':'연결하기';
+    el.append(document.createTextNode(label));
+    el.setAttribute('aria-label',connected?'휴대폰 연결 중':label);
+    el.title=connected?'기기 연결이 등록되어 있어요. 기록 전송 상태는 각 기록과 설정에서 확인할 수 있어요.':label;
+  }
+  let seenSyncSequence, savedNoticeTimer;
+  const knownWebRecords=new Map();
+  let webSyncPrimed=false;
+  const webSignature=m=>JSON.stringify([m.revision,m.audio_ready,(m.photos||[]).map(p=>[p.id,p.sha256])]);
+  function rememberWeb(rows) {for(const m of rows)if(m.deleted)knownWebRecords.delete(m.id);else knownWebRecords.set(m.id,webSignature(m));}
+  const webRecordsChanged=rows=>rows.some(m=>m.deleted?knownWebRecords.has(m.id):knownWebRecords.get(m.id)!==webSignature(m));
+  function savedSyncNotice() {
+    if(document.hidden||native&&(vehicleState.driving||vehicleState.recording))return;
+    let el=document.querySelector('.sync-saved-notice');
+    if(!el){el=document.createElement('div');el.className='sync-saved-notice';el.setAttribute('role','status');el.dataset.native=String(native);document.body.append(el);}
+    text(el,'기록을 보관했어요.');
+    clearTimeout(savedNoticeTimer);savedNoticeTimer=setTimeout(()=>el.remove(),4000);
+  }
+  function observeNativeSync(state) {
+    if(state.driving||state.recording){document.querySelector(".sync-saved-notice")?.remove();clearTimeout(savedNoticeTimer);}
+    const seq=Number(state.sync_change_seq);
+    if(!Number.isFinite(seq))return;
+    const changed=seenSyncSequence!==undefined&&seq>seenSyncSequence;
+    seenSyncSequence=seq;
+    if(changed)savedSyncNotice();
   }
   function searchRecords() {
     const needle = query.trim().toLocaleLowerCase();
@@ -831,7 +854,7 @@
     if (!root.isConnected) return;
     deviceFingerprint = JSON.stringify(devices.devices);
     const connected = activeDevice(devices.devices);
-    tail(head.querySelector("a"), connected ? "연결됨" : "차량 연결하기");
+    paintConnection(head.querySelector("a"),!!connected);
   }
   let photoUploading = false;
   function photoFeedback(message, busy) {
@@ -919,8 +942,8 @@
           signal: controller.signal,
         });
         if (selected === memoryId && page === "detail") {
-          await render();
-          photoFeedback("사진을 추가했어요.", false);
+          if(await render()&&page==="detail"&&record?.id===memoryId){rememberWeb([record]);savedSyncNotice();}
+          photoFeedback("", false);
         }
       } catch (e) {
         photoFeedback("사진 추가를 완료하지 못했어요.", false);
@@ -1611,7 +1634,7 @@
   }
   function fillCarHome(root) {
     const [primary, side] = C(C(root)[1]);
-    tail(C(primary)[0], syncLabel());
+    paintConnection(C(primary)[0],!!vehicleState.paired);
     C(primary)[0].dataset.syncState = "true";
     const recordLink=C(primary)[2], recordButton=document.createElement("button");
     recordButton.type="button";
@@ -1623,15 +1646,8 @@
     recordButton.dataset.recordStart="true";
     action(recordButton, start);
     const [heading, card, more] = C(side);
-    text(
-      C(heading)[1],
-      items.length
-        ? date(items[0].snapshot.recorded_at, { month: "long" }) +
-            " · " +
-            items.length +
-            "개"
-        : "0개",
-    );
+    C(heading)[1].dataset.homeCount="true";
+    text(C(heading)[1],`전체 기록 ${items.length}개`);
     const m = items[0];
     if (m) {
       const [photo, when, name, summary] = C(card);
@@ -1704,11 +1720,6 @@
     const tools = document.createElement("div");
     tools.className = "library-tools";
     tools.append(searchButton());
-    const status = document.createElement("span");
-    status.dataset.syncState = "true";
-    status.setAttribute("role", "status");
-    status.textContent = syncLabel();
-    tools.append(status);
     content.insertBefore(tools, head);
     if (native) {
       const slot = document.createElement("div");
@@ -1997,6 +2008,7 @@
     window.DiaryTheme?.native(state);
     const wasPaused = vehicleState.paused;
     vehicleState = state;
+    observeNativeSync(state);
     if (state.driving) {
       paintDriving(state);
       return;
@@ -2005,7 +2017,7 @@
     if (state.settings) window.DiarySettings?.update(state.settings);
     app
       .querySelectorAll("[data-sync-state]")
-      .forEach((el) => tail(el, syncLabel()));
+      .forEach((el) => paintConnection(el,!!vehicleState.paired));
     const notice = app.querySelector("[data-playback-notice]");
     if (notice) text(notice, state.playback_notice || "");
     if (state.recording && !lastRecording) levels.fill(0);
@@ -2266,6 +2278,7 @@
     try {
       if (native) {
         vehicleState = await bridge("state");
+        observeNativeSync(vehicleState);
         if (vehicleState.driving) {
           paintDriving(vehicleState);
           return;
@@ -2285,7 +2298,8 @@
           ? await bridge("read", { memoryId: selected })
           : await api("sessions/" + selected);
       }
-      if (token !== generation) return;
+      if (token !== generation) return false;
+      if(!native&&!webSyncPrimed){if(["main"].includes(page))rememberWeb(items);else if(record)rememberWeb([record]);}
       if (page.startsWith("car") || page === "recording") {
         const template = document.createElement("template");
         template.innerHTML = window.DiaryVehicleRail;
@@ -2323,11 +2337,13 @@
       themeShortcut(root);
       updatePlaylist(vehicleState);
       root.style.visibility = "visible";
+      return true;
     } catch (e) {
       if (token !== generation || vehicleState.driving) return;
       root.replaceChildren();
       root.style.visibility = "visible";
       showError(e);
+      return false;
     }
   }
   let settingsReturn = "carhome";
@@ -2376,35 +2392,36 @@
     }
     webSyncBusy = true;
     webSyncPending = false;
+    const startCursor=syncCursor;
     try {
-      let changed = false,
-        result;
+      const incoming=[];
+      let result;
       do {
-        result = await api("sync?cursor=" + syncCursor);
-        changed ||= result.items.length > 0;
-        syncCursor = result.cursor;
-      } while (result.has_more);
-      if (["main", "connect"].includes(page)) {
-        const devices = await api("devices");
-        changed ||= JSON.stringify(devices.devices) !== deviceFingerprint;
+        result=await api("sync?cursor="+syncCursor);
+        incoming.push(...result.items);syncCursor=result.cursor;
+      } while(result.has_more);
+      // A cursor replay or a device-only event is not a newly stored diary.
+      const recordsChanged=webRecordsChanged(incoming);
+      let changed=recordsChanged;
+      if(["main","connect"].includes(page)) {
+        const devices=await api("devices");
+        changed ||= JSON.stringify(devices.devices)!==deviceFingerprint;
       }
-      if (changed && !document.hidden) {
-        if (
-          photoUploading ||
-          !audio.paused ||
-          document.querySelector("dialog[open]")
-        ) {
-          syncCursor = "0";
-          webSyncPending = true;
-        } else await render();
+      if(changed) {
+        if(document.hidden||photoUploading||!audio.paused||document.querySelector("dialog[open]")) {
+          syncCursor=startCursor;webSyncPending=true;return;
+        }
+        if(await render()!==true)throw Error("변경된 기록을 표시하지 못했어요.");
       }
+      rememberWeb(incoming);
+      if(webSyncPrimed&&recordsChanged)savedSyncNotice();
+      webSyncPrimed=true;
     } catch {
-      syncConnectionStatus(
-        "연결을 확인해 주세요. 다시 연결되면 변경을 받아와요.",
-      );
+      syncCursor=startCursor;
+      syncConnectionStatus("연결을 확인해 주세요. 다시 연결되면 변경을 받아와요.");
     } finally {
-      webSyncBusy = false;
-      if (webSyncPending) void receiveChanges();
+      webSyncBusy=false;
+      if(webSyncPending)void receiveChanges();
     }
   }
   function syncConnectionStatus(message) {
@@ -2471,7 +2488,7 @@
     };
   }
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden) stopEvents();
+    if (document.hidden) {stopEvents();document.querySelector('.sync-saved-notice')?.remove();clearTimeout(savedNoticeTimer);}
     else {
       webSyncPending = true;
       void receiveChanges();

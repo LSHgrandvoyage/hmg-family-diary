@@ -8,7 +8,7 @@
     let bar=root.querySelector('.parked-player');
     if(!active){bar?.remove();return;}
     if(!bar){bar=document.createElement('section');bar.className='parked-player';bar.setAttribute('aria-label','현재 재생');
-      bar.innerHTML='<div class="parked-player-info"><span data-player-mode></span><strong data-player-title></strong></div><div class="parked-player-modes" role="group" aria-label="듣기 방식"><button data-player-command="listenDiary">일기 읽어주기</button><button data-player-command="listenOriginal">그날의 목소리</button></div><span data-player-time></span><div class="parked-player-actions"></div>';
+      bar.innerHTML='<div class="parked-player-info"><span data-player-mode></span><strong data-player-title></strong></div><div class="parked-player-modes" role="group" aria-label="듣기 방식"><button data-player-command="listenDiary" aria-label="일기 읽어주기">일기</button><button data-player-command="listenOriginal" aria-label="그날의 목소리">목소리</button></div><span data-player-time></span><div class="parked-player-actions"></div>';
       for(const [cmd,label,glyph]of [['listenPrevious','이전 일기','previous'],['listenToggle','재생','play'],['listenNext','다음 일기','next'],['listenAutoplay','전체 반복 켜기','repeat'],['listenExit','재생 종료','close']]){
         const b=document.createElement('button');b.type='button';b.dataset.playerCommand=cmd;b.setAttribute('aria-label',label);b.innerHTML=icon(glyph);bar.lastElementChild.append(b);
       }
@@ -16,7 +16,7 @@
       root.append(bar);
     }
     const original=p.mode==='original',browseOriginal=original,waiting=p.settling||p.preparing,eligible=p.memory===listen.memory;
-    bar.querySelector('[data-player-mode]').textContent=(original?'그날의 목소리':'일기 읽어주기')+' · '+(p.settling?'전환 중':p.preparing?'준비 중':p.playing?'재생 중':p.paused?'일시정지':'재생 대기');
+    bar.querySelector('[data-player-mode]').textContent=(original?'목소리':'일기')+' · '+(p.settling?'전환 중':p.preparing?'준비 중':p.playing?'재생 중':p.paused?'일시정지':'재생 대기');
     bar.querySelector('[data-player-title]').textContent=p.title||'그날의 일기';
     bar.querySelector('[data-player-time]').textContent=api.stamp(p.position||0)+(original&&p.duration>0?' / '+api.stamp(p.duration):'');
     for(const [cmd,enabled]of [['listenPrevious',listen.previous],['listenNext',listen.next]])bar.querySelector(`[data-player-command="${cmd}"]`).disabled=!enabled||waiting||!eligible;

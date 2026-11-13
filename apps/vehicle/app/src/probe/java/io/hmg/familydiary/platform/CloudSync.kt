@@ -23,6 +23,9 @@ class CloudSync(private val root: File, private val recordings: File, private va
         private set
     @Volatile var version = 0L
         private set
+    private val contentChanges=java.util.concurrent.atomic.AtomicLong(0)
+    val changeSequence:Long get()=contentChanges.get()
+    private fun contentChanged(){contentChanges.incrementAndGet();version++}
     val vault: String get() = visible.optString("vault")
     val device: String get() = visible.optString("device")
     val revoked: Boolean get() = visible.optBoolean("auth_invalid")
@@ -196,6 +199,7 @@ class CloudSync(private val root: File, private val recordings: File, private va
         val links=state.getJSONObject("links")
         val link=links.optJSONObject(id) ?: (job.optJSONObject("base") ?: JSONObject().put("file",name).put("revision",0).put("input_revision",-1).put("photos",JSONArray())).also { links.put(id,it);save() }
         if(link.optBoolean("content_conflict"))throw Conflict()
+        val changed = !link.optBoolean("audio_ready") || link.optJSONObject("snapshot")?.let { !sameSnapshot(it,snapshot) } != false
         if(job.getString("stage")=="snapshot") {
             var payload=job.optJSONObject("payload") ?: JSONObject().put("expected_revision",link.optInt("revision")).put("snapshot",snapshot).also { job.put("payload",it);outbox.update(job) }
             var saved:JSONObject
@@ -217,12 +221,13 @@ class CloudSync(private val root: File, private val recordings: File, private va
         val uploaded=JSONObject(String(request("sessions/$id/audio","PUT",file.readBytes()),Charsets.UTF_8))
         link.put("revision",uploaded.getInt("revision")).put("input_revision",snapshot.getInt("revision"))
             .put("audio_ready",true).put("snapshot",snapshot).remove("pending");save()
+        if(changed)contentChanged()
     }
     private fun sendDelete(job:JSONObject) {
         val id=job.getString("id")
         try {
             val latest=json("sessions/$id")
-            json("sessions/$id","DELETE",JSONObject().put("expected_revision",latest.getInt("revision")))
+            json("sessions/$id","DELETE",JSONObject().put("expected_revision",latest.getInt("revision")));contentChanged()
         }catch(_:Gone){}catch(_:Missing){}
     }
     private fun sameSnapshot(a:JSONObject,b:JSONObject):Boolean {
@@ -255,7 +260,7 @@ class CloudSync(private val root: File, private val recordings: File, private va
     }
     private fun apply(m:JSONObject){
         val id=m.getString("id");UUID.fromString(id);val links=state.getJSONObject("links");var link=links.optJSONObject(id)
-        if(m.getBoolean("deleted")){if(link!=null){val name=link.getString("file");outbox.delete(name,vault,device,id);outbox.jobs(vault,device).filter{it.getString("file")==name}.forEach{outbox.finish(it)};removeLocal(link);links.remove(id);save()};return}
+        if(m.getBoolean("deleted")){if(link!=null){val name=link.getString("file");val existed=File(recordings,name).exists();outbox.delete(name,vault,device,id);outbox.jobs(vault,device).filter{it.getString("file")==name}.forEach{outbox.finish(it)};removeLocal(link);links.remove(id);save();if(existed)contentChanged()};return}
         if(link!=null && outbox.deleted(link.getString("file")))return
         val audioReady=m.getBoolean("audio_ready")
         val s=m.getJSONObject("snapshot"); val name=link?.getString("file")?:"$id.wav"; val target=File(recordings,name)
@@ -263,8 +268,9 @@ class CloudSync(private val root: File, private val recordings: File, private va
         if(!audioReady && (link==null || !target.isFile || PcmWave.sha256(target)!=s.getString("sha256")))return
         // Track newly fetched objects before writing any media, so cancellation/revocation can clean them up.
         if(link==null){link=JSONObject().put("file",name).put("revision",0).put("input_revision",s.getInt("revision")).put("photos",JSONArray());links.put(id,link);save()}
+        var changed=false
         if(!target.exists()){
-            val data=request("sessions/$id/audio");require(hash(data)==s.getString("sha256"));val atomic=AtomicFile(target);recordings.mkdirs();val stream=atomic.startWrite();try{stream.write(data);atomic.finishWrite(stream)}catch(e:Exception){atomic.failWrite(stream);throw e}
+            val data=request("sessions/$id/audio");require(hash(data)==s.getString("sha256"));val atomic=AtomicFile(target);recordings.mkdirs();val stream=atomic.startWrite();try{stream.write(data);atomic.finishWrite(stream);changed=true}catch(e:Exception){atomic.failWrite(stream);throw e}
         }
         require(PcmWave.sha256(target)==s.getString("sha256"))
         outbox.bind(name,vault)
@@ -274,21 +280,23 @@ class CloudSync(private val root: File, private val recordings: File, private va
         if(!canReplace && link.optJSONObject("snapshot")?.let { !sameSnapshot(it,s) }==true && pending.none { it.optJSONObject("snapshot")?.let { candidate -> sameSnapshot(candidate,s) }==true })link.put("content_conflict",true)
         if(canReplace){
             val raw=s.getJSONArray("raw_history")
-            reviews.save(ReviewRecord(name,s.getString("sha256"),s.getLong("duration_ms"),s.getString("recorded_at"),(0 until raw.length()).map{raw.getString(it)},s.getString("text"),s.getString("speaker"),s.getInt("revision"),s.getInt("confirmed"),s.getString("draft"),s.getInt("draft_revision"),s.getInt("accepted"),s.getString("model"),s.getString("prompt_version"),s.getString("generation_mode"),s.optJSONObject("speech_timeline")?.toString()))
+            val updated=ReviewRecord(name,s.getString("sha256"),s.getLong("duration_ms"),s.getString("recorded_at"),(0 until raw.length()).map{raw.getString(it)},s.getString("text"),s.getString("speaker"),s.getInt("revision"),s.getInt("confirmed"),s.getString("draft"),s.getInt("draft_revision"),s.getInt("accepted"),s.getString("model"),s.getString("prompt_version"),s.getString("generation_mode"),s.optJSONObject("speech_timeline")?.toString())
+            if(local.draft==null || !sameSnapshot(reviews.snapshot(local),reviews.snapshot(updated))){reviews.save(updated);changed=true}
             link.put("input_revision",s.getInt("revision"))
         }
-        if(!s.isNull("context")&&contexts.load(name)==null){val ctx=s.getJSONObject("context");contexts.create(name,MemoryContext.read(ctx))}
+        if(!s.isNull("context")&&contexts.load(name)==null){val ctx=s.getJSONObject("context");contexts.create(name,MemoryContext.read(ctx));changed=true}
         val photos=m.getJSONArray("photos"); val ids=mutableSetOf<String>()
         for(i in 0 until photos.length()){val p=photos.getJSONObject(i); val photoId=p.getString("id");UUID.fromString(photoId);ids.add(photoId)
             val photo=File(root,"memory-context/$name/$photoId.jpg")
-            if(!photo.exists()||hash(photo.readBytes())!=p.getString("sha256")){val data=request("sessions/$id/photos/$photoId");require(hash(data)==p.getString("sha256"));photo.parentFile!!.mkdirs();val atomic=AtomicFile(photo);val stream=atomic.startWrite();try{stream.write(data);atomic.finishWrite(stream)}catch(e:Exception){atomic.failWrite(stream);throw e}}
+            if(!photo.exists()||hash(photo.readBytes())!=p.getString("sha256")){val data=request("sessions/$id/photos/$photoId");require(hash(data)==p.getString("sha256"));photo.parentFile!!.mkdirs();val atomic=AtomicFile(photo);val stream=atomic.startWrite();try{stream.write(data);atomic.finishWrite(stream);changed=true}catch(e:Exception){atomic.failWrite(stream);throw e}}
         }
         val previous=link.getJSONArray("photos");for(i in 0 until previous.length()){val photoId=previous.getString(i);if(photoId !in ids)File(root,"memory-context/$name/$photoId.jpg").delete()}
+        if((0 until previous.length()).map { previous.getString(it) }!=ids.toList())changed=true
         contexts.setPhotoOrder(name,ids.map { "$it.jpg" })
         link.put("photos",JSONArray(ids.toList())).put("audio_ready",audioReady)
         if(!link.optBoolean("content_conflict"))link.put("revision",m.getInt("revision"))
         if(canReplace)link.put("snapshot",s)
-        save()
+        save();if(changed)contentChanged()
     }
     @Synchronized fun delete(file:File){
         val id=if(vault.isNotBlank())idFor(file) else ""

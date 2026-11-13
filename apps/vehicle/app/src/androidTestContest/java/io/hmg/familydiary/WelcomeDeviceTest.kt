@@ -83,7 +83,7 @@ class WelcomeDeviceTest {
    ui{playback.narrateQueue(listOf(PlaybackService.NarrationItem(file,"합성 시험 문장입니다. ".repeat(30),"합성 시험 일기")))}
    waitFor("actual TTS starts"){playback.speaking}
    ui{motion.performClick();motion.performClick()}
-   waitJs(exact,"TTS bar after D/P","document.querySelector('[data-player-mode]')?.textContent.includes('일기 읽어주기')===true")
+   waitJs(exact,"TTS bar after D/P","document.querySelector('[data-player-mode]')?.textContent.startsWith('일기 · ')===true")
    eval(exact,"document.querySelector('[data-player-command=listenExit]').click()")
    waitFor("TTS stop acknowledgement"){!playback.busy&&!playback.settling}
    waitJs(exact,"no ghost player","!document.querySelector('.parked-player')")

@@ -65,6 +65,8 @@ async function setup(native: boolean, dark: boolean, width = 375) {
           next: true,
           duration_ms: 480000,
           elapsed: 132,
+          catalog_version: 1,
+          playing: false,
           upcoming: [
             {
               day: "10",
@@ -138,6 +140,28 @@ async function setup(native: boolean, dark: boolean, width = 375) {
                 s.driving_listen.previous = true;
               }
             }
+            w.state.driving_listen.playing =
+              w.state.driving_listen.mode === "diary"
+                ? !!w.state.tts_active
+                : !!w.state.playing;
+            if (r.cmd === "listenPage")
+              value = {
+                version: 1,
+                before: false,
+                after: false,
+                total: 3,
+                items: [
+                  {
+                    id: "synthetic.wav",
+                    title: "합성 현재 일기",
+                    day: "01",
+                    date: "2099-01-01",
+                  },
+                  ...w.state.driving_listen.upcoming.map(
+                    (x: any, i: number) => ({ ...x, id: `next-${i}` }),
+                  ),
+                ],
+              };
             setTimeout(() => w.NativeReply(r.id, value), 0);
           },
         };
@@ -294,7 +318,7 @@ try {
     await expect(v.locator("[data-listen-progress]")).toBeHidden(); // SDK has no TTS duration.
     await expect(v.locator("[data-listen-position]")).toHaveText("2:12");
     await expect(v.locator("[data-listen-duration]")).toHaveText("낭독 중");
-    await expect(v.locator(".drive-upcoming-card")).toHaveCount(2);
+    await expect(v.locator(".drive-upcoming-card")).toHaveCount(3);
     const playBounds = await v
       .locator('[data-drive="listenToggle"]')
       .boundingBox();

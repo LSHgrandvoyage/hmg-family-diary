@@ -1667,7 +1667,7 @@
     if (native && !state.driving && app.firstElementChild)
       window.DiaryParkedPlayer?.render(app.firstElementChild, state, {
         action, stamp,
-        command: async (cmd) => { await bridge(cmd); window.nativeStatus(await bridge("state")); },
+        command: async (action) => { await bridge("listenAction",{action}); window.nativeStatus(await bridge("state")); },
       });
     const recordStart = app.querySelector("[data-record-start]");
     if (recordStart) recordStart.disabled = !state.can_record;
@@ -1685,21 +1685,6 @@
     const tools = document.createElement("div");
     tools.className = "library-tools";
     tools.append(searchButton());
-    if (native) {
-      const rows = playlistRows(),
-        start = document.createElement("button");
-      start.className = "library-listen";
-      start.type = "button";
-      start.dataset.ttsStart = "true";
-      start.dataset.count = rows.length;
-      text(start, `일기 ${rows.length}편 이어 듣기`);
-      action(start, async () =>
-        window.nativeStatus(
-          await bridge("ttsQueue", { memoryIds: rows.map((m) => m.id) }),
-        ),
-      );
-      tools.append(start);
-    }
     const status = document.createElement("span");
     status.dataset.syncState = "true";
     status.setAttribute("role", "status");
@@ -1957,6 +1942,8 @@
         wave.replaceChildren(...levels.map(() => document.createElement("span")));
       },
       drawWave: drawInputLevel,
+      page: request => bridge("listenPage",request),
+      select: async memoryId => {await bridge("listenAction",{action:"listenSelect",memoryId});window.nativeStatus(await bridge("state"));},
     });
   }
   async function drive(action) {
@@ -1964,32 +1951,29 @@
     window.nativeStatus(await bridge("state"));
   }
   function paintLiveTranscript(value) {
-    const list = app.querySelector("[data-live-transcript]");
-    if (!list || list.dataset.value === (value || "")) return;
-    list.dataset.value = value || "";
-    const lines = (value || "")
-      .trim()
-      .split(/(?<=[.!?。！？])\s+|\n+/)
-      .filter(Boolean)
-      .slice(-4);
-    list.replaceChildren();
-    if (!lines.length) {
-      const empty = document.createElement("p");
-      empty.className = "recording-empty";
-      text(empty, "편하게 이야기해 주세요.");
-      list.append(empty);
-      return;
+    const list=app.querySelector("[data-live-transcript]");
+    if(!list)return;
+    if(!list.dataset.follow){
+      list.dataset.follow="true";
+      const follow=document.createElement("button");follow.className="transcript-follow";follow.textContent="최신 문장으로";follow.hidden=true;list.after(follow);
+      let userIntent=false;
+      for(const event of ["wheel","touchstart","pointerdown","keydown"])list.addEventListener(event,()=>{userIntent=true},{passive:true});
+      list.tabIndex=0;list.setAttribute("aria-label","인식된 이야기 전체");
+      list.addEventListener("scroll",()=>{
+        if(!userIntent)return;
+        const bottom=list.scrollHeight-list.clientHeight-list.scrollTop<24;
+        list.dataset.follow=String(bottom);follow.hidden=bottom;
+      },{passive:true});
+      follow.onclick=()=>{list.dataset.follow="true";list.scrollTop=list.scrollHeight;follow.hidden=true;userIntent=false;};
     }
-    lines.forEach((line, index) => {
-      const block = document.createElement("div");
-      block.className = "recording-line";
-      if (index === lines.length - 1) block.classList.add("latest");
-      const body = document.createElement("p");
-      text(body, line);
-      block.append(body);
-      list.append(block);
-    });
-    list.scrollTop = list.scrollHeight;
+    if(list.dataset.value===(value||""))return;
+    const follow=list.dataset.follow==="true",oldTop=list.scrollTop;
+    list.dataset.value=value||"";
+    const lines=(value||"").trim().split(/(?<=[.!?。！？])\s+|\n+/).filter(Boolean);
+    list.replaceChildren();
+    if(!lines.length){const empty=document.createElement("p");empty.className="recording-empty";text(empty,"편하게 이야기해 주세요.");list.append(empty);return;}
+    lines.forEach((line,index)=>{const block=document.createElement("div");block.className="recording-line"+(index===lines.length-1?" latest":"");const body=document.createElement("p");text(body,line);block.append(body);list.append(block);});
+    list.scrollTop=follow?list.scrollHeight:oldTop;
   }
   window.nativeStatus = (state) => {
     window.DiaryTheme?.native(state);

@@ -88,6 +88,7 @@ class MainActivity : Activity() {
     private fun playbackChanged(service:PlaybackService){
         if(!initialized || isDestroyed)return
         player=service.player;prepared=service.prepared;completedPlayback=service.completed
+        if(service.busy && !service.stopping)listeningSession=true
         if(service.narrating)drivingListenMode="diary" else if(service.player!=null)drivingListenMode="original"
         if(service.busy && selected!=service.file)service.file?.takeIf { it.isFile }?.let {
             selected=it;review.select(null);review.select(it,store.load(it))
@@ -97,6 +98,8 @@ class MainActivity : Activity() {
         if(foreground){if(service.busy)handler.post(ticker);render()}
     }
     private var drivingListenMode = "diary"
+    private var listeningSession=false
+    private var listenCatalogVersion=0
     private var drivingSwitchGeneration = 0
     private var drivingDiaryRows:List<File>?=null
     private val drivingDiarySummaries=mutableMapOf<File,JSONObject>()
@@ -506,6 +509,7 @@ class MainActivity : Activity() {
         return scroll
     }
     private fun refreshLibrary() {
+        drivingRows=null;drivingHasDiary=null;drivingDiaryRows=null;drivingDiarySummaries.clear()
         val token = ++loadGeneration
         Thread({
             val data = directory.listFiles()?.filter { it.name.endsWith(".wav") }?.map { file -> file to runCatching { store.load(file) }.getOrNull() }
@@ -1009,6 +1013,7 @@ class MainActivity : Activity() {
             requestPermissions(if(Build.VERSION.SDK_INT>=33)arrayOf(Manifest.permission.RECORD_AUDIO,Manifest.permission.POST_NOTIFICATIONS) else arrayOf(Manifest.permission.RECORD_AUDIO), 10); return
         }
         val service=recordingService ?: run {status.text="녹음 서비스를 준비하고 있어요. 잠시 후 다시 눌러 주세요.";return}
+        listeningSession=false
         val start=Instant.now()
         val synthetic=prefs.getBoolean("mock-location",false)
         val snapshot=MemoryContext(start.toString(),vehicle(),synthetic,if(synthetic)RecordedLocation("synthetic",start.toString()) else recordingLocation.snapshot(start.toEpochMilli()))
@@ -1074,8 +1079,9 @@ class MainActivity : Activity() {
         render()
     }
     private fun stopPlayback() {
-        drivingSwitchGeneration++
+        drivingSwitchGeneration++;listeningSession=false
         playbackService?.stop()
+        listeningSession=false
         handler.removeCallbacks(ticker);prepared=false;completedPlayback=0.0;player=null;pendingSeek=0
         if(::seek.isInitialized){seek.progress=0;position.text="00:00 / ${time(review.record?.durationMs?:0)}"}
         abandonFocus()
@@ -1195,49 +1201,65 @@ class MainActivity : Activity() {
         .put("vehicle",vehicle().json()).put("version",BuildConfig.VERSION_NAME)
         .put("name_pending",sync.namePending).put("name_notice",if(vehicle().nickname.length>40)"차 별명을 40자 이내로 수정해 주세요. 기존 이름은 보존돼 있어요." else if(sync.namePending)"차 별명 반영 대기 · 연결되면 휴대폰에도 같은 이름으로 표시돼요." else "")
         .put("location_granted",checkSelfPermission("pleos.car.permission.FUSED_LOCATION")==PackageManager.PERMISSION_GRANTED)
-    private fun drivingDiaryFiles() = drivingDiaryRows ?: drivingOriginals().filter { narrationItem(it)!=null }.also { drivingDiaryRows=it }
+    private fun drivingDiaryFiles() = drivingDiaryRows ?: drivingOriginals().filter { narrationItem(it)!=null }
+        .sortedWith(compareBy<File>{store.load(it).recordedAt}.thenBy{it.name}).also { drivingDiaryRows=it;listenCatalogVersion++ }
+    private fun listenPage(request:JSONObject):JSONObject {
+        check(audioAllowed() && !capture.busy)
+        val rows=drivingDiaryFiles();val direction=request.optString("direction","around")
+        require(direction in setOf("around","before","after"))
+        val cursor=request.optString("cursor");val cursorIndex=rows.indexOfFirst{it.name==cursor}
+        val reset=direction!="around" && (cursorIndex<0 || request.optInt("version",-1)!=listenCatalogVersion)
+        val anchor=if(direction=="around"||reset)rows.indexOf(drivingListenFile()).coerceAtLeast(0) else cursorIndex
+        val indices=io.hmg.familydiary.capture.ListenWindow.indices(rows.size,anchor,if(reset)"around" else direction)
+        val items=org.json.JSONArray();indices.forEach{items.put(JSONObject(drivingSummary(rows[it]).toString()).put("id",rows[it].name))}
+        return JSONObject().put("items",items).put("version",listenCatalogVersion).put("reset",reset).put("total",rows.size)
+            .put("before",if(indices.isEmpty())false else indices.first>0).put("after",if(indices.isEmpty())false else indices.last<rows.lastIndex)
+    }
     private fun drivingListenFile():File? = drivingDiaryFiles().let { rows ->
         playbackService?.file?.takeIf { playbackService?.busy==true && it in rows }
             ?: selected?.takeIf { it in rows } ?: rows.firstOrNull()
     }
-    private fun drivingListen(action:String) {
+    private fun switchListening(target:File,mode:String,resume:Boolean) {
+        stopPlayback()
+        val generation=drivingSwitchGeneration
+        drivingListenMode=mode;listeningSession=true
+        fun apply(attempt:Int) {
+            if(generation!=drivingSwitchGeneration || !audioAllowed() || capture.busy || speech.busy || syncBusy || review.busy)return
+            val service=playbackService?:return
+            if(service.busy){if(attempt<200)handler.postDelayed({apply(attempt+1)},50);return}
+            runCatching {
+                selectReference(target);drivingListenMode=mode;listeningSession=true
+                if(resume){if(mode=="diary")startDrivingNarration() else playOriginal()}
+                render()
+            }.onFailure{drivingNotice=it.message.orEmpty();render()}
+        }
+        handler.post{apply(0)}
+    }
+    private fun drivingListen(action:String,memoryId:String="") {
         check(audioAllowed() && !capture.busy && !speech.busy && !syncBusy && !review.busy)
         if(action=="listenExit"){stopPlayback();render();return}
-        val rows=drivingDiaryFiles();val current=drivingListenFile()?:error("완성된 일기가 없어요.")
         val service=checkNotNull(playbackService)
-        val wasPlaying=service.narrating || service.player?.isPlaying==true
+        check(!service.settling){"음성 전환을 기다려 주세요."}
+        if(action=="listenToggle" && service.busy){service.toggle();render();return}
+        val rows=drivingDiaryFiles();val current=drivingListenFile()?:error("완성된 일기가 없어요.")
+        val wasPlaying=service.speaking || service.player?.isPlaying==true
         when(action) {
             "listenDiary", "listenOriginal" -> {
                 val mode=if(action=="listenDiary")"diary" else "original"
-                if(mode==drivingListenMode)return
-                stopPlayback();selectReference(current);drivingListenMode=mode
-                if(wasPlaying) {
-                    val generation=drivingSwitchGeneration
-                    fun resume(attempt:Int) {
-                        if(generation!=drivingSwitchGeneration || !driving.isChecked || !audioAllowed() || capture.busy || speech.busy || syncBusy || review.busy || selected!=current)return
-                        if(service.busy) {
-                            if(attempt<60)handler.postDelayed({resume(attempt+1)},50)
-                            return
-                        }
-                        runCatching {if(mode=="diary")startDrivingNarration() else playOriginal()}
-                            .onFailure {drivingNotice=it.message.orEmpty();render()}
-                    }
-                    handler.post {resume(0)}
-                }
+                if(mode!=drivingListenMode)switchListening(current,mode,wasPlaying)
             }
             "listenToggle" -> {
-                if(drivingListenMode=="diary" && service.narrating)stopPlayback()
-                else {selectReference(current);if(drivingListenMode=="diary")startDrivingNarration() else playOriginal()}
+                listeningSession=true
+                if(service.busy)service.toggle()
+                else {selectReference(current);listeningSession=true;if(drivingListenMode=="diary")startDrivingNarration() else playOriginal()}
             }
             "listenPrevious", "listenNext" -> {
-                if(drivingListenMode=="diary" && service.narrating) {
-                    if(action=="listenPrevious")service.previousNarration() else service.nextNarration()
-                } else {
-                    val index=rows.indexOf(current)+(if(action=="listenPrevious")-1 else 1)
-                    val target=rows.getOrNull(index)?:return
-                    selectReference(target)
-                    if(wasPlaying){if(drivingListenMode=="diary")startDrivingNarration() else playOriginal()}
-                }
+                val index=rows.indexOf(current)+(if(action=="listenPrevious")-1 else 1)
+                rows.getOrNull(index)?.let{switchListening(it,drivingListenMode,wasPlaying)}
+            }
+            "listenSelect" -> {
+                val target=rows.firstOrNull{it.name==memoryId}?:error("일기가 변경됐어요. 목록을 다시 확인해 주세요.")
+                switchListening(target,drivingListenMode,true)
             }
             else -> error("지원하지 않는 음성 제어예요.")
         }
@@ -1257,35 +1279,30 @@ class MainActivity : Activity() {
         val rows=drivingDiaryFiles();val file=drivingListenFile();val index=rows.indexOf(file)
         val enabled=!capture.busy && !speech.busy && !syncBusy && !review.busy && playbackService?.settling!=true
         val service=playbackService;val summary=file?.let(::drivingSummary)
-        val upcoming=org.json.JSONArray()
-        rows.drop(index+1).take(2).forEach { next ->
-            val item=drivingSummary(next)
-            upcoming.put(JSONObject().put("title",item.getString("title"))
-                .put("day",item.getString("day")).put("date",item.getString("short_date")))
-        }
         return JSONObject().put("mode",drivingListenMode).put("available",enabled && file!=null)
             .put("memory",file?.name?:JSONObject.NULL).put("date",summary?.optString("date")?:"")
             .put("title",summary?.optString("title")?:"").put("count",rows.size).put("index",index)
             .put("duration_ms",summary?.optLong("duration_ms")?:0L).put("elapsed",service?.narrationElapsed?:0.0)
-            .put("upcoming",upcoming)
-            .put("previous",enabled && if(service?.narrating==true)service.hasPrevious else index>0)
-            .put("next",enabled && if(service?.narrating==true)service.hasNext else index>=0 && index<rows.lastIndex)
+            .put("catalog_version",listenCatalogVersion).put("playing",service?.speaking==true || service?.player?.isPlaying==true).put("paused",service?.narrationPaused==true || service?.prepared==true && service.player?.isPlaying==false).put("settling",service?.settling==true).put("preparing",service?.busy==true && service.player==null && !service.speaking && !service.narrationPaused)
+            .put("previous",enabled && index>0)
+            .put("next",enabled && index>=0 && index<rows.lastIndex)
     }
     private var playbackSummaryFile:File?=null
     private var playbackSummaryTitle=""
     private fun parkedPlaybackState():JSONObject {
         val service=playbackService
-        if(!allowed() || service?.busy!=true){playbackSummaryFile=null;return JSONObject().put("active",false)}
-        val file=service.file
+        if(!allowed() || (service?.busy!=true && !listeningSession)){playbackSummaryFile=null;return JSONObject().put("active",false)}
+        val file=if(service?.busy==true)service.file else drivingListenFile()
+        if(file==null)return JSONObject().put("active",false)
         if(playbackSummaryFile!=file){playbackSummaryFile=file;playbackSummaryTitle=file?.let{narrationItem(it)?.title}?.take(80)?:"그날의 일기"}
-        val original=service.player!=null
+        val original=drivingListenMode=="original"
         return JSONObject().put("active",true).put("mode",if(original)"original" else "diary")
-            .put("title",service.narrationTitle.ifBlank{playbackSummaryTitle}).put("memory",file?.name)
-            .put("settling",service.settling).put("playing",if(original)service.prepared && runCatching{service.player?.isPlaying==true}.getOrDefault(false) else service.speaking)
-            .put("position",if(original && service.prepared)runCatching{service.player!!.currentPosition/1000.0}.getOrDefault(0.0) else service.narrationElapsed)
-            .put("duration",if(original && service.prepared)runCatching{service.player!!.duration/1000.0}.getOrDefault(0.0) else 0.0)
+            .put("title",service?.narrationTitle.orEmpty().ifBlank{playbackSummaryTitle}).put("memory",file?.name)
+            .put("settling",service?.settling==true).put("preparing",service?.busy==true && service.player==null && !service.speaking && !service.narrationPaused).put("playing",if(original)service?.prepared==true && runCatching{service.player?.isPlaying==true}.getOrDefault(false) else service?.speaking==true)
+            .put("position",if(original && service?.prepared==true)runCatching{service.player!!.currentPosition/1000.0}.getOrDefault(0.0) else service?.narrationElapsed?:0.0)
+            .put("duration",if(original && service?.prepared==true)runCatching{service.player!!.duration/1000.0}.getOrDefault(0.0) else 0.0)
     }
-    private fun referenceState() = VehicleTheme.state(this).put("playback",parkedPlaybackState()).put("driving_transcript",if(audioAllowed() && driving.isChecked && capture.busy)liveText.takeLast(180) else "").put("driving_listen",if(driving.isChecked)drivingListenState() else JSONObject.NULL).put("driving",::driving.isInitialized && driving.isChecked).put("sync_notice",sync.uploadNotice.ifBlank { syncNotice }).put("paired",sync.paired).put("recording",capture.busy).put("paused",capture.paused)
+    private fun referenceState() = VehicleTheme.state(this).put("playback",parkedPlaybackState()).put("driving_transcript",if(audioAllowed() && driving.isChecked && capture.busy)liveText.takeLast(180) else "").put("driving_listen",drivingListenState()).put("driving",::driving.isInitialized && driving.isChecked).put("sync_notice",sync.uploadNotice.ifBlank { syncNotice }).put("paired",sync.paired).put("recording",capture.busy).put("paused",capture.paused)
         .put("stt_busy",speech.busy).put("stt_text",if(allowed() && (capture.busy || liveFile==selected))liveText else "").put("stt_status",if(capture.busy || liveFile==selected)liveStatus else "").put("stt_memory",liveFile?.name?:JSONObject.NULL)
         .put("level",if(capture.busy && !capture.paused)captureLevel else 0f).put("sync_pending",syncPending && sync.paired).put("narrating",playbackService?.busy==true && player==null).put("playback_notice",playbackService?.notice.orEmpty()).put("syncing",syncBusy || sync.uploading).put("elapsed",captureElapsed/1000.0).put("memoryId",selected?.name?:JSONObject.NULL)
         .put("position",if(prepared) runCatching { player?.currentPosition?.div(1000.0)?:0.0 }.getOrDefault(0.0) else completedPlayback)
@@ -1337,6 +1354,8 @@ class MainActivity : Activity() {
                     check(control.isEnabled){"지금은 이 음성 기능을 사용할 수 없어요."};control.performClick()
                     };referenceState()
                 }
+                "listenPage"->listenPage(request)
+                "listenAction"->{drivingListen(request.getString("action"),id);referenceState()}
                 "list"->{ val rows=org.json.JSONArray();directory.listFiles()?.filter { it.name.endsWith(".wav") }?.forEach { runCatching { referenceRecord(it) }.getOrNull()?.let(rows::put) };JSONObject().put("items",rows) }
                 "read"->{val file=referenceFile(id);if(playbackService?.busy!=true)selectReference(file);referenceRecord(file)}
                 "start"->{ nativeEditor=false;screen=Screen.RECORD;startCapture();check(capture.busy){status.text.toString()};referenceState() }
@@ -1362,7 +1381,7 @@ class MainActivity : Activity() {
                     }
                     return
                 }
-                "saveDiary"->{selectReference(referenceFile(id));check(review.record?.revision==request.getInt("revision") && review.record?.text==request.getString("text") && review.record?.speaker==request.getString("speaker")) { "이야기가 변경됐어요. 다시 만들어 주세요." };check(review.acceptFromWeb()) { "저장할 초안을 확인해 주세요." };pendingCaptureReview=null;sync.capture(referenceFile(id));SyncUploads.request(this,sync);referenceRecord(referenceFile(id))}
+                "saveDiary"->{selectReference(referenceFile(id));check(review.record?.revision==request.getInt("revision") && review.record?.text==request.getString("text") && review.record?.speaker==request.getString("speaker")) { "이야기가 변경됐어요. 다시 만들어 주세요." };check(review.acceptFromWeb()) { "저장할 초안을 확인해 주세요." };pendingCaptureReview=null;drivingRows=null;drivingHasDiary=null;drivingDiaryRows=null;drivingDiarySummaries.clear();sync.capture(referenceFile(id));SyncUploads.request(this,sync);referenceRecord(referenceFile(id))}
                 "setTheme"->{VehicleTheme.select(this,request.getString("mode"));applyAppearance();VehicleTheme.state(this)}
                 "settings"->{check(!syncBusy && !capture.busy && !speech.busy && !review.busy){ "진행 중인 작업을 마친 뒤 설정을 열어 주세요." };navigate(Screen.SETTINGS);JSONObject()}
                 "getSettings"->{
@@ -1451,7 +1470,7 @@ class MainActivity : Activity() {
         startNarration(items,items.indexOfFirst {it.file==selected}.coerceAtLeast(0))
     }
     private fun readDiaryAloud(file:File){
-        startNarration(listOf(checkNotNull(narrationItem(file)){"먼저 일기를 완성해 주세요."}))
+        checkNotNull(narrationItem(file)){"먼저 일기를 완성해 주세요."};selectReference(file);drivingListenMode="diary";startDrivingNarration()
     }
     private fun hideKeyboard() {
         currentFocus?.let { getSystemService(InputMethodManager::class.java).hideSoftInputFromWindow(it.windowToken, 0); it.clearFocus() }

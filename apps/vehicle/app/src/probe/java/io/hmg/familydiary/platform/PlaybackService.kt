@@ -15,6 +15,7 @@ import ai.pleos.playground.tts.listener.OnInitializeListener
 import io.hmg.familydiary.MainActivity
 import io.hmg.familydiary.R
 import io.hmg.familydiary.capture.PcmWave
+import io.hmg.familydiary.capture.NarrationSegments
 import io.hmg.familydiary.capture.VehicleInteractionPolicy.Motion
 import java.io.File
 import java.util.Locale
@@ -26,7 +27,7 @@ class PlaybackService:Service() {
     var queueIndex=-1;private set
     val queueCount get()=queue.size
     val narrating get()=busy && queueIndex in queue.indices
-    val settling get()=stopping
+    val settling get()=stopping || pauseRequested || pendingIndex!=null
     val narrationTitle get()=queue.getOrNull(queueIndex)?.title.orEmpty()
     val hasPrevious get()=narrating && queueIndex>0
     val hasNext get()=narrating && queueIndex<queue.lastIndex
@@ -46,6 +47,11 @@ class PlaybackService:Service() {
     private var retiring:TextToSpeech?=null
     val stopping get()=retiring!=null
     private var pendingIndex:Int?=null
+    private var utterances=emptyList<String>()
+    var sentenceIndex=0;private set
+    var narrationPaused=false;private set
+    private var pauseRequested=false
+    private var elapsedBefore=0.0
     private var listener:((PlaybackService)->Unit)?=null
     private var observed=Motion.UNKNOWN
     private var simulation:Motion?=null
@@ -54,7 +60,8 @@ class PlaybackService:Service() {
     var player:MediaPlayer?=null;private set
     var prepared=false;private set
     private var narrationStartedAt=0L
-    val narrationElapsed get()=if(speaking && narrationStartedAt>0L)(SystemClock.elapsedRealtime()-narrationStartedAt)/1000.0 else 0.0
+    val narrationElapsed get()=elapsedBefore+if(speaking && narrationStartedAt>0L)(SystemClock.elapsedRealtime()-narrationStartedAt)/1000.0 else 0.0
+    private fun freezeClock(){elapsedBefore=narrationElapsed;narrationStartedAt=0L;speaking=false}
     var speaking=false;private set
     var busy=false;private set
     var file:File?=null;private set
@@ -73,8 +80,8 @@ class PlaybackService:Service() {
         session=MediaSession(this,"ChagokPlayback").apply {
             setCallback(object:MediaSession.Callback(){
                 override fun onStop(){stop("재생을 종료했어요.")}
-                override fun onPause(){if(prepared && player?.isPlaying==true)toggle() else if(tts!=null)stop("일기 읽기를 멈췄어요.")}
-                override fun onPlay(){if(prepared && player?.isPlaying==false)toggle()}
+                override fun onPause(){if(prepared && player?.isPlaying==true)toggle() else if(narrating && speaking)toggleNarration()}
+                override fun onPlay(){if(prepared && player?.isPlaying==false)toggle() else if(narrationPaused)toggleNarration()}
                 override fun onSkipToNext(){nextNarration()}
                 override fun onSkipToPrevious(){previousNarration()}
                 override fun onSeekTo(pos:Long){if(prepared && motion!=Motion.UNKNOWN)player?.seekTo(pos.coerceIn(0,player!!.duration.toLong()).toInt())}
@@ -128,17 +135,30 @@ class PlaybackService:Service() {
         }catch(_:Exception){stop("원본을 재생하지 못했어요.")}
     }
     fun toggle(){
-        val p=player?:return
+        val p=player?:run{toggleNarration();return}
         if(!prepared || motion==Motion.UNKNOWN)return
         if(p.isPlaying){p.pause();notice="재생 일시정지"}
         else if(hasFocus){p.start();notice="원본 듣는 중"}
         emit()
     }
+    fun toggleNarration(){
+        if(!narrating || settling || !engineReady || !hasFocus || motion==Motion.UNKNOWN)return
+        if(narrationPaused){narrationPaused=false;speakCurrent(false);return}
+        if(!speaking)return
+        pauseRequested=true;notice="일기 읽기를 잠시 멈추고 있어요."
+        handler.removeCallbacks(timeout);handler.postDelayed(timeout,20000)
+        try{tts?.stop()}catch(_:Exception){stop("일시정지를 완료하지 못했어요.")};emit()
+    }
+    private fun confirmPause(){
+        freezeClock();pauseRequested=false;narrationPaused=true;submitted=false
+        generation++;events?.let{runCatching{tts?.removeEventListener(it)}};events=null
+        handler.removeCallbacks(timeout);notice="일기 일시정지 · 현재 문장부터 이어 읽어요.";emit()
+    }
     fun narrate(original:File,text:String){
         narrateQueue(listOf(NarrationItem(original,text,"일기")))
     }
     fun narrateQueue(items:List<NarrationItem>,startIndex:Int=0){
-        require(items.isNotEmpty() && items.size<=500 && startIndex in items.indices)
+        require(items.isNotEmpty() && startIndex in items.indices)
         require(items.all { it.text.isNotBlank() } && items.map { it.file }.distinct().size==items.size)
         startSession(items[startIndex].file)
         queue=items.toList();queueIndex=startIndex
@@ -159,7 +179,8 @@ class PlaybackService:Service() {
     fun nextNarration(){if(hasNext)moveNarration(queueIndex+1)}
     fun previousNarration(){if(hasPrevious)moveNarration(queueIndex-1)}
     private fun moveNarration(index:Int){
-        if(!narrating || !hasFocus || motion==Motion.UNKNOWN)return
+        if(!narrating || settling || !hasFocus || motion==Motion.UNKNOWN)return
+        if(narrationPaused){queueIndex=index;file=queue[index].file;utterances=NarrationSegments.split(queue[index].text);sentenceIndex=0;elapsedBefore=0.0;emit();return}
         if(!engineReady){queueIndex=index;file=queue[index].file;emit();return}
         val waiting=pendingIndex!=null;pendingIndex=index
         if(!waiting){
@@ -171,7 +192,7 @@ class PlaybackService:Service() {
     private fun releaseNarration(terminal:Boolean=false){
         generation++;handler.removeCallbacks(timeout)
         val engine=tts;val callback=events;val needsStop=submitted && !terminal
-        tts=null;events=null;speaking=false;narrationStartedAt=0L;engineReady=false;pendingIndex=null;submitted=false
+        tts=null;events=null;speaking=false;narrationStartedAt=0L;elapsedBefore=0.0;engineReady=false;pendingIndex=null;submitted=false;pauseRequested=false;narrationPaused=false;utterances=emptyList();sentenceIndex=0
         if(engine==null)return
         runCatching{if(callback!=null)engine.removeEventListener(callback)}
         if(!needsStop){runCatching{engine.release()};return}
@@ -207,10 +228,11 @@ class PlaybackService:Service() {
     private fun endForeground(){
         if(foreground){stopForeground(STOP_FOREGROUND_REMOVE);stopSelf();foreground=false}
     }
-    private fun speakCurrent(){
+    private fun speakCurrent(resetItem:Boolean=true){
         if(!hasFocus || motion==Motion.UNKNOWN){stop("재생할 수 없는 상태예요.");return}
         val engine=tts?:return
-        generation++;handler.removeCallbacks(timeout);speaking=false;narrationStartedAt=0L;pendingIndex=null
+        if(resetItem){utterances=NarrationSegments.split(queue[queueIndex].text);sentenceIndex=0;elapsedBefore=0.0}
+        generation++;handler.removeCallbacks(timeout);speaking=false;narrationStartedAt=0L;pendingIndex=null;narrationPaused=false
         events?.let {runCatching{engine.removeEventListener(it)}}
         val item=queue[queueIndex];file=item.file;notice="일기 준비 중 · ${queueIndex+1}/$queueCount"
         val token=generation
@@ -221,10 +243,14 @@ class PlaybackService:Service() {
             override fun onUpdatedRms(rms:Double)=Unit
             override fun onDone(){update{
                 if(pendingIndex!=null)return@update // Explicit skip waits for the matching stop acknowledgement.
+                if(pauseRequested){confirmPause();return@update}
+                freezeClock();submitted=false
                 if(!hasFocus || motion==Motion.UNKNOWN)stop("재생할 수 없는 상태예요.")
+                else if(sentenceIndex<utterances.lastIndex){sentenceIndex++;speakCurrent(false)}
                 else if(hasNext){queueIndex++;speakCurrent()} else stop("일기 목록을 모두 들었어요.",terminal=true)
             }}
             override fun onStop(){update{
+                if(pauseRequested){confirmPause();return@update}
                 val next=pendingIndex
                 if(next!=null && hasFocus && motion!=Motion.UNKNOWN){queueIndex=next;speakCurrent()}
                 else stop("일기 읽기를 멈췄어요.",terminal=true)
@@ -233,10 +259,10 @@ class PlaybackService:Service() {
         }
         events=callback
         handler.postDelayed(timeout,20000)
-        try{engine.addEventListener(callback);submitted=true;engine.speak(item.text);emit()}
+        try{engine.addEventListener(callback);submitted=true;engine.speak(utterances[sentenceIndex]);emit()}
         catch(_:Exception){stop("일기 읽기를 시작하지 못했어요.")}
     }
-    private val timeout=Runnable {if(busy && !speaking)stop("음성 엔진 응답이 지연돼요. 다시 시도해 주세요.")}
+    private val timeout=Runnable {if(busy && (!speaking || pauseRequested))stop("음성 엔진 응답이 지연돼요. 다시 시도해 주세요.")}
     fun stop(message:String="재생을 종료했어요.",terminal:Boolean=false){
         releaseNarration(terminal);queue=emptyList();queueIndex=-1
         runCatching{player?.release()};player=null;prepared=false;speaking=false;busy=stopping;ducked=false;completed=0.0
@@ -247,7 +273,7 @@ class PlaybackService:Service() {
     }
     private fun emit(){
         if(::session.isInitialized)session.setPlaybackState(PlaybackState.Builder()
-            .setActions(PlaybackState.ACTION_STOP or
+            .setActions(PlaybackState.ACTION_STOP or PlaybackState.ACTION_PLAY_PAUSE or PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PAUSE or
                 (if(narrating) (if(hasPrevious)PlaybackState.ACTION_SKIP_TO_PREVIOUS else 0L) or (if(hasNext)PlaybackState.ACTION_SKIP_TO_NEXT else 0L)
                 else PlaybackState.ACTION_PLAY_PAUSE or PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PAUSE or PlaybackState.ACTION_SEEK_TO))
             .setState(if(speaking||prepared&&player?.isPlaying==true)PlaybackState.STATE_PLAYING else if(busy)PlaybackState.STATE_PAUSED else PlaybackState.STATE_STOPPED,

@@ -7,7 +7,7 @@ class VehicleInteractionPolicyTest {
  @Test fun drivingOnlyAllowsExplicitAudioCommands() {
   val d=P.access(P.Motion.DRIVING,true,true,true,true)
   assertTrue(d.audio);assertFalse(d.review)
-  for(cmd in listOf("driveAction","start","finish","play","pauseCapture","stopPlayback","seek","state","ttsPrevious","ttsNext"))assertTrue(cmd,P.permits(cmd,d))
+  for(cmd in listOf("driveAction","listenPage","listenAction","togglePlayback","start","finish","play","pauseCapture","stopPlayback","seek","state","ttsPrevious","ttsNext"))assertTrue(cmd,P.permits(cmd,d))
   for(cmd in listOf("read","list","edit","delete","removePhoto","createDiary","saveDiary","tts","ttsQueue","playSegment","share","settings","unknown"))assertFalse(cmd,P.permits(cmd,d))
  }
  @Test fun unknownAndMissingPlatformConsentOrForegroundNeverGrantAudio() {

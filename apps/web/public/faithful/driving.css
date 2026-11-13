@@ -84,3 +84,22 @@
 .drive-transcription > span { display:block; font-size:16px; color:var(--coral-text); margin-bottom:10px; }
 .drive-transcription p { margin:0; font-size:24px; line-height:1.45; color:var(--ink); display:block; max-height:2.9em; overflow:hidden; overflow-wrap:anywhere; word-break:keep-all; }
 [data-paused="true"] .drive-transcription > span { color:var(--muted); }
+
+/* C045: fixed two visual lines; native newlines are retained by the line renderer. */
+.drive-transcription p { max-height:none; height:2.9em; overflow:hidden; }
+[data-caption-line] { display:block; height:1.45em; white-space:pre; }
+[data-caption-line="previous"] { opacity:.68; }
+.drive-up-next { display:flex; flex-direction:column; overflow:hidden; }
+.drive-up-next h2 { flex:none; display:flex; justify-content:space-between; }
+[data-listen-upcoming] { display:block; overflow-y:auto; min-height:0; flex:1; scrollbar-width:thin; overscroll-behavior:contain; overflow-anchor:none; }
+[data-listen-rows] { display:flex; flex-direction:column; gap:12px; }
+.drive-upcoming-card { width:100%; text-align:left; flex-shrink:0; border:2px solid transparent !important; }
+.drive-upcoming-card[aria-current="true"] { border-color:var(--accent) !important; background:var(--warm); }
+.drive-list-words { min-width:0; display:flex; flex-direction:column; gap:6px; }
+.drive-list-words > span { color:var(--muted); font-size:16px; }
+.drive-now { display:none; }
+[data-playing="true"] .drive-now { display:block; color:var(--accent); font-weight:700; }
+[data-listen-upcoming] > button { min-height:52px; padding:12px; border-radius:16px; width:100%; margin:8px 0; background:var(--surface-alt); font-size:18px; }
+[data-listen-load-status] { font-size:16px; color:var(--muted); }
+[data-listen-load-status]:empty { display:none; }
+.drive-listen-side { min-height:0; }

@@ -25,7 +25,7 @@
     root.dataset.driveStage = stage;
     const body = q('.drive-stage');
     if (stage === 'idle') {
-      body.innerHTML = `<div class="drive-idle-grid"><button class="drive-start-tile" data-drive-primary><span>${icons.mic}</span><strong>녹음 시작</strong></button><button class="drive-listen-tile" data-open-listen><span>${icons.play}</span><strong>일기 듣기</strong><small data-diary-count></small></button></div><p class="drive-idle-note">${icons.speaker}일기 목록과 글 보기는 차를 세운 뒤에 열립니다</p>`;
+      body.innerHTML = `<div class="drive-idle-grid"><button class="drive-start-tile" data-drive-primary><span>${icons.mic}</span><strong>녹음 시작</strong></button><button class="drive-listen-tile" data-open-listen><span>${icons.play}</span><strong>일기 듣기</strong><small data-diary-count></small></button></div><p class="drive-idle-note">${icons.speaker}일기 본문과 사진은 차를 세운 뒤에 열립니다</p>`;
       bind('[data-drive-primary]', () => handlers.drive('record'));
       bind('[data-open-listen]', async () => {
         listenView = true;
@@ -38,7 +38,7 @@
       bind('[data-drive-primary]', () => handlers.drive('pause'));
       bind('[data-drive="finish"]', () => handlers.drive('finish'));
     } else {
-      body.innerHTML = `<section class="drive-current"><div class="drive-memory-head"><span data-listen-date></span><span data-listen-count></span></div><h1 data-listen-title></h1><div class="drive-progress"><div class="drive-progress-track" role="progressbar" aria-label="원본 재생 진행" data-listen-progress><span></span></div><div class="drive-times"><span data-listen-position></span><span data-listen-duration></span></div></div><div class="drive-transport"><button data-drive="listenPrevious" aria-label="이전 일기">${icons.previous}</button><button data-drive="listenToggle">${icons.play}</button><button data-drive="listenNext" aria-label="다음 일기">${icons.next}</button></div></section><aside class="drive-listen-side"><div class="drive-listen-tabs" role="group" aria-label="듣기 방식"><button data-drive="listenDiary">일기 낭독</button><button data-drive="listenOriginal">그날의 목소리</button></div><section class="drive-up-next"><h2>이어서 들을 일기</h2><div data-listen-upcoming></div></section></aside>`;
+      body.innerHTML = `<section class="drive-current"><div class="drive-memory-head"><span data-listen-date></span><span data-listen-count></span></div><h1 data-listen-title></h1><div class="drive-progress"><div class="drive-progress-track" role="progressbar" aria-label="원본 재생 진행" data-listen-progress><span></span></div><div class="drive-times"><span data-listen-position></span><span data-listen-duration></span></div></div><div class="drive-transport"><button data-drive="listenPrevious" aria-label="이전 일기">${icons.previous}</button><button data-drive="listenToggle">${icons.play}</button><button data-drive="listenNext" aria-label="다음 일기">${icons.next}</button></div></section><aside class="drive-listen-side"><div class="drive-listen-tabs" role="group" aria-label="듣기 방식"><button data-drive="listenDiary">일기 읽어주기</button><button data-drive="listenOriginal">그날의 목소리</button></div><section class="drive-up-next"><h2>지난 일기 <span data-list-total></span></h2><div data-listen-upcoming role="region" aria-label="날짜순 일기 목록" tabindex="0"></div></section></aside>`;
       body.querySelectorAll('[data-drive]').forEach(b => handlers.action(b, () => handlers.drive(b.dataset.drive)));
     }
   }
@@ -80,9 +80,7 @@
       }
       handlers.drawWave(state.level, state.paused);
       const transcript = (state.driving_transcript || "").trim();
-      const caption=q('[data-driving-transcript]'), captionText=transcript || '이야기를 시작하면 인식된 문장이 여기에 보여요';
-      if(caption.textContent!==captionText)caption.textContent=captionText;
-      caption.scrollTop=caption.scrollHeight;
+      window.DiaryLiveCaption.render(q('[data-driving-transcript]'),transcript);
       const speechState = state.paused ? '음성 인식 일시정지' : /실패|지연|오류|연결/.test(state.stt_status || '') ? '음성 인식을 확인하고 있어요 · 원본은 녹음 중' : transcript ? '실시간 음성 인식 중' : '목소리를 기다리고 있어요';
       if (q('[data-drive-stt-status]').textContent !== speechState) put('[data-drive-stt-status]', speechState);
     } else {
@@ -97,7 +95,7 @@
       progress.setAttribute('aria-valuemin', '0'); progress.setAttribute('aria-valuemax', String(duration)); progress.setAttribute('aria-valuenow', String(position));
       progress.querySelector('span').style.width = `${duration ? 100 * position / duration : 0}%`;
       put('[data-listen-position]', handlers.stamp(position));
-      put('[data-listen-duration]', original ? handlers.stamp(duration) : state.tts_active ? '낭독 중' : '일기 낭독');
+      put('[data-listen-duration]', original ? handlers.stamp(duration) : listen.playing ? '낭독 중' : listen.paused ? '일시정지' : '일기 읽어주기');
       q('.drive-progress').dataset.original = String(original);
       for (const mode of ['Diary','Original']) {
         const button = q(`[data-drive="listen${mode}"]`);
@@ -105,28 +103,20 @@
         button.disabled = !listen.available;
         button.setAttribute('aria-label', mode === 'Original' ? '같은 일기의 원본 듣기로 전환' : '같은 일기의 일기 듣기로 전환');
       }
-      q('[data-drive="listenPrevious"]').disabled = !listen.previous;
-      q('[data-drive="listenNext"]').disabled = !listen.next;
+      q('[data-drive="listenPrevious"]').disabled = !listen.previous || listen.preparing;
+      q('[data-drive="listenNext"]').disabled = !listen.next || listen.preparing;
       const toggle = q('[data-drive="listenToggle"]');
-      toggle.disabled = !listen.available;
-      const playing = original ? state.playing : state.tts_active;
-      const label = original ? playing ? '원본 일시정지' : '원본 재생' : playing ? '일기 재생 정지' : '일기 재생';
+      toggle.disabled = !listen.available || !!listen.preparing;
+      const playing = !!listen.playing;
+      const label = original ? playing ? '원본 일시정지' : '원본 재생' : playing ? '일기 일시정지' : '일기 재생';
       if (toggle.getAttribute('aria-label') !== label) {
         toggle.innerHTML = icons[playing ? 'pause' : 'play']; toggle.setAttribute('aria-label', label);
       }
-      toggle.title = !original && playing ? '멈춘 뒤 다시 재생하면 현재 일기를 처음부터 읽어요' : label;
-      const next = q('[data-listen-upcoming]'), upcoming = (listen.upcoming || []).slice(0, 2);
-      const signature = JSON.stringify(upcoming);
-      if (next.dataset.value !== signature) {
-        next.dataset.value = signature; next.replaceChildren();
-        upcoming.forEach(item => {
-          const card = document.createElement('div'), day = document.createElement('span'), words = document.createElement('div'), title = document.createElement('strong'), date = document.createElement('span');
-          card.className = 'drive-upcoming-card'; day.className = 'drive-upcoming-day';
-          day.textContent = item.day || ''; title.textContent = item.title || '그날의 일기'; date.textContent = item.date || '';
-          words.append(title, date); card.append(day, words); next.append(card);
-        });
-        if (!upcoming.length) { const empty = document.createElement('p'); empty.className = 'drive-upcoming-empty'; empty.textContent = '마지막 일기예요'; next.append(empty); }
-      }
+      toggle.title = !original ? '일기는 멈춘 문장부터 이어 읽어요' : label;
+      put('[data-list-total]',listen.count?`${listen.count}개`:'');
+      window.DiaryListenList.render(q('[data-listen-upcoming]'),listen,{
+        action:handlers.action,page:handlers.page,select:handlers.select,
+      });
     }
     const notice = state.playback_notice || '';
     const error = /실패|못했|오류|상실|중단/.test(notice) ? notice : '';

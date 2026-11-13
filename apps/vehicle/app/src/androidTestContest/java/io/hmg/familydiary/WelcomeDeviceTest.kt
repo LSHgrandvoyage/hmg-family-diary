@@ -69,22 +69,22 @@ class WelcomeDeviceTest {
    ui{motion.performClick()};waitFor("D retains audio"){service.motion==Motion.DRIVING&&playback.player?.isPlaying==true}
    ui{motion.performClick()};waitFor("P retains audio"){service.motion==Motion.PARKED&&playback.player?.isPlaying==true}
    waitJs(exact,"original player visible at home","!!document.querySelector('[data-page=carhome] .parked-player') && document.querySelector('[data-player-mode]')?.textContent.includes('목소리')")
-   eval(exact,"document.querySelector('[data-player-command=togglePlayback]').click()")
+   eval(exact,"document.querySelector('[data-player-command=listenToggle]').click()")
    waitFor("pause reaches real MediaPlayer"){playback.prepared&&playback.player?.isPlaying==false}
-   eval(exact,"document.querySelector('[data-player-command=togglePlayback]').click()")
+   eval(exact,"document.querySelector('[data-player-command=listenToggle]').click()")
    waitFor("resume reaches same MediaPlayer"){playback.player?.isPlaying==true&&playback.file==file}
    for(page in listOf("carlist","carsettings","carhome")) {
     eval(exact,"window.restoreNativeView('$page',null)")
     waitJs(exact,"persistent controls on $page","document.querySelector('[data-page=$page]')?.style.visibility==='visible' && !!document.querySelector('.parked-player')")
     assertEquals(file,playback.file);assertTrue(playback.player?.isPlaying==true)
    }
-   eval(exact,"document.querySelector('[data-player-command=stopPlayback]').click()")
+   eval(exact,"document.querySelector('[data-player-command=listenExit]').click()")
    waitFor("original stops"){!playback.busy}
    ui{playback.narrateQueue(listOf(PlaybackService.NarrationItem(file,"합성 시험 문장입니다. ".repeat(30),"합성 시험 일기")))}
    waitFor("actual TTS starts"){playback.speaking}
    ui{motion.performClick();motion.performClick()}
-   waitJs(exact,"TTS bar after D/P","document.querySelector('[data-player-mode]')?.textContent.includes('일기 낭독')===true")
-   eval(exact,"document.querySelector('[data-player-command=stopPlayback]').click()")
+   waitJs(exact,"TTS bar after D/P","document.querySelector('[data-player-mode]')?.textContent.includes('일기 읽어주기')===true")
+   eval(exact,"document.querySelector('[data-player-command=listenExit]').click()")
    waitFor("TTS stop acknowledgement"){!playback.busy&&!playback.settling}
    waitJs(exact,"no ghost player","!document.querySelector('.parked-player')")
    ui{service.setSimulation(Motion.UNKNOWN)}

@@ -33,3 +33,11 @@
 - [x] 004-C044-03 `PLAY-010`: 관련 UI/Android 검증·증거·서버/APK 반영·dev 커밋.
 
 검증 근거: [C044](../../docs/evidence/c044-driving-entry-playback.md). 합성 UI·에뮬레이터 미디어 상태 검사이며 실차 허용/새 마이크 STT 정확도 검증은 아니다.
+
+## C045
+
+- [x] 004-C045-01 `PLAY-011, PLAY-012`: 요구·계획·SDK 제약과 정합성 검토.
+- [x] 004-C045-02 `PLAY-011, PLAY-012`: 소유 구현과 상태 계약 연결.
+- [x] 004-C045-03 `PLAY-011, PLAY-012`: 관련 회귀·에뮬레이터 검증·증거·실행 반영·dev 커밋.
+
+검증: [C045](../../docs/evidence/c045-listen-and-transcript.md). 합성 UI·실제 에뮬레이터 SDK 상태 검증이며 실차 허용/새 마이크 인식 정확도 검증은 아니다.

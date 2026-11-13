@@ -178,51 +178,9 @@ try {
     await expect(p.getByLabel("일기 검색어")).toHaveValue("합성 이야기 0");
     await p.getByRole("button", { name: "초기화", exact: true }).click();
     await expect(p.getByText("합성 일기 2", { exact: true })).toBeVisible();
-    if (native) {
-      const start = p.getByRole("button", {
-        name: "일기 2편 이어 듣기",
-        exact: true,
-      });
-      await expect(start).toBeEnabled();
-      await p.getByRole("button", { name: "검색", exact: true }).click();
-      await p
-        .getByLabel("기록 당시 차량 필터")
-        .selectOption({ label: "첫차 · 합성 · 시험 모델 · 2099" });
-      await p.getByRole("button", { name: "적용", exact: true }).click();
-      await p
-        .getByRole("button", { name: "일기 1편 이어 듣기", exact: true })
-        .click();
-      expect(await p.evaluate(() => (window as any).queue)).toEqual([
-        "synthetic-0.wav",
-      ]);
-      await expect(
-        p.getByRole("button", { name: "이전 일기", exact: true }),
-      ).toBeDisabled();
-      await expect(
-        p.getByRole("button", { name: "다음 일기", exact: true }),
-      ).toBeDisabled();
-      await p.getByRole("button", { name: "재생 종료", exact: true }).click();
-      await p.getByRole("button", { name: "검색", exact: true }).click();
-      await p.getByRole("button", { name: "초기화", exact: true }).click();
-      await start.click();
-      expect(await p.evaluate(() => (window as any).queue)).toEqual([
-        "synthetic-0.wav",
-        "synthetic-1.wav",
-      ]);
-      await expect(start).toBeDisabled();
-      await expect(
-        p.getByRole("button", { name: "이전 일기", exact: true }),
-      ).toBeDisabled();
-      await p.getByRole("button", { name: "다음 일기", exact: true }).click();
-      await expect(p.locator("[data-player-title]")).toContainText(
-        "합성 이야기 1",
-      );
-      await expect(
-        p.getByRole("button", { name: "다음 일기", exact: true }),
-      ).toBeDisabled();
-      await p.getByRole("button", { name: "이전 일기", exact: true }).click();
-      await expect(p.locator("[data-player-mode]")).toContainText("일기 낭독");
-    }
+    await expect(
+      p.getByRole("button", { name: /일기 \d+편 이어 듣기/ }),
+    ).toHaveCount(0);
     for (const mode of ["light", "dark"]) {
       await p.evaluate((mode) => (window as any).DiaryTheme.set(mode), mode);
       await expect(p.locator("html")).toHaveAttribute("data-theme", mode);
@@ -243,12 +201,6 @@ try {
       await p.goto(
         "https://diary-c021.test/faithful/app.html#cardetail?id=synthetic-0.wav",
       );
-      await expect(p.locator("[data-player-mode]")).toContainText("일기 낭독");
-      await p.screenshot({
-        path: "test-results/c025/c025-detail-active-dark.png",
-      });
-      await p.getByRole("button", { name: "재생 종료", exact: true }).click();
-      await expect(p.locator(".parked-player")).toBeHidden();
       // Browsing another diary must not borrow the background original's waveform position.
       await p.evaluate(() => {
         const w = window as any;
@@ -368,7 +320,7 @@ try {
   }
   await page(1280, 720, true);
   console.log(
-    "PASS vehicle playlist filtered queue, excludes drafts, newest order, previous/next boundaries/stop; light/dark 1280x720 layouts and contrast.",
+    "PASS C025 current search/filter, no obsolete bulk-listen button, playback identity, light/dark vehicle layouts and contrast. Playlist transport and pagination are covered by C045.",
   );
 } finally {
   await browser.close();

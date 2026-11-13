@@ -60,9 +60,9 @@ async function page(
             let value = w.state;
             if (r.cmd === "list") value = { items: [] };
             if (r.cmd === "settings") w.openNativeSettings();
-            if (r.cmd === "togglePlayback")
+            if (r.cmd === "listenAction" && r.action === "listenToggle")
               w.state.playback.playing = !w.state.playback.playing;
-            if (r.cmd === "stopPlayback") {
+            if (r.cmd === "listenAction" && r.action === "listenExit") {
               w.state.playback.active = false;
               w.state.tts_active = false;
               w.state.audio_memory = null;
@@ -70,7 +70,8 @@ async function page(
             }
             if (r.cmd === "driveAction" && r.action === "pause")
               w.state.paused = !w.state.paused;
-            if (r.cmd === "ttsNext") w.state.playback.title = "합성 다음 일기";
+            if (r.cmd === "listenAction" && r.action === "listenNext")
+              w.state.playback.title = "합성 다음 일기";
             setTimeout(() => w.NativeReply(r.id, value), 0);
           },
         };
@@ -234,11 +235,17 @@ try {
         recording: false,
         playback: {
           active: true,
+          memory: "synthetic.wav",
           mode: "original",
           title: "합성 바다 나들이",
           position: 42,
           duration: 120,
           playing: true,
+        },
+        driving_listen: {
+          memory: "synthetic.wav",
+          previous: false,
+          next: true,
         },
         audio_memory: "synthetic.wav",
       });
@@ -290,6 +297,7 @@ try {
         tts_next: true,
         playback: {
           active: true,
+          memory: "synthetic.wav",
           mode: "diary",
           title: "합성 가족의 하루",
           position: 12,
@@ -299,11 +307,11 @@ try {
       w.nativeStatus(w.state);
     });
     await expect(v.locator("[data-player-mode]")).toHaveText(
-      "일기 낭독 · 재생 중",
+      "일기 읽어주기 · 재생 중",
     );
     await expect(
-      v.locator('[data-player-command="togglePlayback"]'),
-    ).toBeHidden();
+      v.locator('[data-player-command="listenToggle"]'),
+    ).toBeVisible();
     await v.getByRole("button", { name: "다음 일기", exact: true }).click();
     await expect(v.locator("[data-player-title]")).toHaveText("합성 다음 일기");
     await shot(v, `parked-tts-${theme}`);

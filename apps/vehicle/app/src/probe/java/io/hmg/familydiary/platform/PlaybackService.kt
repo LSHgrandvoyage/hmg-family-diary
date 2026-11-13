@@ -24,6 +24,10 @@ import java.util.Locale
 class PlaybackService:Service() {
     data class NarrationItem(val file:File,val text:String,val title:String)
     private var queue=emptyList<NarrationItem>()
+    private var originals=emptyList<File>()
+    private var originalIndex=-1
+    var autoAdvance=false;private set
+    fun toggleAutoAdvance(){autoAdvance=!autoAdvance;emit()}
     var queueIndex=-1;private set
     val queueCount get()=queue.size
     val narrating get()=busy && queueIndex in queue.indices
@@ -127,12 +131,21 @@ class PlaybackService:Service() {
                     if(!hasFocus || motion==Motion.UNKNOWN){stop("재생할 수 없는 상태예요.");return@setOnPreparedListener}
                     prepared=true;p.seekTo(positionMs.coerceIn(0,p.duration));p.start();notice="원본 듣는 중";emit()
                 }
-                setOnCompletionListener {p->if(token==generation){val end=p.duration/1000.0;stop("원본 재생 완료");completed=end;emit()}}
+                setOnCompletionListener {p->if(token==generation){
+                    val end=p.duration/1000.0;val rows=originals;val next=originalIndex+1
+                    val advance=autoAdvance && hasFocus && motion!=Motion.UNKNOWN && originalIndex>=0 && next in rows.indices
+                    stop("원본 재생 완료");completed=end
+                    if(advance)playQueue(rows,next) else emit()
+                }}
                 setOnErrorListener {_,_,_->if(token==generation)stop("재생하지 못했어요. 원본은 보관돼 있어요.");true}
                 prepareAsync()
             }
             emit()
         }catch(_:Exception){stop("원본을 재생하지 못했어요.")}
+    }
+    fun playQueue(items:List<File>,index:Int,positionMs:Int=0){
+        require(index in items.indices && items.distinct().size==items.size)
+        play(items[index],positionMs);originals=items.toList();originalIndex=index
     }
     fun toggle(){
         val p=player?:run{toggleNarration();return}
@@ -247,7 +260,7 @@ class PlaybackService:Service() {
                 freezeClock();submitted=false
                 if(!hasFocus || motion==Motion.UNKNOWN)stop("재생할 수 없는 상태예요.")
                 else if(sentenceIndex<utterances.lastIndex){sentenceIndex++;speakCurrent(false)}
-                else if(hasNext){queueIndex++;speakCurrent()} else stop("일기 목록을 모두 들었어요.",terminal=true)
+                else if(autoAdvance && hasNext){queueIndex++;speakCurrent()} else stop("일기 목록을 모두 들었어요.",terminal=true)
             }}
             override fun onStop(){update{
                 if(pauseRequested){confirmPause();return@update}
@@ -264,7 +277,7 @@ class PlaybackService:Service() {
     }
     private val timeout=Runnable {if(busy && (!speaking || pauseRequested))stop("음성 엔진 응답이 지연돼요. 다시 시도해 주세요.")}
     fun stop(message:String="재생을 종료했어요.",terminal:Boolean=false){
-        releaseNarration(terminal);queue=emptyList();queueIndex=-1
+        releaseNarration(terminal);queue=emptyList();queueIndex=-1;originals=emptyList();originalIndex=-1
         runCatching{player?.release()};player=null;prepared=false;speaking=false;busy=stopping;ducked=false;completed=0.0
         if(::focus.isInitialized)audio.abandonAudioFocusRequest(focus);hasFocus=false
         if(::session.isInitialized)session.isActive=false

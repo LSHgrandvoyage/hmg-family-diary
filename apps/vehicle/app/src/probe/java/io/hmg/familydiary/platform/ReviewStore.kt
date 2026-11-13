@@ -36,6 +36,15 @@ data class ReviewRecord(
                 .put("text", text).put("start_ms", 0).put("end_ms", durationMs)))
             .put("user_place_corrections", JSONArray()).put("user_group_corrections", JSONArray())
     }
+    fun renameTitle(value:String):ReviewRecord {
+        val title=value.trim();require(title.length in 1..80){"제목을 1~80자로 입력해 주세요."}
+        require(accepted==revision && confirmed==revision && draftRevision==revision && draft!=null){"완성된 일기의 제목을 수정할 수 있어요."}
+        val output=JSONObject(draft);val group=output.getJSONArray("groups").getJSONObject(0)
+        if(group.optString("label")==title)return this
+        group.put("label",title)
+        val next=revision+1
+        return copy(draft=output.toString(),revision=next,confirmed=next,draftRevision=next,accepted=next)
+    }
     fun adopt(result: JSONObject): ReviewRecord {
         require(result.getString("session_id") == id && result.getInt("input_revision") == revision && confirmed == revision)
         val output = result.getJSONObject("draft")

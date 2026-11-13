@@ -103,3 +103,13 @@
 [data-listen-load-status] { font-size:16px; color:var(--muted); }
 [data-listen-load-status]:empty { display:none; }
 .drive-listen-side { min-height:0; }
+
+/* C046: active audio stays pinned; chronology and cursors remain separate. */
+.drive-autoplay { width:56px; height:56px; border-radius:18px; background:var(--surface-alt); flex-shrink:0; display:grid; place-items:center; }
+.drive-autoplay svg { width:28px; height:28px; }
+.drive-autoplay[aria-pressed="true"] { color:var(--bg); background:var(--ink); }
+.drive-active-mode { margin-top:12px; color:var(--muted); font-size:20px; }
+[data-listen-upcoming] { display:flex; flex-direction:column; overflow:hidden; gap:12px; }
+[data-listen-pinned] { flex:none; }
+[data-listen-scroll] { min-height:0; flex:1; overflow-y:auto; scrollbar-width:thin; overscroll-behavior:contain; overflow-anchor:none; }
+[data-listen-scroll] > button { min-height:52px; padding:12px; border-radius:16px; width:100%; margin:8px 0; background:var(--surface-alt); font-size:18px; }

@@ -13,7 +13,7 @@ import org.junit.Test
 import java.io.File
 import java.util.UUID
 
-/** C045: cache-only synthetic diaries; never a discoverable or uploaded family recording. */
+/** C046: cache-only synthetic diaries; never a discoverable or uploaded family recording. */
 class DrivingListenDeviceTest {
  @Test fun pagesAndSentencePausePreserveSameMemory() {
   val i=InstrumentationRegistry.getInstrumentation();val ctx=i.targetContext
@@ -27,7 +27,7 @@ class DrivingListenDeviceTest {
    waitFor("services"){get("initialized")==true&&get("recordingService")!=null&&get("playbackService")!=null}
    val service=get("playbackService") as PlaybackService;val recording=get("recordingService") as RecordingService
    assumeTrue("Never interrupt user's media",!service.busy&&!recording.capture.busy)
-   val prefix="c045-${UUID.randomUUID()}"
+   val prefix="c046-${UUID.randomUUID()}"
    repeat(41){index->
     val bytes=if(index==20)1920000 else 3200
     val f=File(ctx.cacheDir,"$prefix-${index.toString().padStart(2,'0')}.wav").apply{writeBytes(PcmWave.header(bytes.toLong())+ByteArray(bytes))};files.add(f)
@@ -40,28 +40,50 @@ class DrivingListenDeviceTest {
    val listen=MainActivity::class.java.getDeclaredMethod("drivingListen",String::class.java,String::class.java).apply{isAccessible=true}
    val page=MainActivity::class.java.getDeclaredMethod("listenPage",JSONObject::class.java).apply{isAccessible=true}
    fun action(name:String,id:String="")=ui{listen.invoke(a,name,id)}
-   ui{recording.setSimulation(Motion.PARKED);(get("consent") as CheckBox).isChecked=true;(get("parked") as CheckBox).isChecked=true;field("drivingDiaryRows").set(a,files.toList());select.invoke(a,files[20])}
+   ui{recording.setSimulation(Motion.PARKED);(get("consent") as CheckBox).isChecked=true;(get("parked") as CheckBox).isChecked=true;field("drivingDiaryRows").set(a,files.reversed());select.invoke(a,files[20])}
    var result=JSONObject();ui{result=page.invoke(a,JSONObject()) as JSONObject}
-   assertEquals(17,result.getJSONArray("items").length());assertEquals(files[12].name,result.getJSONArray("items").getJSONObject(0).getString("id"))
+   assertEquals(17,result.getJSONArray("items").length());assertEquals(files[28].name,result.getJSONArray("items").getJSONObject(0).getString("id"))
    assertFalse(result.toString().contains("statements"));assertFalse(result.toString().contains("snapshot"))
    val version=result.getInt("version")
-   ui{result=page.invoke(a,JSONObject().put("direction","after").put("cursor",files[28].name).put("version",version)) as JSONObject}
-   assertEquals(8,result.getJSONArray("items").length());assertEquals(files[29].name,result.getJSONArray("items").getJSONObject(0).getString("id"))
+   ui{result=page.invoke(a,JSONObject().put("direction","after").put("cursor",files[12].name).put("version",version)) as JSONObject}
+   assertEquals(8,result.getJSONArray("items").length());assertEquals(files[11].name,result.getJSONArray("items").getJSONObject(0).getString("id"))
    ui{result=page.invoke(a,JSONObject().put("direction","before").put("cursor","removed.wav").put("version",version)) as JSONObject}
    assertTrue(result.getBoolean("reset"));assertEquals(17,result.getJSONArray("items").length())
+   // Renaming keeps audio/text/source evidence, promotes revision atomically, and persists.
+   val original=store.load(files[20]);val renamed=original.renameTitle("합성 가족의 새 제목")
+   assertEquals(original.revision+1,renamed.revision);assertEquals(renamed.revision,renamed.accepted);assertEquals(renamed.revision,renamed.confirmed);assertEquals(renamed.revision,renamed.draftRevision)
+   assertEquals(original.text,renamed.text);assertEquals(original.rawHistory,renamed.rawHistory);assertEquals(original.sha256,renamed.sha256);assertEquals(original.speechTimeline,renamed.speechTimeline)
+   assertEquals(original.draft?.let{JSONObject(it).getJSONArray("groups").getJSONObject(0).getJSONArray("statements").toString()},JSONObject(renamed.draft!!).getJSONArray("groups").getJSONObject(0).getJSONArray("statements").toString())
+   store.save(renamed);assertEquals(renamed,store.load(files[20]));assertTrue(runCatching{renamed.renameTitle(" ")}.isFailure)
+   // Keep ReviewPanel in step with the fixture edited by this test.
+   ui{(get("review") as ReviewPanel).select(null);(get("review") as ReviewPanel).select(files[20],renamed)}
+   assertFalse(service.autoAdvance)
    own=true;action("listenToggle")
    waitFor("second sentence actually speaking"){service.speaking&&service.sentenceIndex==1}
    action("listenToggle");waitFor("pause acknowledged"){service.narrationPaused&&!service.speaking&&!service.settling}
    val sentence=service.sentenceIndex;val elapsed=service.narrationElapsed
    Thread.sleep(250);assertEquals(sentence,service.sentenceIndex);assertEquals(elapsed,service.narrationElapsed,0.01)
    action("listenToggle");waitFor("same sentence resumes"){service.speaking&&service.sentenceIndex==sentence};assertEquals(files[20],service.file)
-   action("listenOriginal");waitFor("same original after acknowledged stop"){service.player?.isPlaying==true};assertEquals(files[20],service.file)
+   action("listenOriginal");Thread.sleep(150)
+   assertTrue(service.narrating);assertEquals(files[20],service.file);assertEquals("diary",get("activeListenMode"))
+   action("listenSelect",files[20].name);waitFor("explicit same original after acknowledged stop"){service.player?.isPlaying==true};assertEquals(files[20],service.file)
+   action("listenDiary");Thread.sleep(150);assertTrue(service.player?.isPlaying==true);assertEquals("original",get("activeListenMode"))
    action("listenToggle");waitFor("original paused"){service.prepared&&service.player?.isPlaying==false}
-   action("listenNext");waitFor("paused next selected without auto play"){get("selected")==files[21]&&!service.busy}
+   action("listenNext");waitFor("paused next selected without auto play"){get("selected")==files[19]&&!service.busy}
    action("listenDiary");waitFor("paused mode change"){get("drivingListenMode")=="diary"&&!service.busy}
    action("listenSelect",files[20].name);waitFor("explicit selection starts TTS"){service.file==files[20]&&service.speaking}
    action("listenExit");waitFor("explicit stop acknowledged"){!service.busy&&!service.settling}
    Thread.sleep(300);assertFalse(service.speaking);assertFalse(service.narrationPaused)
+   // Both media types stop at one item by default, and only advance when opted in.
+   ui{service.playQueue(listOf(files[1],files[2]),0)}
+   waitFor("single original completes"){!service.busy};assertEquals(files[1],service.file)
+   ui{service.narrateQueue(listOf(PlaybackService.NarrationItem(files[1],"하나.","하나"),PlaybackService.NarrationItem(files[2],"둘.","둘")))}
+   waitFor("single TTS completes"){!service.busy};assertEquals(files[1],service.file)
+   action("listenAutoplay");assertTrue(service.autoAdvance)
+   ui{service.playQueue(listOf(files[1],files[2]),0)}
+   waitFor("original queue completes without loop"){!service.busy&&service.file==files[2]}
+   ui{service.narrateQueue(listOf(PlaybackService.NarrationItem(files[1],"하나.","하나"),PlaybackService.NarrationItem(files[2],"둘.","둘")))}
+   waitFor("TTS queue completes without loop"){!service.busy&&service.file==files[2]}
    ui{recording.setSimulation(Motion.UNKNOWN)}
    assertFalse(service.busy)
    ui{recording.setSimulation(Motion.PARKED)}

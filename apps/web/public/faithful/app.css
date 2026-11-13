@@ -816,7 +816,6 @@ body.vehicle .library-listen {
   opacity: 0.45;
 }
 
-.tts-active [data-narrate],
 .tts-active .playback-wave,
 .tts-active [data-time],
 .tts-active [data-playback-notice] {

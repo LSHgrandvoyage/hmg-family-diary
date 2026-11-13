@@ -106,6 +106,19 @@ describe("timeline through the complete sync snapshot", () => {
       snapshot(JSON.parse(JSON.stringify(saved)), "synthetic-timeline"),
     ).toEqual(saved);
   });
+  it("accepts a title-only completed revision without losing original source evidence", async () => {
+    const before = snapshot({ ...(await fixture()), speech_timeline: valid }, "synthetic-timeline");
+    const draft = JSON.parse(before.draft);
+    draft.groups[0].label = "가족과 함께한 봄날";
+    const after = snapshot({ ...before, revision: 3, confirmed: 3, accepted: 3, draft_revision: 3, draft }, "synthetic-timeline");
+    expect(JSON.parse(after.draft).groups[0].label).toBe("가족과 함께한 봄날");
+    expect(after.sha256).toBe(before.sha256);
+    expect(after.text).toBe(before.text);
+    expect(after.raw_history).toEqual(before.raw_history);
+    expect(after.speech_timeline).toEqual(before.speech_timeline);
+    expect(JSON.parse(after.draft).groups[0].statements).toEqual(JSON.parse(before.draft).groups[0].statements);
+    expect(() => snapshot({ ...after, accepted: 2 }, "synthetic-timeline")).toThrow();
+  });
   it("does not alter legacy canonical snapshots with a new null field", async () => {
     const saved = snapshot(await fixture(), "synthetic-timeline");
     expect(Object.hasOwn(saved, "speech_timeline")).toBe(false);

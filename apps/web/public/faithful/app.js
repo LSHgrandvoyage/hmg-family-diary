@@ -472,6 +472,17 @@
       d.close();
       return edit(m);
     });
+    if (native && m.saved) button(d, "제목 수정", () => {
+      d.close();
+      const editTitle=dialog("제목 수정", "");
+      const label=document.createElement("label"), input=document.createElement("input");
+      label.textContent="일기 제목";input.value=title(m);input.maxLength=80;label.append(input);editTitle.append(label);
+      button(editTitle,"저장",async()=>{
+        const value=input.value.trim();if(!value||value.length>80)throw Error("제목을 1~80자로 입력해 주세요.");
+        await bridge("renameDiary",{memoryId:m.id,revision:m.revision,title:value});editTitle.close();await render();
+      },true);
+      button(editTitle,"취소",()=>editTitle.close());input.focus();input.select();
+    });
     if (native && m.saved && vehicleState.paired && m.sync_status === "pending")
       button(d, "동기화 다시 시도", () => {
         d.close();
@@ -1663,6 +1674,14 @@
   // One parked player is mounted after each screen is filled, including home/settings.
   function playlistControls(parent) {}
   function updatePlaylist(state) {
+    const narration = app.querySelector("[data-narrate]");
+    if (narration) {
+      const active=state.playback?.active && state.playback.memory===selected && state.playback.mode==="diary";
+      tail(narration, active && state.playback.playing ? "일기 일시정지" : active && state.playback.paused ? "일기 이어 읽기" : "일기 읽어주기");
+      narration.disabled=!!state.playback?.settling || !!state.playback?.preparing;
+      narration.title="일기는 멈춘 문장부터 이어 읽어요";
+    }
+
     app.classList.toggle("tts-active", native && !!state.tts_active);
     if (native && !state.driving && app.firstElementChild)
       window.DiaryParkedPlayer?.render(app.firstElementChild, state, {
@@ -1836,11 +1855,10 @@
     C(voice)[2].dataset.playLabel = "true";
     action(C(voice)[2], () => toggle(m));
     C(voice)[3].dataset.narrate = "true";
-    action(C(voice)[3], () =>
-      bridge(vehicleState.narrating ? "stopPlayback" : "tts", {
-        memoryId: m.id,
-      }),
-    );
+    action(C(voice)[3], async () => {
+      await bridge("tts", {memoryId:m.id});
+      window.nativeStatus(await bridge("state"));
+    });
     const playbackNotice = document.createElement("p");
     playbackNotice.dataset.playbackNotice = "true";
     playbackNotice.setAttribute("role", "status");
@@ -1988,9 +2006,6 @@
     app
       .querySelectorAll("[data-sync-state]")
       .forEach((el) => tail(el, syncLabel()));
-    const narration = app.querySelector("[data-narrate]");
-    if (narration)
-      tail(narration, state.narrating ? "읽어 주기 중지" : "일기 읽어 주기");
     const notice = app.querySelector("[data-playback-notice]");
     if (notice) text(notice, state.playback_notice || "");
     if (state.recording && !lastRecording) levels.fill(0);

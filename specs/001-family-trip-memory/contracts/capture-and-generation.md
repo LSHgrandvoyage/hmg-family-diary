@@ -155,3 +155,7 @@ mock-static-notice-v2는 단일 그룹/단일 shared placeholder statement로 `A
 
 ### C035 심사용 로컬 목업
 contest flavor는 mock-static-notice-v2와 동일한 응답 계약을 앱 내부에서 만든다. generation_mode=mock, 현재 session_id/input_revision과 모든 utterance source_spans를 보존한다. 비동기 callback 취소와 stale revision 방어는 기존 ReviewPanel/ReviewRecord 계약을 따른다.
+
+## C046 — 생성 제목의 사용자 수정
+
+완성 일기의 표시 제목은 `draft.groups[0].label`이다. 주차 차량 `renameDiary(memoryId, revision, title)`에서 expected revision과 idle 상태를 확인하고 1~80자의 제목을 저장한다. 원본/인식문/본문/발언 타임라인을 유지하며 revision/confirmed/draft_revision/accepted를 함께 증가시킨다. 기존003 outbox/snapshot 계약으로 자동 동기화하며 제목 수정이 외부 AI 요청을 만들지 않는다. 오래된 revision/미완성/주행 요청은 거부한다.

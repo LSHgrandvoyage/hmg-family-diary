@@ -15,3 +15,8 @@
 .parked-player-modes [aria-pressed="true"] { color:var(--bg); background:var(--ink); }
 .parked-player button[data-player-command="listenToggle"] { background:var(--ink); color:var(--bg); }
 .parked-player button[data-player-command="listenExit"] { width:48px; background:transparent; color:var(--muted); }
+
+.parked-player button[data-player-command="listenAutoplay"][aria-pressed="true"] { background:var(--ink); color:var(--bg); }
+.parked-player-actions { gap:8px; }
+.parked-player { gap:12px; padding:14px 16px; }
+.parked-player-modes button { padding:0 8px; }

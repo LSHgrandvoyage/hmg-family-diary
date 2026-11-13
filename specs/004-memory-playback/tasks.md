@@ -41,3 +41,11 @@
 - [x] 004-C045-03 `PLAY-011, PLAY-012`: 관련 회귀·에뮬레이터 검증·증거·실행 반영·dev 커밋.
 
 검증: [C045](../../docs/evidence/c045-listen-and-transcript.md). 합성 UI·실제 에뮬레이터 SDK 상태 검증이며 실차 허용/새 마이크 인식 정확도 검증은 아니다.
+
+## C046
+
+- [x] 004-C046-01 `PLAY-003, PLAY-004, PLAY-011, PLAY-012, PLAY-013, PLAY-014`: 수용 조건·계획·정합성 검토.
+- [x] 004-C046-02 `PLAY-003, PLAY-004, PLAY-011, PLAY-012, PLAY-013, PLAY-014`: 구현과 상태 계약 연결.
+- [x] 004-C046-03 `PLAY-003, PLAY-004, PLAY-011, PLAY-012, PLAY-013, PLAY-014`: 관련 회귀·에뮬레이터·증거·실행 반영·dev 커밋.
+
+검증: [C046](../../docs/evidence/c046-explicit-playback.md). 합성 UI·SDK 에뮬레이터·서버 snapshot 경계이며 실제 휴대폰 제목 전송/실차 허용은 별도다.

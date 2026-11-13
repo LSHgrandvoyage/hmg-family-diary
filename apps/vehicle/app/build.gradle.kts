@@ -7,8 +7,8 @@ android {
         applicationId = "io.hmg.familydiary"
         minSdk = 28
         targetSdk = 35
-        versionCode = 8
-        versionName = "0.2.7"
+        versionCode = 9
+        versionName = "0.2.8"
         buildConfigField("boolean", "EMULATOR_BENCH", "false")
         buildConfigField("boolean", "LOCAL_MOCK", "false")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

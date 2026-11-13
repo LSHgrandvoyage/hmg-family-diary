@@ -1091,9 +1091,34 @@ body.vehicle .theme-notice {
   padding: 36px 16px 24px;
   background: var(--surface);
 }
-.settings-rail strong {
-  font-size: 20px;
+.settings-rail .vehicle-brand {
+  display: block;
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  object-fit: contain;
   margin-bottom: 16px;
+}
+.mobile-library-header {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.mobile-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.mobile-brand img {
+  display: block;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+.mobile-library-header > .theme-shortcut {
+  margin-left: auto;
 }
 .settings-rail a {
   display: flex;

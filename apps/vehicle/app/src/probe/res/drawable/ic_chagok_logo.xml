@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Exact geometry from faithful/brand/chagok-logo.svg; keep brand colors in both themes. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="64dp" android:height="64dp" android:viewportWidth="256" android:viewportHeight="256">
+    <path android:fillColor="#0B0D12" android:pathData="M58,0 H198 A58,58 0,0 1,256,58 V198 A58,58 0,0 1,198,256 H58 A58,58 0,0 1,0,198 V58 A58,58 0,0 1,58,0 Z" />
+    <path android:fillColor="#F2F4F8" android:pathData="M52,120 H52 A16,16 0,0 1,68,136 V154 A16,16 0,0 1,52,170 H52 A16,16 0,0 1,36,154 V136 A16,16 0,0 1,52,120 Z" />
+    <path android:fillColor="#F2F4F8" android:pathData="M100,78 H118 A26,26 0,0 1,144,104 V144 A26,26 0,0 1,118,170 H100 A26,26 0,0 1,74,144 V104 A26,26 0,0 1,100,78 Z" />
+    <path android:fillColor="#F2F4F8" android:pathData="M166,100 H166 A16,16 0,0 1,182,116 V154 A16,16 0,0 1,166,170 H166 A16,16 0,0 1,150,154 V116 A16,16 0,0 1,166,100 Z" />
+    <path android:fillColor="#F2F4F8" android:pathData="M204,120 H204 A16,16 0,0 1,220,136 V154 A16,16 0,0 1,204,170 H204 A16,16 0,0 1,188,154 V136 A16,16 0,0 1,204,120 Z" />
+    <path android:fillColor="#0B0D12" android:pathData="M90.5,108 A5.5,5.5 0,1 0,101.5,108 A5.5,5.5 0,1 0,90.5,108 Z" />
+    <path android:fillColor="#0B0D12" android:pathData="M116.5,108 A5.5,5.5 0,1 0,127.5,108 A5.5,5.5 0,1 0,116.5,108 Z" />
+    <path android:fillColor="#00000000" android:pathData="M101 121q8 8 16 0" android:strokeColor="#0B0D12" android:strokeWidth="4" android:strokeLineCap="round" />
+    <path android:fillColor="#0B0D12" android:pathData="M47,178 A23,23 0,1 0,93,178 A23,23 0,1 0,47,178 Z" />
+    <path android:fillColor="#0B0D12" android:pathData="M163,178 A23,23 0,1 0,209,178 A23,23 0,1 0,163,178 Z" />
+    <path android:fillColor="#FF6A4D" android:pathData="M54,178 A16,16 0,1 0,86,178 A16,16 0,1 0,54,178 Z" />
+    <path android:fillColor="#FF6A4D" android:pathData="M170,178 A16,16 0,1 0,202,178 A16,16 0,1 0,170,178 Z" />
+    <path android:fillColor="#0B0D12" android:pathData="M65,178 A5,5 0,1 0,75,178 A5,5 0,1 0,65,178 Z" />
+    <path android:fillColor="#0B0D12" android:pathData="M181,178 A5,5 0,1 0,191,178 A5,5 0,1 0,181,178 Z" />
+</vector>

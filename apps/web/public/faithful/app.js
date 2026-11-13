@@ -764,6 +764,17 @@
     const month = clone(C(list)[0]),
       card = clone(C(list)[1]);
     list.classList.add("mobile-memory-list");
+    const header = head.firstElementChild;
+    header.classList.add("mobile-library-header");
+    const brand = header.firstElementChild;
+    brand.className = "mobile-brand";
+    const logo = document.createElement("img");
+    logo.src = "brand/chagok-logo.svg";
+    logo.alt = "";
+    logo.width = logo.height = 32;
+    const name = document.createElement("span");
+    name.textContent = "차곡차곡";
+    brand.replaceChildren(logo, name);
     head.querySelector("h1")?.parentElement.remove();
     const tools = document.createElement("div");
     tools.className = "library-tools";

@@ -27,7 +27,7 @@ try {
   });
   await p.goto('https://c032.test/faithful/app.html#carhome');
   await expect(p.locator('[data-driving-surface]')).toBeVisible();
-  await expect(p.locator('[data-live-transcript], [data-review-text], img')).toHaveCount(0);
+  await expect(p.locator('[data-live-transcript], [data-review-text], img:not(.vehicle-brand)')).toHaveCount(0);
   await expect(p.locator('[data-drive-primary]')).toHaveText(/녹음 시작/);
   await expect(p.locator('nav a[aria-disabled="true"]')).toHaveCount(3);
   await p.screenshot({path:`docs/evidence/connected-ui/c032-driving-idle-${dark?'dark':'light'}.png`});

@@ -15,7 +15,7 @@
     '<rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/>',
   );
   window.DiaryVehicleRail = `    <nav class="settings-rail" aria-label="차량 메뉴">
-      <strong>차곡</strong>
+      <img class="vehicle-brand" src="brand/chagok-logo.svg" alt="차곡차곡" width="56" height="56">
       <a href="CarHome.dc.html">${mic}<span>녹음</span></a>
       <a href="CarList.dc.html">${book}<span>일기</span></a>
       <a href="#">${sliders}<span>설정</span></a>

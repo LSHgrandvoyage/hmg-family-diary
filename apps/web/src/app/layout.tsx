@@ -3,7 +3,8 @@ import "./styles.css";
 import "./chagok.css";
 import "./appearance.css";
 export const metadata: Metadata = {
-  title: "차곡",
+  title: "차곡차곡",
+  icons: { icon: "/faithful/brand/chagok-logo.svg" },
   description: "함께한 날의 이야기와 목소리를 다시 만나는 가족 일기",
 };
 export default function Layout({ children }: { children: React.ReactNode }) {

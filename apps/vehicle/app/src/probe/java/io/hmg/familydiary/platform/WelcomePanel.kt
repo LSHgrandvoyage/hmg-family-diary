@@ -4,6 +4,7 @@ import android.content.Context
 import android.view.Gravity
 import android.view.View
 import android.widget.*
+import io.hmg.familydiary.R
 
 /** Product entry only. Vehicle simulation and permissions remain owned by MainActivity. */
 class WelcomePanel(
@@ -32,10 +33,10 @@ class WelcomePanel(
         addView(page)
         val header = ui.row()
         val mark = ImageView(context).apply {
-            setImageDrawable(NavigationIcon(0, ui.coral))
+            setImageResource(R.drawable.ic_chagok_logo)
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
         }
-        header.addView(mark, LinearLayout.LayoutParams(ui.dp(32), ui.dp(32)).apply { marginEnd=ui.dp(12) })
+        header.addView(mark, LinearLayout.LayoutParams(ui.dp(40), ui.dp(40)).apply { marginEnd=ui.dp(12) })
         header.addView(ui.text("차곡차곡", 24f, true), LinearLayout.LayoutParams(0, -2, 1f))
         theme.textSize=16f;theme.minimumHeight=ui.dp(48)
         header.addView(theme, LinearLayout.LayoutParams(-2, ui.dp(52)))

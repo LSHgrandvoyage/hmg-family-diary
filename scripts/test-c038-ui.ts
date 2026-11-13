@@ -97,7 +97,7 @@ try {
     await p.goto("https://c038.test/faithful/app.html#carhome");
     await expect(p.locator("[data-driving-surface]")).toBeVisible();
     await expect(
-      p.locator("[data-live-transcript], [data-review-text], img"),
+      p.locator("[data-live-transcript], [data-review-text], img:not(.vehicle-brand)"),
     ).toHaveCount(0);
     await expect(p.locator("[data-drive-primary]")).toHaveText(/녹음 시작/);
     await expect(p.locator('nav a[aria-disabled="true"]')).toHaveCount(3);

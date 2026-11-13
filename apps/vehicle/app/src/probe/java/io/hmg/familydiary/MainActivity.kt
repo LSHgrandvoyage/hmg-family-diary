@@ -314,7 +314,10 @@ class MainActivity : Activity() {
         val wide = resources.configuration.screenWidthDp >= 850
         val shell = LinearLayout(this).apply { orientation = if (wide) LinearLayout.HORIZONTAL else LinearLayout.VERTICAL; background=ui.shape(ui.bg,0) }
         val rail = ui.column().apply { setPadding(ui.dp(12), ui.dp(28), ui.dp(12), ui.dp(20)); background=ui.shape(ui.surface,0) }
-        ui.add(rail, ui.text("차곡", 22f, true).apply { gravity = Gravity.CENTER })
+        rail.addView(ImageView(this).apply {
+            setImageResource(R.drawable.ic_chagok_logo)
+            contentDescription = "차곡차곡"
+        }, LinearLayout.LayoutParams(ui.dp(56), ui.dp(56)).apply { gravity = Gravity.CENTER_HORIZONTAL })
         val navParent = if (wide) rail else ui.row().also { ui.add(rail, it, 12) }
         navigation = listOf(
             ui.button("일기") { navigate(Screen.LIBRARY) }.apply { contentDescription = "이야기 보관함" },

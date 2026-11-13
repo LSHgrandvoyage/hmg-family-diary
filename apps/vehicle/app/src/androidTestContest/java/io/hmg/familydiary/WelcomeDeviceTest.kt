@@ -25,7 +25,9 @@ class WelcomeDeviceTest {
   fun waitFor(label:String,test:()->Boolean) {val end=System.currentTimeMillis()+15000;while(System.currentTimeMillis()<end){var ok=false;ui{ok=test()};if(ok)return;Thread.sleep(40)};fail(label)}
   fun eval(js:String):String {val done=CountDownLatch(1);var result="";ui{(field("exact") as WebView).evaluateJavascript(js){result=it;done.countDown()}};assertTrue(done.await(5,TimeUnit.SECONDS));return result}
   fun waitJs(label:String,js:String) {val end=System.currentTimeMillis()+15000;while(System.currentTimeMillis()<end){if(eval(js)=="true")return;Thread.sleep(70)};fail(label+": "+eval("document.body.innerText"))}
-  fun shot(name:String) {i.waitForIdleSync();Thread.sleep(250);ParcelFileDescriptor.AutoCloseInputStream(i.uiAutomation.executeShellCommand("screencap -p /data/local/tmp/$name.png")).use{it.readBytes()}}
+  val shotPrefix=InstrumentationRegistry.getArguments().getString("screenshotPrefix") ?: "c039"
+  fun shot(name:String) {i.waitForIdleSync();Thread.sleep(250);ParcelFileDescriptor.AutoCloseInputStream(i.uiAutomation.executeShellCommand("screencap -p /data/local/tmp/${name.replace("c039",shotPrefix)}.png")).use{it.readBytes()}}
+  assertTrue("Adaptive app launcher icon",ctx.packageManager.getApplicationIcon(ctx.packageName) is android.graphics.drawable.AdaptiveIconDrawable)
   val originalTheme=VehicleTheme.mode(ctx)
   try {
    waitFor("services ready"){field("initialized")==true && field("recordingService")!=null && field("playbackService")!=null}
@@ -58,6 +60,7 @@ class WelcomeDeviceTest {
    waitFor("parked home"){service.consent && service.motion==Motion.PARKED && (field("exact") as View).isShown && motion.isShown}
    assertFalse(service.capture.busy)
    waitJs("rendered recording home","document.querySelector('[data-page=carhome]')?.style.visibility === 'visible' && document.body.innerText.includes('녹음')")
+   waitJs("Local SVG asset loaded in actual WebView","(()=>{const e=document.querySelector('.vehicle-brand');return e?.complete && e.naturalWidth===1024 && e.naturalHeight===1024})()")
    shot("c039-entered-home")
    ui{motion.performClick()};waitFor("driving"){service.motion==Motion.DRIVING}
    waitJs("driving surface","!!document.querySelector('[data-driving-surface]')")

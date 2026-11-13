@@ -54,7 +54,7 @@ class ExactDiaryView(context: Context, private val command: (JSONObject, (JSONOb
                         val file=photo(parts[1],parts[2])?:return denied()
                         WebResourceResponse("image/jpeg",null,200,"OK",mapOf("Cache-Control" to "no-store"),file.inputStream())
                     }else{
-                        val mime=when{path.endsWith(".html")->"text/html";path.endsWith(".js")->"text/javascript";path.endsWith(".css")->"text/css";path.endsWith(".woff2")->"font/woff2";else->return denied()}
+                        val mime=when{path.endsWith(".html")->"text/html";path.endsWith(".js")->"text/javascript";path.endsWith(".css")->"text/css";path.endsWith(".svg")->"image/svg+xml";path.endsWith(".woff2")->"font/woff2";else->return denied()}
                         WebResourceResponse(mime,"UTF-8",context.assets.open(path))
                     }
                 }.getOrElse { denied() }

@@ -6,7 +6,7 @@
 
 ## 파일 구성
 
-- `apk/새벽개발팸_차곡차곡_release.apk`: 실행 가능한 release 빌드. 패키지 `io.hmg.familydiary.contest`, 버전0.2.3. 디버깅 비활성, 별도 전용 키 서명.
+- `apk/새벽개발팸_차곡차곡_release.apk`: 실행 가능한 release 빌드. 패키지 `io.hmg.familydiary.contest`, 버전0.2.4. 디버깅 비활성, 별도 전용 키 서명.
 - `source/`: 해당 커밋의 소스, Docker 실행 설정, 개발·검증 문서.
 - `manifest.json`, `SHA256SUMS.txt`: 소스 커밋, 빌드 환경, APK/소스 무결성 정보.
 - `검증결과.md`: 실제 실행 범위와 미검증 사항.
@@ -142,3 +142,11 @@ Windows 업데이트는 기존 source 폴더에 새 소스를 덮어쓰되 `.env
 기능 정본은 `source/specs/README.md`의8개 디렉터리에서 확인합니다. 기존 단일 명세는 사후 정리 이력으로 보존했고 새 기능은 spec/plan/tasks/검증 근거를 연결합니다.0.2.2의 원본 전송 복구와 단일 주행 플레이어도 포함합니다.
 
 기존0.2.2 테스트 앱은 새 APK를 `install -r`로 덮어 설치합니다.0.2.0/0.2.1에서 올리는 경우 원본 길이 검증 수정이 서버에도 반영되도록 새 source를 적용하고 `node .\scripts\team-test.mjs up`으로 재빌드합니다. `.env.team`·`.tools/team`·Docker 볼륨과 앱 데이터를 유지합니다.
+
+## 0.2.4 차곡차곡 로고 적용
+
+사용자 제공 로고를 Android 실행 아이콘·초기 안내, 차량 왼쪽 메뉴, 모바일 보관함 상단에 적용했습니다. 모바일 앱 이름은 차곡차곡으로 표시합니다. 라이트·다크에서도 원본 색상과 비율을 유지합니다.
+
+기존0.2.3 앱은 새 APK를 `install -r`로 덮어 설치하면 연결·기록을 유지합니다. 모바일은 이번 source로 서버를 재빌드한 뒤 새로고침합니다(Windows 팀 환경: `node .\scripts\team-test.mjs up`). 앱 아이콘이 런처의 최근 앱 칸에 이전 모양으로 남으면 앱 목록을 다시 열어 확인합니다. 앱 데이터나 Docker 볼륨을 삭제할 필요는 없습니다.
+
+검증 범위: 독립 headless 웹, macOS의 공식 Pleos 에뮬레이터. Windows/실차 확인은 별도입니다. 세부 근거는 `검증결과.md`와 `source/docs/evidence/c041-brand-logo.md`에 있습니다.

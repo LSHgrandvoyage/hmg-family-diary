@@ -12,7 +12,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.car.permission.CAR_POWERTRAIN" />
-    <application android:label="차곡차곡" android:icon="@drawable/ic_family_diary" android:forceDarkAllowed="false" android:networkSecurityConfig="@xml/contest_network_security" tools:replace="android:label">
+    <application android:label="차곡차곡" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher" android:forceDarkAllowed="false" android:networkSecurityConfig="@xml/contest_network_security" tools:replace="android:label">
         <activity android:name=".MainActivity" android:configChanges="uiMode" />
         <service android:name=".platform.RecordingService" android:exported="false" android:foregroundServiceType="microphone" />
         <service android:name=".platform.SyncUploadJob" android:exported="true" android:permission="android.permission.BIND_JOB_SERVICE" />

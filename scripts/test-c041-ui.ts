@@ -140,10 +140,10 @@ try {
           w.nativeStatus(w.state);
         });
         await expect(p.locator("[data-driving-surface]")).toBeVisible();
-        await checkLogo(".vehicle-brand");
+        await checkLogo(".drive-brand img");
         await expect(
           p.locator(
-            "[data-driving-surface] img:not(.vehicle-brand), [data-live-transcript], [data-review-text]",
+            "[data-driving-surface] img:not(.drive-brand img), [data-live-transcript], [data-review-text]",
           ),
         ).toHaveCount(0);
         await p.screenshot({ path: `test-results/c041/driving-${theme}.png` });

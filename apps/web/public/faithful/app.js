@@ -758,7 +758,7 @@
     });
     return [...groups];
   }
-  function fillMobileList(root) {
+  async function fillMobileList(root) {
     const head = C(root)[0],
       list = C(root)[1];
     const month = clone(C(list)[0]),
@@ -820,14 +820,11 @@
       );
       list.append(p);
     }
-    tail(
-      head.querySelector("a"),
-      items.length
-        ? items.some((m) => !m.audio_ready)
-          ? "원본 전송 대기"
-          : "차량과 동기화됨"
-        : "차량 연결하기",
-    );
+    const devices = await api("devices");
+    if (!root.isConnected) return;
+    deviceFingerprint = JSON.stringify(devices.devices);
+    const connected = activeDevice(devices.devices);
+    tail(head.querySelector("a"), connected ? "연결됨" : "차량 연결하기");
   }
   let photoUploading = false;
   function photoFeedback(message, busy) {
@@ -1476,13 +1473,18 @@
     updateAudio();
   }
   let deviceFingerprint = "";
+  let connectionExpiryTimer;
+  const activeDevice = (devices) => devices.find(
+    (x) => !x.revoked_at && Date.parse(x.expires_at) > Date.now(),
+  );
   async function fillConnect(root) {
     const [top, intro, card, steps, footer] = C(root);
     const data = await api("devices");
     deviceFingerprint = JSON.stringify(data.devices);
-    const active = data.devices.find(
-      (x) => !x.revoked_at && Date.parse(x.expires_at) > Date.now(),
-    );
+    const active = activeDevice(data.devices);
+    clearTimeout(connectionExpiryTimer);
+    root.classList.add("connection-page");
+    root.dataset.connected = String(!!active);
     const identity = C(card)[1],
       digits = C(card)[2];
     text(C(identity)[0], active?.label || "우리 집 차");
@@ -1505,13 +1507,36 @@
     );
     digits.removeAttribute("aria-label");
     digits.removeAttribute("role");
-    tail(
-      C(C(steps)[1])[1],
-      "대화가 글로 바뀌어요. 확인한 내용으로 일기를 만들어요.",
-    );
+    if (active) digits.remove();
+    const showSteps = (issued) => {
+      steps.replaceChildren();
+      steps.classList.add("connection-steps");
+      if (active) { steps.remove(); return; }
+      const list = document.createElement("ol");
+      list.setAttribute("aria-label", "차량 연결 순서");
+      const copy = [
+        ["휴대폰에서 코드 만들기", issued ? "연결 코드가 준비됐어요." : "아래 버튼을 눌러 6자리 코드를 받아요."],
+        ["차량에 코드 입력하기", "차량 설정 → 휴대폰 연결하기에서 입력해요."],
+        ["연결 완료 확인하기", "이 화면이 ‘차량과 연결됐어요’로 바뀌면 완료예요."],
+      ];
+      copy.forEach(([heading, body], i) => {
+        const row = document.createElement("li"), mark = document.createElement("span"), words = document.createElement("div");
+        row.dataset.step = issued && i === 0 ? "done" : i === (issued ? 1 : 0) ? "current" : "next";
+        if (row.dataset.step === "current") row.setAttribute("aria-current", "step");
+        mark.className = "connection-step-mark";
+        mark.textContent = issued && i === 0 ? "✓" : String(i + 1);
+        mark.setAttribute("aria-hidden", "true");
+        const title = document.createElement("strong"), detail = document.createElement("p");
+        title.textContent = heading; detail.textContent = body;
+        words.append(title, detail); row.append(mark, words); list.append(row);
+      });
+      steps.append(list);
+    };
+    showSteps(false);
     const [primary, secondary] = C(footer);
     text(primary, active ? "연결 차량 관리" : "차량 연결 코드 만들기");
-    text(secondary, active ? "보관함으로" : "다시 확인");
+    if (active) secondary.remove();
+    else text(secondary, "다시 확인");
     action(primary, async () => {
       if (active) {
         const d = dialog("연결 차량");
@@ -1550,6 +1575,8 @@
         button(d, "닫기", () => d.close());
       } else {
         const code = await api("pairings", "POST", {});
+        if (!/^\d{6}$/.test(code.code)) throw Error("연결 코드를 다시 받아 주세요.");
+        showSteps(true);
         C(digits).forEach((x, i) => {
           text(x, code.code.slice(i, i + 1));
           x.style.fontSize = "25px";
@@ -1560,6 +1587,14 @@
           new Date(code.expires_at).toLocaleTimeString("ko-KR") + "까지 입력",
         );
         text(primary, "새 연결 코드 만들기");
+        clearTimeout(connectionExpiryTimer);
+        connectionExpiryTimer = setTimeout(() => {
+          if (!root.isConnected) return;
+          C(digits).forEach((x) => text(x, "–"));
+          digits.removeAttribute("aria-label");
+          text(C(identity)[1], "코드가 만료됐어요. 새로 만들어 주세요.");
+          showSteps(false);
+        }, Math.min(2147483647, Math.max(0, Date.parse(code.expires_at) - Date.now())));
       }
     });
     action(secondary, () => (active ? go("main", null) : render()));
@@ -1872,7 +1907,7 @@
       levels.shift();
       levels.push(Math.max(0, Math.min(1, level || 0)));
     }
-    C(wave).forEach((bar, i) => (bar.style.height = `${4 + levels[i] * 68}px`));
+    C(wave).forEach((bar, i) => (bar.style.height = `${4 + levels[i] * (Number(wave.dataset.amplitude) || 68)}px`));
     wave.setAttribute(
       "aria-label",
       paused
@@ -1930,152 +1965,25 @@
     };
     return `<svg aria-hidden="true" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${paths[kind]}</svg>`;
   }
-  // C032: the supplied recording layout, with an audio-only driving surface.
+  // C043: shared native audio state, four supplied driving screens.
   function paintDriving(state) {
     if (page !== "cardriving" || !app.querySelector("[data-driving-surface]")) {
       window.suspendForDriving();
       page = "cardriving";
-      app.innerHTML = window.CHAGOK_TEMPLATES.recording;
-      const root = app.firstElementChild;
+      const root = document.createElement("div");
       root.dataset.page = page;
       root.dataset.drivingSurface = "true";
-      root.style.visibility = "visible";
-      const rail = document.createElement("template");
-      rail.innerHTML = window.DiaryVehicleRail;
-      root.querySelector("nav")?.replaceWith(rail.content.firstElementChild);
-      root.querySelectorAll("nav a").forEach((a) => {
-        a.onclick = (event) => event.preventDefault();
-        a.setAttribute("aria-disabled", "true");
-        a.tabIndex = -1;
-      });
-      root.querySelector("nav a")?.setAttribute("aria-current", "page");
+      app.replaceChildren(root);
       viewport();
-      const [left, right] = C(C(root)[1]);
-      left.dataset.drivingLeft = "true";
-      left.querySelector("[data-recording-timer]").dataset.timer = "true";
-      const wave = left.querySelector("[data-recording-wave]");
-      wave.removeAttribute("aria-hidden");
-      wave.dataset.inputWave = "true";
-      wave.classList.add("input-wave");
-      levels.fill(0);
-      wave.replaceChildren(...levels.map(() => document.createElement("span")));
-      right.classList.add("driving-audio-panel");
-      right.innerHTML = `<div><h2>주행 중에는 목소리로</h2><p data-driving-note>이야기 확인과 사진 보기는 주차 후에 할 수 있어요.</p></div>
-        <div data-driving-listen><section>
-          <div class="driving-listen-header"><h3 data-listen-heading>일기 이어 듣기</h3>
-          <button data-listen-switch aria-label="같은 일기의 원본 듣기로 전환"></button></div>
-          <p data-driving-original></p><div class="driving-controls">
-          <button data-drive="listenPrevious" aria-label="이전 일기">${listenIcon("previous")}</button>
-          <button data-drive="listenToggle" aria-label="일기 재생">${listenIcon("play")}</button>
-          <button data-drive="listenNext" aria-label="다음 일기">${listenIcon("next")}</button></div>
-        </section></div><p class="driving-notice" data-driving-status role="status"></p>`;
-      action(right.querySelector("[data-listen-switch]"), () =>
-        drive(
-          vehicleState.driving_listen?.mode === "original"
-            ? "listenDiary"
-            : "listenOriginal",
-        ),
-      );
-      const controls = left.querySelectorAll("button,a");
-      controls[0].dataset.drivePrimary = "true";
-      controls[1].dataset.drive = "finish";
-      action(controls[0], () =>
-        drive(vehicleState.recording ? "pause" : "record"),
-      );
-      root
-        .querySelectorAll("[data-drive]")
-        .forEach((b) => action(b, () => drive(b.dataset.drive)));
     }
-    const root = app.firstElementChild;
-    const left = root.querySelector("[data-driving-left]");
-    tail(
-      C(left)[0],
-      state.recording ? (state.paused ? "일시정지" : "녹음 중") : "주행 모드",
-    );
-    text(
-      left.querySelector("[data-timer]"),
-      stamp(state.recording ? state.elapsed || 0 : 0),
-    );
-    tail(
-      C(C(left)[1]).at(-1),
-      state.recording
-        ? "녹음 원본을 이 기기에 저장하고 있어요"
-        : "편하게 이야기해 주세요",
-    );
-    const primary = root.querySelector("[data-drive-primary]");
-    tail(
-      primary,
-      state.recording
-        ? state.paused
-          ? "이어서 녹음"
-          : "잠깐 멈춤"
-        : "녹음 시작",
-    );
-    primary.querySelector("svg").innerHTML =
-      state.recording && !state.paused
-        ? '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>'
-        : '<path d="M8 5l12 7-12 7z"/>';
-    primary.disabled = !state.recording && !state.can_record;
-    const end = root.querySelector('[data-drive="finish"]');
-    tail(end, "녹음 마치기");
-    end.disabled = !state.recording;
-    root.querySelector("[data-driving-listen]").hidden = !!state.recording;
-    const listen = state.driving_listen || {};
-    const original = listen.mode === "original";
-    text(
-      root.querySelector("[data-listen-heading]"),
-      original ? "그날의 목소리" : "일기 이어 듣기",
-    );
-    text(
-      root.querySelector("[data-driving-original]"),
-      listen.date || "완성된 일기가 없어요",
-    );
-    const switcher = root.querySelector("[data-listen-switch]");
-    text(switcher, original ? "일기 듣기" : "원본 듣기");
-    switcher.setAttribute(
-      "aria-label",
-      original
-        ? "같은 일기의 일기 듣기로 전환"
-        : "같은 일기의 원본 듣기로 전환",
-    );
-    switcher.disabled = !listen.available;
-    root.querySelector('[data-drive="listenPrevious"]').disabled =
-      !listen.previous;
-    root.querySelector('[data-drive="listenNext"]').disabled = !listen.next;
-    const toggle = root.querySelector('[data-drive="listenToggle"]');
-    toggle.disabled = !listen.available;
-    const icon = original
-      ? state.playing
-        ? "pause"
-        : "play"
-      : state.tts_active
-        ? "stop"
-        : "play";
-    toggle.innerHTML = listenIcon(icon);
-    toggle.setAttribute(
-      "aria-label",
-      original
-        ? state.playing
-          ? "원본 일시정지"
-          : "원본 재생"
-        : state.tts_active
-          ? "일기 재생 정지"
-          : "일기 재생",
-    );
-    const notice = state.playback_notice || "";
-    // Playback state is represented by the transport icons; retain actual errors.
-    const error = /실패|못했|없어요|오류|상실|중단/.test(notice) ? notice : "";
-    const status = root.querySelector("[data-driving-status]");
-    text(
-      status,
-      state.recording
-        ? "인식한 이야기는 주차 후 확인해 주세요."
-        : state.stt_busy
-          ? "원본을 보관했어요. 이야기를 글로 옮기고 있어요."
-          : error,
-    );
-    status.hidden = !status.textContent;
-    drawInputLevel(state.level, state.paused || !state.recording);
+    window.DiaryDriving.render(app.firstElementChild, state, {
+      action, drive, stamp,
+      resetWave(wave, count) {
+        levels = Array(count).fill(0);
+        wave.replaceChildren(...levels.map(() => document.createElement("span")));
+      },
+      drawWave: drawInputLevel,
+    });
   }
   async function drive(action) {
     await bridge("driveAction", { action });
@@ -2421,7 +2329,7 @@
         root.querySelector("nav")?.replaceWith(rail);
       }
       nav(root);
-      if (page === "main") fillMobileList(root);
+      if (page === "main") await fillMobileList(root);
       if (page === "detail") fillDetail(root, record);
       if (page === "transcript") fillTranscript(root, record);
       if (page === "connect") await fillConnect(root);
@@ -2503,7 +2411,7 @@
         changed ||= result.items.length > 0;
         syncCursor = result.cursor;
       } while (result.has_more);
-      if (page === "connect") {
+      if (["main", "connect"].includes(page)) {
         const devices = await api("devices");
         changed ||= JSON.stringify(devices.devices) !== deviceFingerprint;
       }

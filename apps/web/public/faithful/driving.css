@@ -1,0 +1,79 @@
+/* User references: Downloads/주행 중 · {대기, 녹음 중, 녹음 멈춤, 일기 듣기}@1x.png */
+.driving-screen { box-sizing:border-box; padding:36px 48px; display:flex; flex-direction:column; color:var(--ink); background:var(--bg); }
+.driving-screen *, .driving-screen *::before, .driving-screen *::after { box-sizing:border-box; }
+.driving-screen [hidden] { display:none !important; }
+.driving-screen button { font-family:inherit; color:inherit; border:0; margin:0; cursor:pointer; }
+.driving-screen button:disabled { opacity:.45; cursor:default; }
+.driving-screen button:focus-visible { outline:4px solid var(--accent); outline-offset:5px; }
+.driving-screen svg { width:24px; height:24px; flex-shrink:0; }
+.drive-header { height:56px; flex-shrink:0; display:flex; gap:16px; align-items:center; margin-bottom:24px; }
+.drive-brand { display:flex; align-items:center; gap:10px; font-size:22px; letter-spacing:-.5px; }
+.drive-brand img { width:44px; height:44px; display:block; border-radius:12px; background:var(--surface); }
+.drive-mode { display:flex; align-items:center; gap:8px; border-radius:32px; background:var(--surface-alt); padding:11px 18px; font-size:18px; font-weight:700; line-height:22px; }
+.drive-mode svg { width:18px; height:18px; }
+.drive-connection { margin-left:auto; display:flex; gap:10px; align-items:center; color:var(--muted); font-size:18px; font-weight:500; }
+.drive-connection::before { content:""; width:10px; height:10px; border-radius:50%; background:var(--wave); }
+.drive-connection[data-connected="true"]::before { background:var(--accent); }
+.drive-return { margin-left:auto !important; padding:14px 24px; min-height:56px; display:flex; align-items:center; gap:10px; border-radius:32px; background:var(--warm); color:var(--coral-text) !important; font-size:20px; font-weight:700; }
+.drive-stage { flex:1; min-height:0; }
+[data-drive-stage="idle"] .drive-stage { display:flex; flex-direction:column; }
+.drive-idle-grid { display:grid; grid-template-columns:740px 1fr; gap:24px; flex:1; min-height:0; }
+.drive-idle-grid > button { border-radius:44px; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.drive-start-tile { background:var(--coral); color:var(--on-coral) !important; gap:24px; }
+.drive-start-tile > span { width:148px; height:148px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:#10141b; color:var(--coral); }
+.drive-start-tile svg { width:64px; height:64px; }
+.drive-start-tile strong { font-size:60px; letter-spacing:-2px; line-height:1.2; }
+.drive-listen-tile { background:var(--surface); gap:24px; }
+.drive-listen-tile > span { width:112px; height:112px; border-radius:50%; background:var(--ink); color:var(--bg); display:flex; align-items:center; justify-content:center; }
+.drive-listen-tile svg { width:48px; height:48px; }
+.drive-listen-tile strong { font-size:42px; letter-spacing:-1px; line-height:1.25; }
+.drive-listen-tile small { font-size:22px; color:var(--muted); margin-top:-8px; }
+.drive-idle-note { height:48px; margin:24px 0 0; display:flex; align-items:center; justify-content:center; gap:12px; color:var(--muted); font-size:20px; }
+.drive-idle-note svg { width:18px; height:18px; }
+[data-drive-stage="recording"] .drive-stage { display:grid; grid-template-rows:376px 168px; gap:24px; }
+.drive-record-card { background:var(--surface); border-radius:44px; padding:56px; display:flex; align-items:center; gap:32px; }
+.drive-record-info { flex:0 0 373px; min-width:0; }
+.drive-record-state { display:inline-flex; align-items:center; gap:10px; min-height:48px; padding:10px 20px; background:var(--warm); color:var(--coral-text); border-radius:28px; font-size:22px; font-weight:700; }
+.drive-record-state i { display:block; width:14px; height:14px; background:var(--coral); border-radius:50%; }
+.drive-record-state svg { width:18px; height:18px; }
+.drive-timer { font-family:"Space Grotesk",sans-serif; font-size:144px; line-height:1.1; font-weight:500; letter-spacing:-10px; font-variant-numeric:tabular-nums; margin-top:20px; }
+.drive-input-wave { display:flex; align-items:center; justify-content:space-between; gap:8px; height:180px; flex:1; min-width:0; }
+.drive-input-wave > span { display:block; flex:1; max-width:36px; height:4px; border-radius:6px; background:var(--coral); transition:height 110ms linear; }
+.drive-record-actions { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+.drive-record-actions button { border-radius:36px; background:var(--surface-alt); display:flex; align-items:center; justify-content:center; gap:20px; font-size:36px; font-weight:700; letter-spacing:-1px; }
+.drive-record-actions svg { width:36px; height:36px; }
+.drive-record-actions .drive-finish { background:var(--ink); color:var(--bg); }
+.drive-finish svg { color:#e7351d; width:44px; height:44px; }
+[data-paused="true"] .drive-timer { color:var(--wave); }
+[data-paused="true"] .drive-record-state { background:var(--surface-alt); color:var(--muted); }
+[data-paused="true"] .drive-input-wave > span { background:var(--line); transition:none; }
+[data-paused="true"] .drive-record-actions [data-drive-primary] { background:var(--coral); color:var(--on-coral); }
+[data-drive-stage="listening"] .drive-stage { display:grid; grid-template-columns:760px 1fr; gap:24px; }
+.drive-current { border-radius:44px; background:var(--surface); padding:36px 44px 36px; display:flex; flex-direction:column; min-width:0; }
+.drive-memory-head { display:flex; align-items:center; justify-content:space-between; gap:20px; font-size:20px; color:var(--muted); }
+.drive-memory-head [data-listen-date] { color:var(--accent); font-weight:700; }
+.drive-current h1 { margin:16px 0 0; font-size:44px; line-height:1.2; letter-spacing:-1.2px; font-weight:700; max-height:106px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow-wrap:anywhere; white-space:pre-line; }
+.drive-progress { margin-top:auto; padding-top:28px; }
+.drive-progress-track { height:8px; background:var(--surface-alt); border-radius:4px; overflow:hidden; }
+.drive-progress-track > span { display:block; height:100%; background:var(--coral); border-radius:4px; }
+.drive-times { display:flex; justify-content:space-between; color:var(--muted); font-family:"Space Grotesk","Noto Sans KR",sans-serif; font-size:20px; margin-top:10px; line-height:24px; }
+.drive-transport { margin-top:76px; display:flex; justify-content:center; align-items:center; gap:36px; }
+.drive-transport button { width:128px; height:128px; border-radius:50%; background:var(--surface-alt); display:flex; align-items:center; justify-content:center; }
+.drive-transport button svg { width:48px; height:48px; }
+.drive-transport [data-drive="listenToggle"] { width:160px; height:160px; background:var(--ink); color:var(--bg); }
+.drive-transport [data-drive="listenToggle"] svg { width:60px; height:60px; }
+.drive-listen-side { display:flex; flex-direction:column; gap:16px; min-width:0; }
+.drive-listen-tabs { display:flex; background:var(--surface); border-radius:28px; padding:8px; gap:0; }
+.drive-listen-tabs button { width:50%; min-height:72px; border-radius:22px; background:transparent; font-size:22px; font-weight:700; white-space:nowrap; }
+.drive-listen-tabs [aria-pressed="true"] { background:var(--ink); color:var(--bg); }
+.drive-up-next { background:var(--surface); border-radius:32px; padding:24px; flex:1; min-height:0; }
+.drive-up-next h2 { font-size:20px; color:var(--muted); margin:0 0 12px; line-height:26px; }
+[data-listen-upcoming] { display:flex; flex-direction:column; gap:16px; }
+.drive-upcoming-card { display:flex; align-items:center; gap:24px; padding:24px 20px; min-height:104px; background:var(--surface-alt); border-radius:24px; }
+.drive-upcoming-day { font-family:"Space Grotesk",sans-serif; font-size:36px; line-height:1; font-weight:700; flex-shrink:0; }
+.drive-upcoming-card > div { min-width:0; display:flex; flex-direction:column; gap:4px; }
+.drive-upcoming-card strong { font-size:22px; line-height:1.3; letter-spacing:-.5px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; overflow-wrap:anywhere; }
+.drive-upcoming-card div span { font-size:16px; color:var(--muted); }
+.drive-upcoming-empty { color:var(--muted); font-size:18px; }
+.drive-notice { position:absolute; left:50%; bottom:16px; transform:translateX(-50%); max-width:1000px; margin:0; padding:12px 20px; border-radius:16px; background:var(--surface-alt); color:var(--ink); font-size:18px; box-shadow:0 2px 12px var(--shadow); }
+@media(prefers-reduced-motion:reduce) { .drive-input-wave > span { transition:none; } }

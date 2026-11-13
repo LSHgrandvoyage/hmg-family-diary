@@ -1327,69 +1327,6 @@ body.vehicle .theme-shortcut [data-theme-cycle] svg {
   height: 24px;
 }
 
-/* C032: reference recording proportions, no transcript or photos while driving. */
-.driving-audio-panel {
-  box-sizing: border-box;
-  width: 572px;
-  gap: 24px !important;
-  justify-content: space-between !important;
-}
-.driving-audio-panel h2 {
-  margin: 0 0 12px;
-  font-size: 24px;
-  color: var(--ink);
-}
-.driving-audio-panel h3 {
-  margin: 0 0 12px;
-  font-size: 22px;
-  color: var(--ink);
-}
-.driving-audio-panel p {
-  margin: 0;
-  font-size: 18px;
-  line-height: 1.6;
-  color: var(--muted);
-}
-.driving-audio-panel section + section {
-  margin-top: 24px;
-}
-.driving-controls {
-  display: flex;
-  gap: 12px;
-  margin-top: 12px;
-}
-.driving-audio-panel button {
-  border: 0;
-  border-radius: 20px;
-  background: var(--surface-2, var(--bg));
-  color: var(--ink);
-  font: inherit;
-  font-weight: 700;
-  font-size: 20px;
-  min-height: 64px;
-  padding: 12px 20px;
-}
-.driving-controls button:nth-child(2) {
-  flex: 1;
-  background: var(--ink);
-  color: var(--bg);
-}
-.driving-audio-panel .driving-stop {
-  background: transparent;
-  font-size: 18px;
-  min-height: 48px;
-  padding: 8px 0;
-}
-[data-driving-surface] nav [aria-disabled="true"] {
-  cursor: default;
-}
-[data-driving-surface] nav a:not([aria-current]) {
-  opacity: 0.45;
-}
-[data-driving-listen][hidden] {
-  display: none;
-}
-
 /* C037: one digit per cell, including leading zeroes. */
 .pairing-code-digits {
   display: grid !important;
@@ -1421,23 +1358,23 @@ dialog input.pairing-code-input::placeholder {
   opacity: 1;
 }
 
-.driving-listen-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+/* C043: mobile icon-only theme controls keep a full touch and keyboard target. */
+body:not(.vehicle) .theme-shortcut button {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 8px;
 }
-.driving-listen-header h3 {
-  margin: 0;
+body:not(.vehicle) .theme-shortcut button:active { opacity: .65; }
+body:not(.vehicle) .theme-shortcut button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
-.driving-audio-panel [data-listen-switch] {
-  font-size: 16px;
-  min-height: 52px;
-  padding: 8px 14px;
-}
-.driving-controls button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 64px;
-}
+.connection-page > div:last-child { padding-top: 24px; flex-shrink: 0; }
+.connection-steps ol { list-style: none; padding: 0; margin: 0; display: grid; gap: 18px; }
+.connection-steps li { display: flex; align-items: flex-start; gap: 12px; color: var(--muted); }
+.connection-steps strong { display: block; color: var(--ink); font-size: 14px; line-height: 1.5; }
+.connection-steps p { margin: 4px 0 0; font-size: 13px; line-height: 1.6; }
+.connection-step-mark { width: 28px; height: 28px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--surface-alt); color: var(--muted); font-size: 13px; font-weight: 700; }
+.connection-steps [data-step="current"] .connection-step-mark { background: var(--solid-accent); color: var(--on-accent); }
+.connection-steps [data-step="done"] .connection-step-mark { background: var(--accent-soft); color: var(--accent); }

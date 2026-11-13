@@ -53,6 +53,8 @@ class PlaybackService:Service() {
     val motion get()=simulation?:observed
     var player:MediaPlayer?=null;private set
     var prepared=false;private set
+    private var narrationStartedAt=0L
+    val narrationElapsed get()=if(speaking && narrationStartedAt>0L)(SystemClock.elapsedRealtime()-narrationStartedAt)/1000.0 else 0.0
     var speaking=false;private set
     var busy=false;private set
     var file:File?=null;private set
@@ -169,7 +171,7 @@ class PlaybackService:Service() {
     private fun releaseNarration(terminal:Boolean=false){
         generation++;handler.removeCallbacks(timeout)
         val engine=tts;val callback=events;val needsStop=submitted && !terminal
-        tts=null;events=null;speaking=false;engineReady=false;pendingIndex=null;submitted=false
+        tts=null;events=null;speaking=false;narrationStartedAt=0L;engineReady=false;pendingIndex=null;submitted=false
         if(engine==null)return
         runCatching{if(callback!=null)engine.removeEventListener(callback)}
         if(!needsStop){runCatching{engine.release()};return}
@@ -208,14 +210,14 @@ class PlaybackService:Service() {
     private fun speakCurrent(){
         if(!hasFocus || motion==Motion.UNKNOWN){stop("재생할 수 없는 상태예요.");return}
         val engine=tts?:return
-        generation++;handler.removeCallbacks(timeout);speaking=false;pendingIndex=null
+        generation++;handler.removeCallbacks(timeout);speaking=false;narrationStartedAt=0L;pendingIndex=null
         events?.let {runCatching{engine.removeEventListener(it)}}
         val item=queue[queueIndex];file=item.file;notice="일기 준비 중 · ${queueIndex+1}/$queueCount"
         val token=generation
         val callback=object:EventListener {
             private fun update(action:()->Unit){handler.post{if(token==generation)action()}}
             override fun onReady()=Unit
-            override fun onStart(){update{if(pendingIndex==null){speaking=true;notice="일기 읽는 중 · ${queueIndex+1}/$queueCount";handler.removeCallbacks(timeout);emit()}}}
+            override fun onStart(){update{if(pendingIndex==null){speaking=true;narrationStartedAt=SystemClock.elapsedRealtime();notice="일기 읽는 중 · ${queueIndex+1}/$queueCount";handler.removeCallbacks(timeout);emit()}}}
             override fun onUpdatedRms(rms:Double)=Unit
             override fun onDone(){update{
                 if(pendingIndex!=null)return@update // Explicit skip waits for the matching stop acknowledgement.

@@ -64,7 +64,7 @@ class MainActivity : Activity() {
             handledRecording=service.resultFile
             pendingCaptureReview=service.resultFile
             selected=service.resultFile;review.select(null);review.select(selected,store.load(selected!!))
-            screen=Screen.DETAIL;nativeEditor=false;drivingRows=null;drivingHasDiary=null;drivingDiaryRows=null;drivingDiaryDates.clear()
+            screen=Screen.DETAIL;nativeEditor=false;drivingRows=null;drivingHasDiary=null;drivingDiaryRows=null;drivingDiarySummaries.clear()
             status.text=service.notice
             refreshLibrary();if(allowed())exact.review(selected!!.name)
             render()
@@ -99,7 +99,7 @@ class MainActivity : Activity() {
     private var drivingListenMode = "diary"
     private var drivingSwitchGeneration = 0
     private var drivingDiaryRows:List<File>?=null
-    private val drivingDiaryDates=mutableMapOf<File,String>()
+    private val drivingDiarySummaries=mutableMapOf<File,JSONObject>()
     private enum class Screen { LIBRARY, RECORD, DETAIL, SETTINGS }
     private lateinit var exact: ExactDiaryView
     private lateinit var nativeShell: View
@@ -403,7 +403,7 @@ class MainActivity : Activity() {
         driving.isChecked=toDriving;parked.isChecked=!toDriving
         changingMotion=false
         if(toDriving) {
-            drivingRows=null;drivingHasDiary=null;drivingDiaryRows=null;drivingDiaryDates.clear()
+            drivingRows=null;drivingHasDiary=null;drivingDiaryRows=null;drivingDiarySummaries.clear()
             if(!sync.uploading)sync.cancel();modal?.dismiss();modal=null
             hideKeyboard();review.save();review.cancel()
             if(!capture.busy && speech.busy && recordingService?.settling!=true)speech.cancel()
@@ -449,7 +449,7 @@ class MainActivity : Activity() {
         ui.add(panel,ui.text("문장 수정·사진·일기 확인은 주차 후에 할 수 있어요.",18f,color=ui.muted),24)
         return panel
     }
-    private fun drivingOriginals():List<File> = drivingRows ?: (directory.listFiles()?.filter {it.extension=="wav"}?.sortedByDescending {runCatching{store.load(it).recordedAt}.getOrDefault("")}?:emptyList()).also{drivingRows=it}
+    private fun drivingOriginals():List<File> = drivingRows ?: (directory.listFiles()?.filter {it.extension=="wav"}?.sortedWith(compareByDescending<File> {runCatching{store.load(it).recordedAt}.getOrDefault("")}.thenBy {it.name})?:emptyList()).also{drivingRows=it}
     private fun selectDrivingOriginal(step:Int) {
         if(!audioAllowed() || capture.busy || speech.busy || syncBusy || review.busy)return
         val rows=drivingOriginals();val index=rows.indexOf(selected)
@@ -1196,6 +1196,7 @@ class MainActivity : Activity() {
     }
     private fun drivingListen(action:String) {
         check(audioAllowed() && !capture.busy && !speech.busy && !syncBusy && !review.busy)
+        if(action=="listenExit"){stopPlayback();render();return}
         val rows=drivingDiaryFiles();val current=drivingListenFile()?:error("완성된 일기가 없어요.")
         val service=checkNotNull(playbackService)
         val wasPlaying=service.narrating || service.player?.isPlaying==true
@@ -1236,12 +1237,31 @@ class MainActivity : Activity() {
         }
         render()
     }
+    /** Only bounded audio metadata crosses the driving bridge; never body/photos/transcript. */
+    private fun drivingSummary(file:File):JSONObject = drivingDiarySummaries.getOrPut(file) {
+        val record=store.load(file)
+        val at=runCatching {Instant.parse(record.recordedAt).atZone(zone)}.getOrNull()
+        fun format(pattern:String)=at?.format(DateTimeFormatter.ofPattern(pattern,java.util.Locale.KOREA)).orEmpty()
+        JSONObject().put("title",narrationItem(file)?.title?.take(80)?:"그날의 일기")
+            .put("date",format("M월 d일 EEEE")).put("day",format("dd"))
+            .put("short_date",format("M월 · EEEE")).put("duration_ms",record.durationMs)
+    }
     private fun drivingListenState():JSONObject {
+        if(!audioAllowed())return JSONObject().put("available",false)
         val rows=drivingDiaryFiles();val file=drivingListenFile();val index=rows.indexOf(file)
-        val enabled=audioAllowed() && !capture.busy && !speech.busy && !syncBusy && !review.busy && playbackService?.settling!=true
-        val service=playbackService
+        val enabled=!capture.busy && !speech.busy && !syncBusy && !review.busy && playbackService?.settling!=true
+        val service=playbackService;val summary=file?.let(::drivingSummary)
+        val upcoming=org.json.JSONArray()
+        rows.drop(index+1).take(2).forEach { next ->
+            val item=drivingSummary(next)
+            upcoming.put(JSONObject().put("title",item.getString("title"))
+                .put("day",item.getString("day")).put("date",item.getString("short_date")))
+        }
         return JSONObject().put("mode",drivingListenMode).put("available",enabled && file!=null)
-            .put("memory",file?.name?:JSONObject.NULL).put("date",file?.let {drivingDiaryDates.getOrPut(it){displayDate(store.load(it).recordedAt)}}?:"")
+            .put("memory",file?.name?:JSONObject.NULL).put("date",summary?.optString("date")?:"")
+            .put("title",summary?.optString("title")?:"").put("count",rows.size).put("index",index)
+            .put("duration_ms",summary?.optLong("duration_ms")?:0L).put("elapsed",service?.narrationElapsed?:0.0)
+            .put("upcoming",upcoming)
             .put("previous",enabled && if(service?.narrating==true)service.hasPrevious else index>0)
             .put("next",enabled && if(service?.narrating==true)service.hasNext else index>=0 && index<rows.lastIndex)
     }
@@ -1285,7 +1305,7 @@ class MainActivity : Activity() {
                 "driveAction"->{
                     check(driving.isChecked);renderDriving()
                     val action=request.getString("action")
-                    if(action in setOf("listenDiary","listenOriginal","listenToggle","listenPrevious","listenNext")) {
+                    if(action in setOf("listenDiary","listenOriginal","listenToggle","listenPrevious","listenNext","listenExit")) {
                         drivingListen(action)
                     } else {
                     val control=when(action){
@@ -1406,7 +1426,7 @@ class MainActivity : Activity() {
         service.setSimulation(recordingService?.simulation);service.narrateQueue(items,index)
     }
     private fun startDrivingNarration(){
-        val items=drivingOriginals().sortedWith(compareByDescending<File> {store.load(it).recordedAt}.thenBy{it.name}).mapNotNull(::narrationItem)
+        val items=drivingDiaryFiles().mapNotNull(::narrationItem)
         startNarration(items,items.indexOfFirst {it.file==selected}.coerceAtLeast(0))
     }
     private fun readDiaryAloud(file:File){

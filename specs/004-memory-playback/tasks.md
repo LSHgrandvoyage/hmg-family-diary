@@ -25,3 +25,11 @@
 - [x] 004-C043-03 `PLAY-008, PLAY-009`: 합성 UI/관련 Android 검사와 시각 검증·증거 기록, 최신 서버/APK 반영 및 dev 커밋.
 
 검증 근거: [C043](../../docs/evidence/c043-connection-driving.md). 실제 사용자 가족 음성/실차 재검증은 포함하지 않는다.
+
+## C044
+
+- [x] 004-C044-01 `PLAY-010`: 수용 조건·계획·헌장 정합성 검토.
+- [x] 004-C044-02 `PLAY-010`: 소유 화면/상태·접근 제한 구현.
+- [x] 004-C044-03 `PLAY-010`: 관련 UI/Android 검증·증거·서버/APK 반영·dev 커밋.
+
+검증 근거: [C044](../../docs/evidence/c044-driving-entry-playback.md). 합성 UI·에뮬레이터 미디어 상태 검사이며 실차 허용/새 마이크 STT 정확도 검증은 아니다.

@@ -143,7 +143,7 @@ class MainActivity : Activity() {
     private lateinit var drivingStop: Button
     private lateinit var drivingPrevious: Button
     private lateinit var drivingNext: Button
-    private lateinit var gate: ScrollView
+    private lateinit var gate: View
     private lateinit var library: ScrollView
     private lateinit var recording: ScrollView
     private lateinit var detail: ScrollView
@@ -382,7 +382,7 @@ class MainActivity : Activity() {
     }
     private fun beginWelcome() {
         val service=recordingService ?: return
-        if(!foreground || !benchAvailable || !welcome.acknowledgement.isChecked || !idle() || service.consent)return
+        if(!foreground || !benchAvailable || !welcome.accepted || !idle() || service.consent)return
         // This explicit entry action supplies the emulator's initial state only.
         // Later UNKNOWN events never restore P automatically; known motion is preserved.
         if(service.motion==VehicleInteractionPolicy.Motion.UNKNOWN) {
@@ -391,7 +391,7 @@ class MainActivity : Activity() {
         }
         screen=Screen.RECORD;nativeEditor=false
         consent.isChecked=true
-        welcome.acknowledgement.isChecked=false
+        welcome.reset()
         render()
         if(allowed())exact.restore("carhome",null)
     }
@@ -923,7 +923,7 @@ class MainActivity : Activity() {
         if(profile.nickname!=sync.deviceLabel)prefs.edit().putString("profile",profile.copy(nickname=sync.deviceLabel).json().toString()).commit()
     }
     private fun navigate(next: Screen) {
-        if (!allowed() || !idle() || !review.save()) return
+        if (!allowed() || syncBusy || capture.busy || speech.busy || review.busy || !review.save()) return
         ++openGeneration; hideKeyboard(); screen = next; nativeEditor = false
         if (next != Screen.SETTINGS) { vehicleLookup.cancel(); vehicleLookupBusy = false }
         if (next == Screen.LIBRARY || next == Screen.RECORD) nativeEditor=false
@@ -990,6 +990,12 @@ class MainActivity : Activity() {
         modeSwitch.isEnabled=recordingService!=null
         modeSwitch.bringToFront();modeSwitch.elevation=ui.dp(16).toFloat()
         modeSwitch.text=if(parked.isChecked)"시험: 주행으로 전환" else "시험: 주차로 전환"
+        // The emulator-only switch gets its own strip, outside the adaptive app content.
+        val top=if(modeSwitch.visibility==View.VISIBLE)ui.dp(56) else 0
+        for(surface in listOf(exact,nativeShell)) {
+            val layout=surface.layoutParams as FrameLayout.LayoutParams
+            if(layout.topMargin!=top){layout.topMargin=top;surface.layoutParams=layout}
+        }
     }
     private fun focus(): Boolean {
         hasFocus = audio.requestAudioFocus(focusRequest) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
@@ -1265,7 +1271,21 @@ class MainActivity : Activity() {
             .put("previous",enabled && if(service?.narrating==true)service.hasPrevious else index>0)
             .put("next",enabled && if(service?.narrating==true)service.hasNext else index>=0 && index<rows.lastIndex)
     }
-    private fun referenceState() = VehicleTheme.state(this).put("driving_listen",if(driving.isChecked)drivingListenState() else JSONObject.NULL).put("driving",::driving.isInitialized && driving.isChecked).put("sync_notice",sync.uploadNotice.ifBlank { syncNotice }).put("paired",sync.paired).put("recording",capture.busy).put("paused",capture.paused)
+    private var playbackSummaryFile:File?=null
+    private var playbackSummaryTitle=""
+    private fun parkedPlaybackState():JSONObject {
+        val service=playbackService
+        if(!allowed() || service?.busy!=true){playbackSummaryFile=null;return JSONObject().put("active",false)}
+        val file=service.file
+        if(playbackSummaryFile!=file){playbackSummaryFile=file;playbackSummaryTitle=file?.let{narrationItem(it)?.title}?.take(80)?:"그날의 일기"}
+        val original=service.player!=null
+        return JSONObject().put("active",true).put("mode",if(original)"original" else "diary")
+            .put("title",service.narrationTitle.ifBlank{playbackSummaryTitle}).put("memory",file?.name)
+            .put("settling",service.settling).put("playing",if(original)service.prepared && runCatching{service.player?.isPlaying==true}.getOrDefault(false) else service.speaking)
+            .put("position",if(original && service.prepared)runCatching{service.player!!.currentPosition/1000.0}.getOrDefault(0.0) else service.narrationElapsed)
+            .put("duration",if(original && service.prepared)runCatching{service.player!!.duration/1000.0}.getOrDefault(0.0) else 0.0)
+    }
+    private fun referenceState() = VehicleTheme.state(this).put("playback",parkedPlaybackState()).put("driving_transcript",if(audioAllowed() && driving.isChecked && capture.busy)liveText.takeLast(180) else "").put("driving_listen",if(driving.isChecked)drivingListenState() else JSONObject.NULL).put("driving",::driving.isInitialized && driving.isChecked).put("sync_notice",sync.uploadNotice.ifBlank { syncNotice }).put("paired",sync.paired).put("recording",capture.busy).put("paused",capture.paused)
         .put("stt_busy",speech.busy).put("stt_text",if(allowed() && (capture.busy || liveFile==selected))liveText else "").put("stt_status",if(capture.busy || liveFile==selected)liveStatus else "").put("stt_memory",liveFile?.name?:JSONObject.NULL)
         .put("level",if(capture.busy && !capture.paused)captureLevel else 0f).put("sync_pending",syncPending && sync.paired).put("narrating",playbackService?.busy==true && player==null).put("playback_notice",playbackService?.notice.orEmpty()).put("syncing",syncBusy || sync.uploading).put("elapsed",captureElapsed/1000.0).put("memoryId",selected?.name?:JSONObject.NULL)
         .put("position",if(prepared) runCatching { player?.currentPosition?.div(1000.0)?:0.0 }.getOrDefault(0.0) else completedPlayback)
@@ -1318,7 +1338,7 @@ class MainActivity : Activity() {
                     };referenceState()
                 }
                 "list"->{ val rows=org.json.JSONArray();directory.listFiles()?.filter { it.name.endsWith(".wav") }?.forEach { runCatching { referenceRecord(it) }.getOrNull()?.let(rows::put) };JSONObject().put("items",rows) }
-                "read"->{val file=referenceFile(id);if(playbackService?.narrating!=true)selectReference(file);referenceRecord(file)}
+                "read"->{val file=referenceFile(id);if(playbackService?.busy!=true)selectReference(file);referenceRecord(file)}
                 "start"->{ nativeEditor=false;screen=Screen.RECORD;startCapture();check(capture.busy){status.text.toString()};referenceState() }
                 "pauseCapture"->{recordingService?.pauseOrResume();exact.state(referenceState());referenceState()}
                 "finish"->{recordingService?.finish();JSONObject()}
@@ -1330,7 +1350,8 @@ class MainActivity : Activity() {
                     check(!row.isNull("start_ms") && !row.isNull("end_ms"));check(audioAllowed() && !capture.busy && !speech.busy && !syncBusy && !review.busy)
                     selectReference(file);stopPlayback();pendingSeek=row.getLong("start_ms").toInt();playOriginal();referenceState()
                 }
-                "seek"->{ val pos=(request.optDouble("position",0.0).coerceAtLeast(0.0)*1000).toInt();pendingSeek=pos.coerceAtMost((review.record?.durationMs?:0L).toInt());if(prepared)player?.seekTo(pendingSeek);referenceState() }
+                "seek"->{ if(id.isNotBlank())selectReference(referenceFile(id));val pos=(request.optDouble("position",0.0).coerceAtLeast(0.0)*1000).toInt();pendingSeek=pos.coerceAtMost((review.record?.durationMs?:0L).toInt());if(prepared)player?.seekTo(pendingSeek);referenceState() }
+                "togglePlayback"->{check(audioAllowed());playbackService?.toggle();referenceState()}
                 "stopPlayback"->{stopPlayback();JSONObject()}
                 "edit"->{selectReference(referenceFile(id));stopPlayback();nativeEditor=false;screen=Screen.DETAIL;render();exact.review(id);JSONObject()}
                 "retrySpeech"->{retryReferenceSpeech(referenceFile(id));JSONObject()}
@@ -1343,7 +1364,7 @@ class MainActivity : Activity() {
                 }
                 "saveDiary"->{selectReference(referenceFile(id));check(review.record?.revision==request.getInt("revision") && review.record?.text==request.getString("text") && review.record?.speaker==request.getString("speaker")) { "이야기가 변경됐어요. 다시 만들어 주세요." };check(review.acceptFromWeb()) { "저장할 초안을 확인해 주세요." };pendingCaptureReview=null;sync.capture(referenceFile(id));SyncUploads.request(this,sync);referenceRecord(referenceFile(id))}
                 "setTheme"->{VehicleTheme.select(this,request.getString("mode"));applyAppearance();VehicleTheme.state(this)}
-                "settings"->{stopPlayback();check(idle()){ "진행 중인 작업을 마친 뒤 설정을 열어 주세요." };navigate(Screen.SETTINGS);JSONObject()}
+                "settings"->{check(!syncBusy && !capture.busy && !speech.busy && !review.busy){ "진행 중인 작업을 마친 뒤 설정을 열어 주세요." };navigate(Screen.SETTINGS);JSONObject()}
                 "getSettings"->{
                     val name=vehicle().nickname
                     if(sync.paired && !sync.nameUnified && name.length in 1..40 && idle()) {
@@ -1566,6 +1587,7 @@ class MainActivity : Activity() {
         playbackService?.attach(null)
         if(playbackBound){unbindService(playbackConnection);playbackBound=false}
         if(::exact.isInitialized)exact.close()
+        if(::welcome.isInitialized)welcome.close()
         vehicleLookup.cancel();recordingLocation.close();syncEvents.stop()
         if(benchAvailable && initialized){++loadGeneration;++photoGeneration;handler.removeCallbacksAndMessages(null)}
         super.onDestroy()

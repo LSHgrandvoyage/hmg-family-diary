@@ -33,7 +33,7 @@
         if (!mediaActive(latest)) await handlers.drive('listenToggle');
       });
     } else if (stage === 'recording') {
-      body.innerHTML = `<section class="drive-record-card"><div class="drive-record-info"><span class="drive-record-state" data-record-state></span><div class="drive-timer" data-timer></div></div><div class="drive-input-wave" data-input-wave data-amplitude="152" role="img"></div></section><div class="drive-record-actions"><button data-drive-primary></button><button class="drive-finish" data-drive="finish">${icons.stop}<span>녹음 마치기</span></button></div>`;
+      body.innerHTML = `<section class="drive-record-card"><div class="drive-record-info"><span class="drive-record-state" data-record-state></span><div class="drive-timer" data-timer></div></div><div class="drive-record-audio"><div class="drive-input-wave" data-input-wave data-amplitude="152" role="img"></div><div class="drive-transcription"><span data-drive-stt-status role="status"></span><p data-driving-transcript></p></div></div></section><div class="drive-record-actions"><button data-drive-primary></button><button class="drive-finish" data-drive="finish">${icons.stop}<span>녹음 마치기</span></button></div>`;
       handlers.resetWave(q('[data-input-wave]'), 16);
       bind('[data-drive-primary]', () => handlers.drive('pause'));
       bind('[data-drive="finish"]', () => handlers.drive('finish'));
@@ -79,6 +79,12 @@
         primary.setAttribute('aria-label', label);
       }
       handlers.drawWave(state.level, state.paused);
+      const transcript = (state.driving_transcript || "").trim();
+      const caption=q('[data-driving-transcript]'), captionText=transcript || '이야기를 시작하면 인식된 문장이 여기에 보여요';
+      if(caption.textContent!==captionText)caption.textContent=captionText;
+      caption.scrollTop=caption.scrollHeight;
+      const speechState = state.paused ? '음성 인식 일시정지' : /실패|지연|오류|연결/.test(state.stt_status || '') ? '음성 인식을 확인하고 있어요 · 원본은 녹음 중' : transcript ? '실시간 음성 인식 중' : '목소리를 기다리고 있어요';
+      if (q('[data-drive-stt-status]').textContent !== speechState) put('[data-drive-stt-status]', speechState);
     } else {
       const original = listen.mode === 'original';
       put('[data-listen-date]', listen.date || '완성된 일기가 없어요');

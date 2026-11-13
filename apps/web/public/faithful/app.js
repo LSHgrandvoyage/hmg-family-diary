@@ -198,8 +198,6 @@
     }
     if (native && page === "recording" && next !== "recording") return;
     pauseAudio();
-    if (native && next !== "recording")
-      void bridge("stopPlayback").catch(() => {});
     selected = id;
     const target = "#" + next + (id ? "?id=" + encodeURIComponent(id) : "");
     if (location.hash === target) void render();
@@ -219,11 +217,13 @@
             document.documentElement.clientWidth / 1280,
             innerHeight / 720,
           );
-      app.style.width = "1280px";
+      const designWidth = reference ? 1280 : document.documentElement.clientWidth / scale;
+      const designHeight = reference ? 720 : innerHeight / scale;
+      app.style.setProperty("--vehicle-width", `${designWidth}px`);
+      app.style.setProperty("--vehicle-height", `${designHeight}px`);
+      app.style.width = `${designWidth}px`;
       app.style.transform = `scale(${scale})`;
-      app.style.margin = reference
-        ? "0"
-        : `${Math.max(0, (innerHeight - 720 * scale) / 2)}px 0 0 ${Math.max(0, (document.documentElement.clientWidth - 1280 * scale) / 2)}px`;
+      app.style.margin = "0";
     } else {
       app.style.width = "";
       app.style.transform = "";
@@ -256,10 +256,6 @@
       "이 계정의 가족 보관함에 연결된 차량과 휴대폰이 같은 일기를 함께 봐요.",
     );
     panelClose(d);
-    button(d, "연결 차량 관리", () => {
-      d.close();
-      go("connect");
-    });
     button(d, "로그아웃", async () => {
       const r = await fetch("/api/auth/sign-out", {
         method: "POST",
@@ -1199,7 +1195,7 @@
   }
   async function seek(n) {
     if (native) {
-      const state = await bridge("seek", { position: n });
+      const state = await bridge("seek", { position: n, memoryId: record?.id });
       updateAudio({ ...state, position: n });
       return;
     }
@@ -1218,12 +1214,15 @@
   let playbackFrame = 0,
     playbackAnchor = { position: 0, playing: false, at: 0 };
   function updateAudio(state) {
-    if (native && state)
+    if (native && state) {
+      const sameOriginal = state.audio_memory === record?.id ||
+        (!state.audio_busy && state.memoryId === record?.id);
       playbackAnchor = {
-        position: state.position || 0,
-        playing: !!state.playing,
+        position: sameOriginal ? state.position || 0 : 0,
+        playing: sameOriginal && !!state.playing,
         at: performance.now(),
       };
+    }
     cancelAnimationFrame(playbackFrame);
     paintPlayback();
   }
@@ -1603,7 +1602,15 @@
     const [primary, side] = C(C(root)[1]);
     tail(C(primary)[0], syncLabel());
     C(primary)[0].dataset.syncState = "true";
-    action(C(primary)[2], start);
+    const recordLink=C(primary)[2], recordButton=document.createElement("button");
+    recordButton.type="button";
+    recordButton.style.cssText=recordLink.style.cssText;
+    recordButton.style.border="0";
+    recordButton.style.fontFamily="inherit";
+    recordButton.replaceChildren(...recordLink.childNodes);
+    recordLink.replaceWith(recordButton);
+    recordButton.dataset.recordStart="true";
+    action(recordButton, start);
     const [heading, card, more] = C(side);
     text(
       C(heading)[1],
@@ -1653,50 +1660,17 @@
           a.id.localeCompare(b.id),
       );
   }
-  function playlistControls(parent) {
-    if (!native) return;
-    const bar = document.createElement("section");
-    bar.className = "tts-player";
-    bar.setAttribute("aria-label", "일기 이어 듣기");
-    const label = document.createElement("p");
-    label.dataset.ttsLabel = "true";
-    label.setAttribute("role", "status");
-    const controls = document.createElement("div");
-    controls.className = "tts-actions";
-    for (const [name, command] of [
-      ["이전 일기", "ttsPrevious"],
-      ["듣기 종료", "stopPlayback"],
-      ["다음 일기", "ttsNext"],
-    ]) {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.dataset.ttsCommand = command;
-      text(b, name);
-      action(b, async () => {
-        const result = await bridge(command);
-        if (command === "stopPlayback")
-          window.nativeStatus(await bridge("state"));
-        else window.nativeStatus(result);
-      });
-      controls.append(b);
-    }
-    bar.append(label, controls);
-    parent.append(bar);
-    updatePlaylist(vehicleState);
-  }
+  // One parked player is mounted after each screen is filled, including home/settings.
+  function playlistControls(parent) {}
   function updatePlaylist(state) {
     app.classList.toggle("tts-active", native && !!state.tts_active);
-    app.querySelectorAll(".tts-player").forEach((bar) => {
-      bar.hidden = !state.tts_active;
-      text(
-        bar.querySelector("[data-tts-label]"),
-        `일기 ${Number(state.tts_index) + 1}/${state.tts_count} · ${state.tts_title || "이어 듣기"}`,
-      );
-      bar.querySelector('[data-tts-command="ttsPrevious"]').disabled =
-        !state.tts_previous;
-      bar.querySelector('[data-tts-command="ttsNext"]').disabled =
-        !state.tts_next;
-    });
+    if (native && !state.driving && app.firstElementChild)
+      window.DiaryParkedPlayer?.render(app.firstElementChild, state, {
+        action, stamp,
+        command: async (cmd) => { await bridge(cmd); window.nativeStatus(await bridge("state")); },
+      });
+    const recordStart = app.querySelector("[data-record-start]");
+    if (recordStart) recordStart.disabled = !state.can_record;
     const start = app.querySelector("[data-tts-start]");
     if (start)
       start.disabled =

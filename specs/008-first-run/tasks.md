@@ -7,3 +7,11 @@
 - [x] ENTRY-T05 ENTRY-004: release 실행 안내·최신 ZIP 패키징 경로를 갱신한다. 커밋 후 생성한 실제 묶음의 버전/커밋/해시는 manifest와 SHA256SUMS로 확인한다.
 
 검증 결과와 남은 범위: [C039](../../docs/evidence/c039-first-run.md). 일반 사용자 Windows/실차 결과를 에뮬레이터 검사로 대체하지 않는다.
+
+## C044
+
+- [x] 008-C044-01 `ENTRY-007`: 수용 조건·계획·헌장 정합성 검토.
+- [x] 008-C044-02 `ENTRY-007`: 소유 화면/상태·접근 제한 구현.
+- [x] 008-C044-03 `ENTRY-007`: 관련 UI/Android 검증·증거·서버/APK 반영·dev 커밋.
+
+검증 근거: [C044](../../docs/evidence/c044-driving-entry-playback.md). 합성 UI·에뮬레이터 미디어 상태 검사이며 실차 허용/새 마이크 STT 정확도 검증은 아니다.

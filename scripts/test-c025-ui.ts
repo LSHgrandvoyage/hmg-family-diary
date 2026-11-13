@@ -1,5 +1,5 @@
 import { chromium, expect } from "@playwright/test";
-import { readFile } from "node:fs/promises";
+import { readFile, mkdir } from "node:fs/promises";
 import { extname, join } from "node:path";
 const records = ["첫차", "새차", "첫차"].map((nickname, index) => ({
   id: `synthetic-${index}.wav`,
@@ -36,6 +36,7 @@ const records = ["첫차", "새차", "첫차"].map((nickname, index) => ({
     },
   },
 }));
+await mkdir("test-results/c025", { recursive: true });
 const browser = await chromium.launch({ channel: "chrome", headless: true });
 try {
   async function page(width: number, height: number, native = false) {
@@ -85,6 +86,13 @@ try {
                 w.state.tts_next =
                   w.state.tts_active && w.state.tts_index < w.queue.length - 1;
               }
+              w.state.playback = {
+                active: !!w.state.tts_active,
+                mode: "diary",
+                title: w.state.tts_title,
+                position: 0,
+                playing: !!w.state.tts_active,
+              };
               setTimeout(
                 () =>
                   w.NativeReply(
@@ -193,7 +201,7 @@ try {
       await expect(
         p.getByRole("button", { name: "다음 일기", exact: true }),
       ).toBeDisabled();
-      await p.getByRole("button", { name: "듣기 종료", exact: true }).click();
+      await p.getByRole("button", { name: "재생 종료", exact: true }).click();
       await p.getByRole("button", { name: "검색", exact: true }).click();
       await p.getByRole("button", { name: "초기화", exact: true }).click();
       await start.click();
@@ -206,12 +214,14 @@ try {
         p.getByRole("button", { name: "이전 일기", exact: true }),
       ).toBeDisabled();
       await p.getByRole("button", { name: "다음 일기", exact: true }).click();
-      await expect(p.locator("[data-tts-label]")).toContainText("2/2");
+      await expect(p.locator("[data-player-title]")).toContainText(
+        "합성 이야기 1",
+      );
       await expect(
         p.getByRole("button", { name: "다음 일기", exact: true }),
       ).toBeDisabled();
       await p.getByRole("button", { name: "이전 일기", exact: true }).click();
-      await expect(p.locator("[data-tts-label]")).toContainText("1/2");
+      await expect(p.locator("[data-player-mode]")).toContainText("일기 낭독");
     }
     for (const mode of ["light", "dark"]) {
       await p.evaluate((mode) => (window as any).DiaryTheme.set(mode), mode);
@@ -226,19 +236,64 @@ try {
         ),
       ).toBe(true);
       await p.screenshot({
-        path: `docs/evidence/connected-ui/c025-${native ? "car" : "phone"}-${width}-${mode}.png`,
+        path: `test-results/c025/c025-${native ? "car" : "phone"}-${width}-${mode}.png`,
       });
     }
     if (native) {
       await p.goto(
         "https://diary-c021.test/faithful/app.html#cardetail?id=synthetic-0.wav",
       );
-      await expect(p.locator("[data-tts-label]")).toContainText("1/2");
+      await expect(p.locator("[data-player-mode]")).toContainText("일기 낭독");
       await p.screenshot({
-        path: "docs/evidence/connected-ui/c025-detail-active-dark.png",
+        path: "test-results/c025/c025-detail-active-dark.png",
       });
-      await p.getByRole("button", { name: "듣기 종료", exact: true }).click();
-      await expect(p.locator(".tts-player")).toBeHidden();
+      await p.getByRole("button", { name: "재생 종료", exact: true }).click();
+      await expect(p.locator(".parked-player")).toBeHidden();
+      // Browsing another diary must not borrow the background original's waveform position.
+      await p.evaluate(() => {
+        const w = window as any;
+        Object.assign(w.state, {
+          audio_busy: true,
+          audio_memory: "synthetic-1.wav",
+          memoryId: "synthetic-1.wav",
+          position: 15,
+          playing: true,
+        });
+        w.nativeStatus(w.state);
+      });
+      await expect(
+        p.getByRole("slider", { name: "녹음 재생 위치" }),
+      ).toHaveValue("0");
+      await p.evaluate(() => {
+        const w = window as any;
+        Object.assign(w.state, {
+          audio_memory: "synthetic-0.wav",
+          memoryId: "synthetic-0.wav",
+          playing: false,
+        });
+        w.nativeStatus(w.state);
+      });
+      await expect(
+        p.getByRole("slider", { name: "녹음 재생 위치" }),
+      ).toHaveValue("15");
+      await p.getByRole("slider", { name: "녹음 재생 위치" }).fill("20");
+      expect(
+        await p.evaluate(
+          () =>
+            (window as any).commands.filter((c: any) => c.cmd === "seek").at(-1)
+              ?.memoryId,
+        ),
+      ).toBe("synthetic-0.wav");
+      await p.evaluate(() => {
+        const w = window as any;
+        Object.assign(w.state, {
+          audio_busy: false,
+          audio_memory: null,
+          playing: false,
+          position: 0,
+        });
+        w.nativeStatus(w.state);
+      });
     }
     for (const target of native
       ? ["carhome", "cardetail", "carreview", "recording"]
@@ -304,7 +359,7 @@ try {
         expect(failures, `${target} ${mode} text contrast`).toEqual([]);
         if (width === 375 || target === "recording" || target === "cardetail")
           await p.screenshot({
-            path: `docs/evidence/connected-ui/c025-${target}-${mode}.png`,
+            path: `test-results/c025/c025-${target}-${mode}.png`,
           });
       }
     }

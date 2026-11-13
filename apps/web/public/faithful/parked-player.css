@@ -1,0 +1,11 @@
+/* Reserve space in the content column so the persistent player never covers controls. */
+.has-parked-playback > :nth-child(2) { box-sizing:border-box; max-height:calc(100% - 124px); overflow:auto; }
+.parked-player { position:absolute; left:144px; right:32px; bottom:20px; height:88px; box-sizing:border-box; padding:14px 20px; border:1px solid var(--line); border-radius:24px; background:var(--surface); color:var(--ink); display:flex; align-items:center; gap:24px; box-shadow:0 4px 18px var(--shadow); }
+.parked-player-info { min-width:0; flex:1; display:flex; flex-direction:column; gap:6px; }
+.parked-player-info span { color:var(--accent); font-size:15px; }
+.parked-player-info strong { font-size:20px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+[data-player-time] { color:var(--muted); font-family:'Space Grotesk',sans-serif; font-size:18px; white-space:nowrap; }
+.parked-player-actions { display:flex; align-items:center; gap:12px; }
+.parked-player button { width:56px; height:56px; border:0; border-radius:18px; background:var(--surface-alt); color:var(--ink); display:flex; align-items:center; justify-content:center; }
+.parked-player button[data-player-command="stopPlayback"] { background:var(--ink); color:var(--bg); }
+.parked-player [hidden] { display:none !important; }

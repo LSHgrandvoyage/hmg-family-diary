@@ -1,6 +1,9 @@
 import { chromium, expect } from "@playwright/test";
 import { readFile, mkdir } from "node:fs/promises";
 import { join, extname } from "node:path";
+// Optional deployed static assets; family/auth API responses remain synthetic.
+const deployedOrigin = process.env.CHAGOK_UI_ORIGIN;
+const origin = deployedOrigin || "https://c037.test";
 const browser = await chromium.launch({
   channel: "chrome",
   headless: true,
@@ -11,6 +14,7 @@ try {
   for (const dark of [false, true])
     for (const native of [false, true]) {
       const page = await browser.newPage({
+        ignoreHTTPSErrors: !!deployedOrigin,
         viewport: native
           ? { width: 1280, height: 720 }
           : { width: 375, height: 812 },
@@ -51,7 +55,7 @@ try {
         },
         { dark, native },
       );
-      await page.route("https://c037.test/**", async (route) => {
+      await page.route(origin + "/**", async (route) => {
         const path = new URL(route.request().url()).pathname;
         if (path.startsWith("/api/")) {
           const data = path.endsWith("/devices")
@@ -64,6 +68,7 @@ try {
           await route.fulfill({ json: data });
           return;
         }
+        if (deployedOrigin) return route.continue();
         try {
           await route.fulfill({
             body: await readFile(join("apps/web/public", path)),
@@ -74,6 +79,7 @@ try {
                   ".js": "text/javascript",
                   ".css": "text/css",
                   ".woff2": "font/woff2",
+                  ".svg": "image/svg+xml",
                 } as any
               )[extname(path)] || "application/octet-stream",
           });
@@ -82,8 +88,7 @@ try {
         }
       });
       await page.goto(
-        "https://c037.test/faithful/app.html#" +
-          (native ? "carsettings" : "connect"),
+        origin + "/faithful/app.html#" + (native ? "carsettings" : "connect"),
       );
       if (native) {
         await page
@@ -155,7 +160,7 @@ try {
       await page.close();
     }
   console.log(
-    "PASS C037 six cells/leading zero, placeholder visibility, native submit, missing-server routing, both themes. Synthetic browser bridge/API.",
+    `PASS C037 six cells/leading zero, placeholder visibility, native submit, missing-server routing, both themes. ${deployedOrigin ? "Deployed static assets" : "Local static assets"}; synthetic browser bridge/API.`,
   );
 } finally {
   await browser.close();

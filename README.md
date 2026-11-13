@@ -45,7 +45,20 @@ docker compose --env-file .env.runtime --profile dev up -d --build
 # 개발 확인 메일: http://localhost:8025 (맥북에서만)
 ```
 
-평소 재실행하거나 Wi-Fi/IP가 바뀌었을 때는 초기 `setup-runtime.ts`를 다시 실행하지 않는다. OrbStack을 켜고 저장소 루트에서 다음 순서로 실행한다.
+평소 재실행할 때는 초기 `setup-runtime.ts`를 다시 실행하지 않는다. **현재 제출용 `차곡차곡` 앱(contest)** 과 기본 서버(8443)는 저장소 루트에서 다음과 같이 연결한다.
+
+```sh
+# 소스 변경을 반영할 때는 --build가 필요하다. up -d만 하면 이전 이미지가 실행될 수 있다.
+docker compose --env-file .env.runtime --profile dev up -d --build
+# 에뮬레이터 부팅 후, 현재 기본 서버 주소·공개 CA를 제출용 앱에 전달
+node scripts/configure-runtime.mjs emulator-5580
+```
+
+차량 확인창에서 서버 주소를 확인하고 **설정 적용**을 누른다. 휴대폰에서 새6자리 코드를 발급한 뒤 차량 설정의 **휴대폰 연결하기**에 입력한다. 이미 가족 보관함에 연결돼 있으면 페어링을 새로 만들 필요 없다. 공개 CA와 주소는 `.env.runtime`의 기본 서버에서 읽으며 `.env.team`/18443 팀 서버와 혼용하지 않는다. 제출용 앱은 별도 목업 서버나 run-as가 필요 없다. 기기 ID는 `adb devices`에 표시된 값을 쓴다.
+
+로고나 연결 코드가 이전 화면이면 위 `--build` 명령으로 재빌드한 뒤 휴대폰 페이지를 새로고침한다. 데이터 볼륨과 `.env.runtime`은 유지한다. IP가 바뀌었다면 `.env.runtime`의 `APP_HOST`와 `APP_ORIGIN`을 현재 LAN IP로 함께 수정한 뒤 위 두 명령을 다시 실행한다.
+
+**이전 개발용 probe APK**를 계속 사용하는 경우에만 아래 흐름을 사용한다. OrbStack을 켜고 저장소 루트에서 실행한다.
 
 ```sh
 # 터미널 1: 에뮬레이터가 꺼져 있을 때만
@@ -62,7 +75,7 @@ pnpm exec tsx scripts/refresh-runtime.ts
 
 종료할 때는 에뮬레이터 창을 닫고, 목업 서버 터미널에서 Ctrl+C, Docker는 `docker compose --env-file .env.runtime --profile dev stop`을 실행한다.
 
-아이폰은 설치 안내에서 개발 CA를 설치/신뢰한 뒤 앱을 연다. 보호자 보관함 생성·메일 확인·로그인 → 차량 연결 코드 발급 → 차량의 ‘차량과 사용 안내’에서 코드 입력 → 저장한 목업 일기 공유 순서다. OpenAI는 여전히 호출하지 않는다. 현재 개발용 합성 자료 검증 단계이며 실제 iPhone 파일 앱 저장, 외부 SMTP, 백업/복원, 제품 기기 암호화와 실제 주차·위치는 별도 검증 대상이다.
+아이폰은 설치 안내에서 개발 CA를 설치/신뢰한 뒤 앱을 연다. 보호자 보관함 생성·메일 확인·로그인 → 차량 서버 설정 →6자리 연결 코드 발급/차량 입력 → 완성 일기 자동 동기화 순서다. OpenAI는 여전히 호출하지 않는다. 현재 개발용 합성 자료 검증 단계이며 실제 iPhone 파일 앱 저장, 외부 SMTP, 백업/복원, 제품 기기 암호화와 실제 주차·위치는 별도 검증 대상이다.
 
 Node24/pnpm11.13.1 로컬 개발:
 

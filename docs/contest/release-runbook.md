@@ -150,3 +150,18 @@ Windows 업데이트는 기존 source 폴더에 새 소스를 덮어쓰되 `.env
 기존0.2.3 앱은 새 APK를 `install -r`로 덮어 설치하면 연결·기록을 유지합니다. 모바일은 이번 source로 서버를 재빌드한 뒤 새로고침합니다(Windows 팀 환경: `node .\scripts\team-test.mjs up`). 앱 아이콘이 런처의 최근 앱 칸에 이전 모양으로 남으면 앱 목록을 다시 열어 확인합니다. 앱 데이터나 Docker 볼륨을 삭제할 필요는 없습니다.
 
 검증 범위: 독립 headless 웹, macOS의 공식 Pleos 에뮬레이터. Windows/실차 확인은 별도입니다. 세부 근거는 `검증결과.md`와 `source/docs/evidence/c041-brand-logo.md`에 있습니다.
+
+## 맥북 기본 Compose 서버(8443)에 제출용 앱 연결하기
+
+이미 `.env.runtime`/`compose.yaml`로 실행 중인 개발 환경에서는 팀 서버를 새로 만들지 않습니다. 저장소 루트(제출 묶음에서는 기존 runtime 설정을 보존한 source)에서 실행합니다.
+
+```sh
+# 코드 업데이트 때는 반드시 재빌드한다. 볼륨과 .env.runtime은 그대로 유지한다.
+docker compose --env-file .env.runtime --profile dev up -d --build
+# adb devices에서 확인한 에뮬레이터 ID
+node scripts/configure-runtime.mjs emulator-5580
+```
+
+차량 확인창에서 `.env.runtime`의 서버 주소를 확인하고 **설정 적용**을 누릅니다. 휴대폰 페이지를 새로고침한 뒤 새6자리 코드를 발급해 차량 설정의 **휴대폰 연결하기**에 입력합니다. 기존에 연결된 차량은 다시 페어링할 필요가 없습니다. 서버 주소/공개 CA 전달은 가족 연결 완료와 다릅니다. 주차·유휴 상태에서 실행하세요.
+
+이 명령은 기본 서버(일반적으로8443) 전용입니다. `.env.team`/18443 팀 서버는 기존 `team-test.mjs configure-release` 명령을 사용합니다. 화면이4칸/8자리로 보이면 이전 이미지가 실행 중일 수 있으므로 단순 재시작 대신 `--build` 후 새로고침하세요. [C042 검증](../evidence/c042-runtime-connection.md)을 참고하세요. 이번 실행 도구 추가는0.2.4 APK를 그대로 사용합니다.

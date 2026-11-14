@@ -11,6 +11,7 @@ const fixtures=()=>['2099-12-03','2099-11-02','2099-10-01','2098-12-31'].map((d,
 }));
 try {
  for(const theme of ['light','dark']) {
+  let vehicleColors:any;
   for(const native of [true,false]) {
    const p=await browser.newPage({viewport:native?{width:1280,height:720}:{width:390,height:844},reducedMotion:'reduce'});
    p.on('pageerror',e=>errors.push(e.message));
@@ -65,6 +66,7 @@ try {
    if(native) {
     const badge=p.locator('[data-sync-state]');
     await expect(badge).toHaveText('연결 중');await expect(badge.locator('[data-connection-icon=phone]')).toHaveCount(1);
+    vehicleColors=await badge.evaluate(e=>({bg:getComputedStyle(e).backgroundColor,color:getComputedStyle(e).color}));
     await expect(p.locator('[data-home-count]')).toHaveText('전체 기록 4개');await expect(toast).toHaveCount(0);
     const bar=p.locator('.parked-player');
     await expect(bar.locator('[data-player-command=listenDiary]')).toHaveText('일기');
@@ -92,6 +94,7 @@ try {
     await p.screenshot({path:`test-results/c048/car-list-${theme}.png`});
    } else {
     const badge=p.locator('.mobile-library-header a');await expect(badge).toHaveText('연결 중');await expect(badge.locator('[data-connection-icon=phone]')).toHaveCount(1);
+    expect(await badge.evaluate(e=>({bg:getComputedStyle(e).backgroundColor,color:getComputedStyle(e).color}))).toEqual(vehicleColors);
     await expect(toast).toHaveCount(0);
     async function event(name='changed') {
      const n=syncCount;await p.evaluate(name=>(window as any).streams.at(-1).emit(name),name);

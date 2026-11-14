@@ -555,6 +555,7 @@
   }
   const phoneConnectionSvg='<svg data-connection-icon="phone" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg>';
   function paintConnection(el,connected) {
+    el.classList.add("connection-badge");
     if(el.dataset.connected===String(connected)&&el.querySelector('[data-connection-icon]'))return;
     el.dataset.connected=String(connected);
     el.innerHTML=phoneConnectionSvg;
@@ -1702,7 +1703,7 @@
     if (native && !state.driving && app.firstElementChild)
       window.DiaryParkedPlayer?.render(app.firstElementChild, state, {
         action, stamp,
-        command: async (action) => { await bridge("listenAction",{action}); window.nativeStatus(await bridge("state")); },
+        command: action => listenRequest("listenAction",{action}),
       });
     const recordStart = app.querySelector("[data-record-start]");
     if (recordStart) recordStart.disabled = !state.can_record;
@@ -1953,7 +1954,28 @@
     };
     return `<svg aria-hidden="true" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${paths[kind]}</svg>`;
   }
-  // C043: shared native audio state, four supplied driving screens.
+  let visibleVehicleMode=null, modeAnimation=null, listenCommandsPending=0;
+  function animateVehicleMode(root,mode) {
+    const changed=visibleVehicleMode!==null&&visibleVehicleMode!==mode;
+    visibleVehicleMode=mode;
+    if(!changed)return;
+    modeAnimation?.cancel();
+    if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+    root.dataset.modeTransition=mode;
+    modeAnimation=root.animate([
+      {opacity:.28,transform:`translateX(${mode==='driving'?20:-20}px)`},
+      {opacity:1,transform:'translateX(0)'},
+    ],{duration:220,easing:'cubic-bezier(.2,.75,.25,1)'});
+    const clear=()=>delete root.dataset.modeTransition;
+    modeAnimation.onfinish=clear;modeAnimation.oncancel=clear;
+  }
+  async function listenRequest(command,values) {
+    if(listenCommandsPending && values.action!=="listenExit")return;
+    listenCommandsPending++;document.body.dataset.listenPending='true';
+    try {await bridge(command,values);window.nativeStatus(await bridge("state"));}
+    finally {listenCommandsPending--;if(!listenCommandsPending)delete document.body.dataset.listenPending;}
+  }
+  // Shared native audio state; mode changes never retain a parked content snapshot.
   function paintDriving(state) {
     if (page !== "cardriving" || !app.querySelector("[data-driving-surface]")) {
       window.suspendForDriving();
@@ -1965,17 +1987,19 @@
       viewport();
     }
     window.DiaryDriving.render(app.firstElementChild, state, {
-      action, drive, stamp,
+      action, drive, stamp, paintConnection,
       resetWave(wave, count) {
         levels = Array(count).fill(0);
         wave.replaceChildren(...levels.map(() => document.createElement("span")));
       },
       drawWave: drawInputLevel,
       page: request => bridge("listenPage",request),
-      select: async memoryId => {await bridge("listenAction",{action:"listenSelect",memoryId});window.nativeStatus(await bridge("state"));},
+      select: memoryId => listenRequest("listenAction",{action:"listenSelect",memoryId}),
     });
+    animateVehicleMode(app.firstElementChild,"driving");
   }
   async function drive(action) {
+    if(action.startsWith("listen"))return listenRequest("driveAction",{action});
     await bridge("driveAction", { action });
     window.nativeStatus(await bridge("state"));
   }
@@ -2337,6 +2361,7 @@
       themeShortcut(root);
       updatePlaylist(vehicleState);
       root.style.visibility = "visible";
+      if(native)animateVehicleMode(root,"parked");
       return true;
     } catch (e) {
       if (token !== generation || vehicleState.driving) return;

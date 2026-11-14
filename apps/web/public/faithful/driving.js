@@ -12,7 +12,7 @@
     next: svg('<path d="M18 5v14M5 5l11 7-11 7Z" fill="currentColor"/>'),
     speaker: svg('<path d="M11 5 6 9H3v6h3l5 4ZM15 8a6 6 0 0 1 0 8"/>'),
   };
-  let root, handlers, stage, latest = {}, listenView = false, previousAudio = false;
+  let root, handlers, stage, latest = {}, listenView = false, previousAudio = false, finishRequested = false;
   const q = (s) => root.querySelector(s);
   const put = (s, value) => { const node = q(s); if (node) node.textContent = value ?? ''; };
   const bind = (selector, action) => handlers.action(q(selector), action);
@@ -33,11 +33,18 @@
         render(root, latest, handlers);
         if (!mediaActive(latest)) await handlers.drive('listenToggle');
       });
+    } else if (stage === 'processing') {
+      body.innerHTML='<section class="drive-processing" role="status" aria-live="polite" aria-busy="true"><span class="processing-spinner" aria-hidden="true"></span><h1 data-processing-title></h1><p data-processing-detail></p><span>이야기 확인은 주차 후에 할 수 있어요</span></section>';
     } else if (stage === 'recording') {
       body.innerHTML = `<section class="drive-record-card"><div class="drive-record-info"><span class="drive-record-state" data-record-state></span><div class="drive-timer" data-timer></div></div><div class="drive-record-audio"><div class="drive-input-wave" data-input-wave data-amplitude="152" role="img"></div><div class="drive-transcription"><span data-drive-stt-status role="status"></span><p data-driving-transcript></p></div></div></section><div class="drive-record-actions"><button data-drive-primary></button><button class="drive-finish" data-drive="finish">${icons.stop}<span>녹음 마치기</span></button></div>`;
       handlers.resetWave(q('[data-input-wave]'), 16);
       bind('[data-drive-primary]', () => handlers.drive('pause'));
-      bind('[data-drive="finish"]', () => handlers.drive('finish'));
+      bind('[data-drive="finish"]', async () => {
+        if(finishRequested)return;
+        finishRequested=true;render(root,latest,handlers);
+        try {await handlers.drive('finish');}
+        catch(e){finishRequested=false;render(root,latest,handlers);throw e;}
+      });
     } else {
       body.innerHTML = `<section class="drive-current"><div class="drive-memory-head"><span data-listen-date></span><button class="drive-autoplay" data-drive="listenAutoplay" aria-label="전체 반복 켜기" aria-pressed="false">${icons.repeat}</button></div><h1 data-listen-title></h1><span class="drive-active-mode" data-listen-active-mode></span><div class="drive-progress"><div class="drive-progress-track" role="progressbar" aria-label="원본 재생 진행" data-listen-progress><span></span></div><div class="drive-times"><span data-listen-position></span><span data-listen-duration></span></div></div><div class="drive-transport"><button data-drive="listenPrevious" aria-label="이전 일기">${icons.previous}</button><button data-drive="listenToggle">${icons.play}</button><button data-drive="listenNext" aria-label="다음 일기">${icons.next}</button></div></section><aside class="drive-listen-side"><div class="drive-listen-tabs" role="group" aria-label="듣기 방식"><button data-drive="listenDiary">일기 읽어주기</button><button data-drive="listenOriginal">그날의 목소리</button></div><section class="drive-up-next"><h2>지난 일기 <span data-list-total></span></h2><div data-listen-upcoming role="region" aria-label="최근순 일기 목록" tabindex="0"></div></section></aside>`;
       body.querySelectorAll('[data-drive]').forEach(b => handlers.action(b, () => handlers.drive(b.dataset.drive)));
@@ -46,7 +53,7 @@
   function render(target, state, api) {
     if (root !== target) {
       root = target; handlers = api; stage = null; latest = state;
-      listenView = mediaActive(state); previousAudio = mediaActive(state);
+      listenView = mediaActive(state); previousAudio = mediaActive(state); finishRequested = false;
       root.className = 'driving-screen';
       root.innerHTML = header() + '<main class="drive-stage"></main><p class="drive-notice" data-driving-status role="status" hidden></p>';
       bind('[data-drive-return]', async () => {
@@ -60,15 +67,18 @@
     previousAudio = mediaActive(state);
     if (state.recording) listenView = false;
     const listen = state.driving_listen || {};
-    showStage(state.recording ? 'recording' : listenView ? 'listening' : 'idle');
+    if(state.capture_finalizing || !state.recording)finishRequested=false;
+    const processing=finishRequested || state.capture_finalizing || !state.recording && state.stt_busy;
+    showStage(processing ? 'processing' : state.recording ? 'recording' : listenView ? 'listening' : 'idle');
     q('[data-drive-return]').hidden = stage !== 'listening';
-    q('[data-drive-connection]').hidden = stage === 'listening';
-    put('[data-drive-connection]', state.paired ? '휴대폰과 연결됨' : '휴대폰 연결 전');
-    q('[data-drive-connection]').dataset.connected = String(!!state.paired);
+    handlers.paintConnection(q('[data-drive-connection]'),!!state.paired);
     if (stage === 'idle') {
       q('[data-drive-primary]').disabled = !state.can_record;
       q('[data-open-listen]').disabled = !listen.available;
       put('[data-diary-count]', listen.count ? `지난 일기 ${listen.count}개` : '아직 완성된 일기가 없어요');
+    } else if (stage === 'processing') {
+      put('[data-processing-title]',state.recording?'원본 녹음을 보관하고 있어요':'이야기를 글로 마무리하고 있어요');
+      put('[data-processing-detail]',state.recording?'녹음 종료를 처리하고 있어요':'원본은 보관했어요. 음성 인식이 끝날 때까지 잠시 기다려 주세요');
     } else if (stage === 'recording') {
       root.dataset.paused = String(!!state.paused);
       put('[data-timer]', handlers.stamp(state.elapsed || 0));
@@ -105,8 +115,8 @@
         button.disabled = !listen.available;
         button.setAttribute('aria-label', mode === 'Original' ? '원본 목소리 목록 선택' : '일기 읽어주기 목록 선택');
       }
-      q('[data-drive="listenPrevious"]').disabled = !listen.previous || listen.preparing;
-      q('[data-drive="listenNext"]').disabled = !listen.next || listen.preparing;
+      q('[data-drive="listenPrevious"]').disabled = !listen.available || !listen.previous || listen.preparing;
+      q('[data-drive="listenNext"]').disabled = !listen.available || !listen.next || listen.preparing;
       const toggle = q('[data-drive="listenToggle"]');
       toggle.disabled = !listen.available || !!listen.preparing;
       const playing = !!listen.playing;
@@ -122,7 +132,7 @@
     }
     const notice = state.playback_notice || '';
     const error = /실패|못했|오류|상실|중단/.test(notice) ? notice : '';
-    put('[data-driving-status]', !state.recording && state.stt_busy ? '원본을 보관했어요. 이야기 확인은 주차 후에 할 수 있어요.' : error);
+    put('[data-driving-status]',stage==='processing'?'':error);
     q('[data-driving-status]').hidden = !q('[data-driving-status]').textContent;
   }
   window.DiaryDriving = { render };

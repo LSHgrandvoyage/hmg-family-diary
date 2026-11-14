@@ -71,6 +71,7 @@ class WelcomeDeviceTest {
    waitJs(exact,"original player visible at home","!!document.querySelector('[data-page=carhome] .parked-player') && document.querySelector('[data-player-mode]')?.textContent.includes('목소리')")
    eval(exact,"document.querySelector('[data-player-command=listenToggle]').click()")
    waitFor("pause reaches real MediaPlayer"){playback.prepared&&playback.player?.isPlaying==false}
+   waitJs(exact,"pause response enables next input","!document.body.dataset.listenPending && document.querySelector('[data-player-command=listenToggle]')?.disabled===false")
    eval(exact,"document.querySelector('[data-player-command=listenToggle]').click()")
    waitFor("resume reaches same MediaPlayer"){playback.player?.isPlaying==true&&playback.file==file}
    for(page in listOf("carlist","carsettings","carhome")) {

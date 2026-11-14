@@ -1340,3 +1340,12 @@ body:not(.vehicle) .theme-shortcut button:focus-visible {
 .sync-saved-notice { position:fixed; left:50%; bottom:100px; transform:translateX(-50%); z-index:85; max-width:calc(100vw - 40px); box-sizing:border-box; padding:14px 22px; border:1px solid var(--line); border-radius:18px; background:var(--surface); color:var(--ink); box-shadow:0 4px 18px var(--shadow); font-size:16px; line-height:1.5; pointer-events:none; }
 .sync-saved-notice[data-native="true"] { bottom:124px; font-size:20px; }
 [data-sync-state] { display:flex; align-items:center; gap:8px; }
+
+/* C050: consistent connection status and deliberate touch feedback. */
+.connection-badge { display:inline-flex !important; align-items:center; justify-content:center; gap:8px; padding:12px 18px; border-radius:999px; white-space:nowrap; background:var(--accent-soft) !important; color:var(--accent) !important; font-weight:700; }
+.connection-badge[data-connected="false"] { background:var(--surface-alt) !important; color:var(--muted) !important; }
+.connection-badge svg { flex-shrink:0; width:18px; height:18px; }
+body.vehicle { -webkit-tap-highlight-color:transparent; }
+body.vehicle :is(button,a,[role="button"]):active { opacity:.76; }
+body.vehicle :is(button,a,[role="button"]):focus:not(:focus-visible) { outline:none; }
+body[data-listen-pending="true"] :is([data-memory],[data-drive^="listen"],[data-player-command]):not([data-drive="listenExit"]):not([data-player-command="listenExit"]) { pointer-events:none; opacity:.55; }

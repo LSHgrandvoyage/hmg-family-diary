@@ -36,3 +36,9 @@ MainActivity의 state에 주행 중 활성 캡처의 liveText 최신180자만 �
 기존 draft.groups[0].label을 제목으로 유지하고 주차 제목 편집 bridge를 추가한다. revision을 하나 올리면서 confirmed/draftRevision/accepted를 함께 옮겨 원문 재인식 없이 완성 상태를 유지한다. 기존 outbox가 새 revision을 전송한다. 저장 전 expected revision 검사·idle 검사·입력 검증을 수행하고 캐시/ReviewPanel을 갱신한다.
 
 정합성 검토:004 PLAY-013/014,002 REC-009와003 기존 revision 동기화 계약을 대조했다. 원본 불변·목업 본문·주차 편집 제한을 유지한다. 방식 탐색은 AI 생성 요청이 아니다. 실차 허용 주장은 추가하지 않는다. 합성 페이지/두 테마/상세 버튼과 SDK 재생 완료·모드 전환·제목 보존을 검증한다.
+
+## C050 — 차량 상호작용·상태 피드백 (구현 전 계획)
+
+`REC-010`: RecordingService의 종료/settling 신호를 bridge에 전달하고 주행 processing 단계로 표현한다. 종료 요청 직후부터 피드백을 제공하고 실제 완료·실패 때만 해제한다.
+
+정합성 검토: SYNC-010/011, REC-010, PLAY-011/012/016, UX-012, DEP-009의 화면 계약을 연결한다. 실제 SDK/STT/오디오 포커스 제한을 우회하지 않고 합성 UI와 에뮬레이터 검증을 구분한다. 기존 사용자 기록·DB를 초기화하지 않는다.

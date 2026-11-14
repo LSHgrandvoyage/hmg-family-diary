@@ -7,7 +7,7 @@
     const active=state?.memory;
     container.setAttribute('aria-busy',String(busy));
     const list=container.querySelector('[data-listen-rows]');
-    for(const row of container.querySelectorAll('[data-memory]')){row.setAttribute('aria-current',String(row.dataset.memory===active));row.dataset.playing=String(row.dataset.memory===active&&!!state.playing);}
+    for(const row of container.querySelectorAll('[data-memory]')){row.setAttribute('aria-current',String(row.dataset.memory===active));row.dataset.playing=String(row.dataset.memory===active&&!!state.playing);row.disabled=busy||state?.available===false||!!state?.preparing||!!state?.settling;}
     const status=container.querySelector('[data-listen-load-status]');
     status.textContent=error|| (busy?'일기 불러오는 중…':items.length?'':'아직 완성된 일기가 없어요');
     const retry=container.querySelector('[data-listen-retry]');retry.hidden=!error;retry.disabled=busy;
@@ -24,12 +24,14 @@
       if(!b){b=document.createElement('button');b.type='button';b.className='drive-upcoming-card';b.dataset.memory=item.id;
         const day=document.createElement('span'),words=document.createElement('span'),title=document.createElement('strong'),date=document.createElement('span'),playing=document.createElement('span');
         day.className='drive-upcoming-day';words.className='drive-list-words';playing.className='drive-now';playing.textContent='듣는 중';
-        day.textContent=item.day;title.textContent=item.title;date.textContent=item.date;words.append(title,date,playing);b.append(day,words);
+        const year=document.createElement('small'),calendar=document.createElement('span');year.dataset.dateYear='';calendar.dataset.dateCalendar='';day.append(year,calendar);title.textContent=item.title;date.textContent=item.weekday||item.date;words.append(title,date,playing);b.append(day,words);
         api.action(b,()=>api.select(item.id));
       }
-      b.querySelector('.drive-upcoming-day').textContent=item.day;
+      b.querySelector('[data-date-year]').textContent=item.year||'';
+      b.querySelector('[data-date-calendar]').textContent=item.month_day||item.day;
+      b.setAttribute('aria-label',`${item.date} · ${item.title}`);
       b.querySelector('strong').textContent=item.title;
-      b.querySelector('.drive-list-words > span').textContent=item.date;
+      b.querySelector('.drive-list-words > span').textContent=item.weekday||item.date;
       return b;
     });
     const pinned=nodes.find(n=>n.dataset.memory===state.memory);

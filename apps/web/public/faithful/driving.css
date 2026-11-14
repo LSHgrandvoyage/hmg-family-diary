@@ -12,8 +12,8 @@
 .drive-mode { display:flex; align-items:center; gap:8px; border-radius:32px; background:var(--surface-alt); padding:11px 18px; font-size:18px; font-weight:700; line-height:22px; }
 .drive-mode svg { width:18px; height:18px; }
 .drive-connection { margin-left:auto; display:flex; gap:10px; align-items:center; color:var(--muted); font-size:18px; font-weight:500; }
-.drive-connection::before { content:""; width:10px; height:10px; border-radius:50%; background:var(--wave); }
-.drive-connection[data-connected="true"]::before { background:var(--accent); }
+
+
 .drive-return { margin-left:auto !important; padding:14px 24px; min-height:56px; display:flex; align-items:center; gap:10px; border-radius:32px; background:var(--warm); color:var(--coral-text) !important; font-size:20px; font-weight:700; }
 .drive-stage { flex:1; min-height:0; }
 [data-drive-stage="idle"] .drive-stage { display:flex; flex-direction:column; }
@@ -113,3 +113,20 @@
 [data-listen-pinned] { flex:none; }
 [data-listen-scroll] { min-height:0; flex:1; overflow-y:auto; scrollbar-width:thin; overscroll-behavior:contain; overflow-anchor:none; }
 [data-listen-scroll] > button { min-height:52px; padding:12px; border-radius:16px; width:100%; margin:8px 0; background:var(--surface-alt); font-size:18px; }
+
+/* C050: complete dates, bounded feedback, no decorative driving motion. */
+.drive-connection { font-size:18px; }
+.drive-header .drive-return { margin-left:0 !important; }
+.drive-upcoming-card { gap:16px; padding:20px 16px; }
+.drive-upcoming-day { width:70px; display:flex; flex-direction:column; align-items:center; gap:7px; font-variant-numeric:tabular-nums; }
+.drive-upcoming-day small { font-size:15px; line-height:1; font-weight:500; color:var(--muted); }
+.drive-upcoming-day > span { font-size:25px; line-height:1.1; letter-spacing:-1px; }
+.drive-upcoming-day small:empty { display:none; }
+[data-drive-stage="processing"] .drive-stage { display:flex; }
+.drive-processing { flex:1; border-radius:44px; background:var(--surface); display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:24px; padding:48px; }
+.drive-processing h1 { font-size:40px; line-height:1.3; margin:0; letter-spacing:-1px; }
+.drive-processing p { font-size:22px; color:var(--muted); margin:0; }
+.drive-processing > span:last-child { color:var(--muted); font-size:18px; margin-top:8px; }
+.processing-spinner { width:56px; height:56px; border:5px solid var(--accent-soft); border-top-color:var(--accent); border-radius:50%; animation:processing-turn 1s linear infinite; }
+@keyframes processing-turn { to { transform:rotate(360deg); } }
+@media(prefers-reduced-motion:reduce) { .processing-spinner { animation:none; } }

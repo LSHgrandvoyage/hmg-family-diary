@@ -39,7 +39,7 @@ with ZipFile(root/'dist/contest/source.zip') as z:
 (out/'apk').mkdir()
 target_apk=out/'apk/새벽개발팸_차곡차곡_release.apk';target_apk.write_bytes(apk.read_bytes())
 (out/'README.md').write_bytes((root/'docs/contest/release-runbook.md').read_bytes())
-(out/'검증결과.md').write_text((root/'docs/evidence/c049-team-startup.md').read_text().replace('../../specs/', 'source/specs/').replace('(connected-ui/', '(source/docs/evidence/connected-ui/').replace('(c048-sync-status-player.md)', '(source/docs/evidence/c048-sync-status-player.md)'))
+(out/'검증결과.md').write_text((root/'docs/evidence/c050-vehicle-interaction.md').read_text().replace('../../specs/', 'source/specs/').replace('(connected-ui/', '(source/docs/evidence/connected-ui/').replace('(c048-sync-status-player.md)', '(source/docs/evidence/c048-sync-status-player.md)'))
 sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
 source_files={p.relative_to(out/'source').as_posix():sha(p) for p in sorted((out/'source').rglob('*')) if p.is_file()}
 (out/'source-files.sha256').write_text(''.join(f'{v}  source/{k}\n' for k,v in source_files.items()))

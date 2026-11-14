@@ -945,7 +945,7 @@ class MainActivity : Activity() {
     }
     private fun allowed() = access().review
     private fun audioAllowed() = access().audio
-    private fun idle() = !syncBusy && !capture.busy && playbackService?.busy!=true && !speech.busy && (!::review.isInitialized || !review.busy)
+    private fun idle() = !syncBusy && !capture.busy && recordingService?.settling!=true && playbackService?.busy!=true && !speech.busy && (!::review.isInitialized || !review.busy)
     private fun render() {
         if (!initialized) return
         val allowed = allowed()
@@ -1209,7 +1209,7 @@ class MainActivity : Activity() {
     private fun drivingDiaryFiles() = drivingDiaryRows ?: drivingOriginals().filter { narrationItem(it)!=null }
         .sortedWith(compareByDescending<File>{store.load(it).recordedAt}.thenBy{it.name}).also { drivingDiaryRows=it;listenCatalogVersion++ }
     private fun listenPage(request:JSONObject):JSONObject {
-        check(audioAllowed() && !capture.busy)
+        check(audioAllowed()){ "차량 상태와 녹음 안내를 확인해 주세요." };check(!capture.busy){ "녹음을 마친 뒤 일기를 선택해 주세요." }
         val rows=drivingDiaryFiles();val direction=request.optString("direction","around")
         require(direction in setOf("around","before","after"))
         val cursor=request.optString("cursor");val cursorIndex=rows.indexOfFirst{it.name==cursor}
@@ -1240,10 +1240,21 @@ class MainActivity : Activity() {
         }
         handler.post{apply(0)}
     }
+    private fun requirePlaybackReady() {
+        val reason=when {
+            !audioAllowed()->"차량 상태와 녹음 안내를 확인해 주세요."
+            capture.busy->"녹음을 마친 뒤 재생해 주세요."
+            speech.busy || recordingService?.settling==true->"녹음과 음성 인식을 마무리하고 있어요. 잠시 기다려 주세요."
+            syncBusy->"기록을 동기화하고 있어요. 잠시 후 재생해 주세요."
+            review.busy->"이야기를 저장하고 있어요. 잠시 후 재생해 주세요."
+            else->null
+        }
+        check(reason==null){reason!!}
+    }
     private fun drivingListen(action:String,memoryId:String="") {
-        check(audioAllowed() && !capture.busy && !speech.busy && !syncBusy && !review.busy)
         if(action=="listenExit"){stopPlayback();render();return}
-        val service=checkNotNull(playbackService)
+        requirePlaybackReady()
+        val service=checkNotNull(playbackService){"음성 재생을 준비하고 있어요. 잠시 기다려 주세요."}
         check(!service.settling){"음성 전환을 기다려 주세요."}
         if(action=="listenAutoplay"){service.toggleAutoAdvance();render();return}
         if(action=="listenToggle" && service.busy){service.toggle();render();return}
@@ -1282,13 +1293,14 @@ class MainActivity : Activity() {
         val at=runCatching {Instant.parse(record.recordedAt).atZone(zone)}.getOrNull()
         fun format(pattern:String)=at?.format(DateTimeFormatter.ofPattern(pattern,java.util.Locale.KOREA)).orEmpty()
         JSONObject().put("title",narrationItem(file)?.title?.take(80)?:"그날의 일기")
-            .put("date",format("M월 d일 EEEE")).put("day",format("dd"))
+            .put("date",format("yyyy년 M월 d일 EEEE")).put("day",format("dd"))
+            .put("year",format("yyyy")).put("month_day",format("MM.dd")).put("weekday",format("EEEE"))
             .put("short_date",format("M월 · EEEE")).put("duration_ms",record.durationMs)
     }
     private fun drivingListenState():JSONObject {
         if(!audioAllowed())return JSONObject().put("available",false)
         val rows=drivingDiaryFiles();val file=drivingListenFile();val index=rows.indexOf(file)
-        val enabled=!capture.busy && !speech.busy && !syncBusy && !review.busy && playbackService?.settling!=true
+        val enabled=!capture.busy && recordingService?.settling!=true && !speech.busy && !syncBusy && !review.busy && playbackService?.settling!=true
         val service=playbackService;val summary=file?.let(::drivingSummary)
         return JSONObject().put("mode",activeListenMode).put("browse_mode",drivingListenMode).put("auto_advance",service?.autoAdvance==true).put("available",enabled && file!=null)
             .put("memory",file?.name?:JSONObject.NULL).put("date",summary?.optString("date")?:"")
@@ -1315,7 +1327,7 @@ class MainActivity : Activity() {
             .put("duration",if(original && service?.prepared==true)runCatching{service.player!!.duration/1000.0}.getOrDefault(0.0) else 0.0)
     }
     private fun referenceState() = VehicleTheme.state(this).put("sync_change_seq",sync.changeSequence).put("playback",parkedPlaybackState()).put("driving_transcript",if(audioAllowed() && driving.isChecked && capture.busy)liveText.takeLast(180) else "").put("driving_listen",drivingListenState()).put("driving",::driving.isInitialized && driving.isChecked).put("sync_notice",sync.uploadNotice.ifBlank { syncNotice }).put("paired",sync.paired).put("recording",capture.busy).put("paused",capture.paused)
-        .put("stt_busy",speech.busy).put("stt_text",if(allowed() && (capture.busy || liveFile==selected))liveText else "").put("stt_status",if(capture.busy || liveFile==selected)liveStatus else "").put("stt_memory",liveFile?.name?:JSONObject.NULL)
+        .put("capture_finalizing",recordingService?.settling==true).put("stt_busy",speech.busy).put("stt_text",if(allowed() && (capture.busy || liveFile==selected))liveText else "").put("stt_status",if(capture.busy || liveFile==selected)liveStatus else "").put("stt_memory",liveFile?.name?:JSONObject.NULL)
         .put("level",if(capture.busy && !capture.paused)captureLevel else 0f).put("sync_pending",syncPending && sync.paired).put("narrating",playbackService?.busy==true && player==null).put("playback_notice",playbackService?.notice.orEmpty()).put("syncing",syncBusy || sync.uploading).put("elapsed",captureElapsed/1000.0).put("memoryId",selected?.name?:JSONObject.NULL)
         .put("position",if(prepared) runCatching { player?.currentPosition?.div(1000.0)?:0.0 }.getOrDefault(0.0) else completedPlayback)
          .put("audio_memory",if(prepared)selected?.name?:JSONObject.NULL else JSONObject.NULL).put("tts_active",playbackService?.narrating==true).put("tts_index",playbackService?.queueIndex?:-1).put("tts_count",playbackService?.queueCount?:0)
@@ -1341,8 +1353,8 @@ class MainActivity : Activity() {
     }
     private fun selectReference(file:File){
         if(selected==file)return
-        check(!capture.busy && !speech.busy && !review.busy && !syncBusy)
-        stopPlayback();check(review.save());check(review.select(file,store.load(file)));selected=file;pendingSeek=0;if(allowed())populateDetail()
+        requirePlaybackReady()
+        stopPlayback();check(review.save()){ "이야기를 저장하지 못했어요. 내용을 확인해 주세요." };check(review.select(file,store.load(file))){ "이야기를 불러오지 못했어요. 다시 선택해 주세요." };selected=file;pendingSeek=0;if(allowed())populateDetail()
     }
     private fun referenceCommand(request:JSONObject,reply:(JSONObject)->Unit){
         try{
@@ -1378,7 +1390,7 @@ class MainActivity : Activity() {
                     val file=referenceFile(id);val r=store.load(file)
                     val rows=JSONObject(checkNotNull(r.speechTimeline)).getJSONArray("segments")
                     val row=(0 until rows.length()).map{rows.getJSONObject(it)}.first {it.getString("id")==request.getString("segmentId")}
-                    check(!row.isNull("start_ms") && !row.isNull("end_ms"));check(audioAllowed() && !capture.busy && !speech.busy && !syncBusy && !review.busy)
+                    check(!row.isNull("start_ms") && !row.isNull("end_ms")){"이 발언의 재생 시각을 확인할 수 없어요."};requirePlaybackReady()
                     selectReference(file);stopPlayback();pendingSeek=row.getLong("start_ms").toInt();playOriginal();referenceState()
                 }
                 "seek"->{ if(id.isNotBlank())selectReference(referenceFile(id));val pos=(request.optDouble("position",0.0).coerceAtLeast(0.0)*1000).toInt();pendingSeek=pos.coerceAtMost((review.record?.durationMs?:0L).toInt());if(prepared)player?.seekTo(pendingSeek);referenceState() }
@@ -1460,8 +1472,8 @@ class MainActivity : Activity() {
                     return
                 }
                 "tts"->{
-                    val file=referenceFile(id);checkNotNull(narrationItem(file)){"먼저 일기를 완성해 주세요."};val service=checkNotNull(playbackService)
-                    if(service.file==file && service.narrating){check(!service.settling);service.toggle()}
+                    val file=referenceFile(id);checkNotNull(narrationItem(file)){"먼저 일기를 완성해 주세요."};val service=checkNotNull(playbackService){"음성 재생을 준비하고 있어요. 잠시 기다려 주세요."}
+                    if(service.file==file && service.narrating){if(!service.settling)service.toggle()}
                     else switchListening(file,"diary",true)
                     referenceState()
                 }
@@ -1474,7 +1486,7 @@ class MainActivity : Activity() {
                 "ttsNext"->{playbackService?.nextNarration();referenceState()}
                 else->throw IllegalArgumentException("지원하지 않는 동작이에요.")
             };reply(result)
-        }catch(e:Exception){reply(JSONObject().put("error",e.message?.take(200)?:"처리하지 못했어요."))}
+        }catch(e:Exception){val message=e.message?.take(200);reply(JSONObject().put("error",if(message.isNullOrBlank() || message in setOf("Check failed.","Failed requirement."))"상태가 바뀌었어요. 화면을 확인한 뒤 다시 눌러 주세요." else message))}
     }
     private fun narrationItem(file:File):PlaybackService.NarrationItem? = runCatching {
         val r=store.load(file)
@@ -1485,8 +1497,8 @@ class MainActivity : Activity() {
         PlaybackService.NarrationItem(file,body,groups.optJSONObject(0)?.optString("label")?.takeIf {it.isNotBlank()}?:"그날의 일기")
     }.getOrNull()
     private fun startNarration(items:List<PlaybackService.NarrationItem>,index:Int=0){
-        check(audioAllowed() && !capture.busy && !speech.busy && !syncBusy && !review.busy)
-        check(review.save());check(items.isNotEmpty()) {"완성된 일기가 없어요."}
+        requirePlaybackReady()
+        check(review.save()){ "이야기를 저장하지 못했어요. 내용을 확인해 주세요." };check(items.isNotEmpty()) {"완성된 일기가 없어요."}
         check(items.all {narrationItem(it.file)==it}) {"일기가 변경됐어요. 목록을 새로고침한 뒤 다시 시작해 주세요."}
         val service=checkNotNull(playbackService){"음성 재생을 준비하고 있어요."}
         activeListenMode="diary";service.setSimulation(recordingService?.simulation);service.narrateQueue(items,index)
@@ -1572,7 +1584,7 @@ class MainActivity : Activity() {
                     }
                     syncEvents.stop();sync.cancel();settings.save(filesDir,sync.paired);sync.begin()
                     syncPending=true;syncNotice="테스트 서버 설정을 적용했어요."
-                    Toast.makeText(this,"테스트 서버 설정을 적용했어요.",Toast.LENGTH_LONG).show();render()
+                    Toast.makeText(this,"테스트 서버 설정을 적용했어요.",Toast.LENGTH_LONG).show();if(allowed())navigate(Screen.SETTINGS) else render()
                 } catch(e:Exception) {Toast.makeText(this,e.message?:"설정을 적용하지 못했어요. 기존 설정은 유지돼요.",Toast.LENGTH_LONG).show()}
             }.show().also {styleDialog(it)}
     }
@@ -1609,7 +1621,7 @@ class MainActivity : Activity() {
             recordingService?.attach(::recordingChanged)
             render()
             if(capture.busy)exact.restore("recording",selected?.name)
-            else if(allowed() && liveFile!=null && liveFile==selected)exact.restore("carreview",selected?.name)
+            // New recordings are routed by recordingChanged; resuming settings must keep its route.
             SyncUploads.request(this,sync)
             syncPending=true;handler.removeCallbacks(autoPull);handler.postDelayed(autoPull,500)
         }

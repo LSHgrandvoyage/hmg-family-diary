@@ -105,7 +105,7 @@ class RecordingService:Service() {
         }catch(e:Exception){speech.cancel();notice=e.message?:"녹음을 시작하지 못했어요.";finalizing=true;settle();emit();throw e}
     }
     fun pauseOrResume(){capture.pauseOrResume();notifyState();emit()}
-    fun finish(){capture.stop(false)}
+    fun finish(){if(!capture.busy || finalizing)return;finalizing=true;notice="원본 녹음을 보관하고 있어요.";capture.stop(false);emit()}
     fun interrupt(message:String){
         if(capture.busy || finalizing){notice=message;capture.stop(true);speech.cancel();saveTranscript();settle();emit()}
     }

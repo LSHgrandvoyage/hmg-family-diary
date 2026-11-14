@@ -15,7 +15,7 @@
       bar.querySelectorAll('button').forEach(b=>api.action(b,()=>api.command(({listenDiary:"listenSwitchDiary",listenOriginal:"listenSwitchOriginal"})[b.dataset.playerCommand]||b.dataset.playerCommand)));
       root.append(bar);
     }
-    const original=p.mode==='original',browseOriginal=original,waiting=p.settling||p.preparing,eligible=p.memory===listen.memory;
+    const original=p.mode==='original',browseOriginal=original,waiting=p.settling||p.preparing||state.stt_busy||state.capture_finalizing||state.syncing,eligible=p.memory===listen.memory;
     bar.querySelector('[data-player-mode]').textContent=(original?'목소리':'일기')+' · '+(p.settling?'전환 중':p.preparing?'준비 중':p.playing?'재생 중':p.paused?'일시정지':'재생 대기');
     bar.querySelector('[data-player-title]').textContent=p.title||'그날의 일기';
     bar.querySelector('[data-player-time]').textContent=api.stamp(p.position||0)+(original&&p.duration>0?' / '+api.stamp(p.duration):'');
@@ -27,7 +27,7 @@
     for(const [cmd,on]of [['listenDiary',!browseOriginal],['listenOriginal',browseOriginal]]){const b=bar.querySelector(`[data-player-command="${cmd}"]`);b.setAttribute('aria-pressed',String(on));b.disabled=!!waiting||!eligible;}
     const autoplay=bar.querySelector('[data-player-command="listenAutoplay"]');
     autoplay.setAttribute('aria-pressed',String(!!listen.auto_advance));autoplay.setAttribute('aria-label',listen.auto_advance?'전체 반복 끄기':'전체 반복 켜기');autoplay.title=autoplay.getAttribute('aria-label');autoplay.disabled=!!waiting||!eligible;
-    bar.querySelector('[data-player-command="listenExit"]').disabled=!!p.settling;
+    bar.querySelector('[data-player-command="listenExit"]').disabled=false;
   }
   window.DiaryParkedPlayer={render};
 })();

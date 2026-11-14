@@ -81,3 +81,11 @@
 - [x] 004-C051-03 `PLAY-009, PLAY-017`: 관련 UI/실제 TTS 검증·증거·실행/제출 반영·dev 커밋.
 
 검증 근거: [C051 낭독 진행·화면 전환](../../docs/evidence/c051-narration-navigation.md).
+
+## C052
+
+- [x] 004-C052-01 `PLAY-009, PLAY-017, PLAY-018`: 요구사항·헌장/제품 정합성·계획.
+- [x] 004-C052-02 `PLAY-009, PLAY-017, PLAY-018`: 제한된 문장 상태와 가사형 화면 구현.
+- [x] 004-C052-03 `PLAY-009, PLAY-017, PLAY-018`: 합성 UI/실제 TTS·경계 검증·증거·실행/제출 반영·dev 커밋.
+
+검증 근거: [C052 가사형 낭독 문장](../../docs/evidence/c052-narration-lyrics.md).

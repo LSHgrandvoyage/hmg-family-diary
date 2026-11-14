@@ -134,3 +134,22 @@
 /* Sentence completion is not an estimated audio duration; lighter range is the current sentence. */
 .drive-progress-track { position:relative; }
 .drive-progress-track > i { position:absolute; top:0; height:100%; background:var(--coral); opacity:.3; border-radius:4px; }
+
+/* C052: centered, bounded narration window; surrounding sentences are quiet previews. */
+[data-listen-kind="diary"] .drive-current { padding:24px 36px; min-height:0; }
+[data-listen-kind="diary"] .drive-memory-head { flex:none; min-height:40px; font-size:17px; }
+[data-listen-kind="diary"] .drive-autoplay { width:44px; height:44px; min-height:44px; }
+[data-listen-kind="diary"] .drive-current h1 { flex:none; font-size:30px; line-height:1.25; margin-top:8px; -webkit-line-clamp:1; max-height:38px; }
+[data-listen-kind="diary"] [data-listen-active-mode] { display:none; }
+.drive-lyrics { flex:1; min-height:0; position:relative; overflow:hidden; margin:8px 0; mask-image:linear-gradient(transparent,black 9%,black 91%,transparent); }
+.lyric-line { position:absolute; width:100%; left:0; top:0; margin:0; font-size:20px; line-height:1.35; font-weight:500; letter-spacing:-.45px; overflow-wrap:anywhere; word-break:keep-all; color:var(--ink); opacity:.42; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:1; overflow:hidden; transition:transform 320ms cubic-bezier(.2,.75,.25,1),opacity 320ms ease; }
+.lyric-line[data-distance="0"] { font-size:28px; font-weight:700; opacity:1; display:block; overflow:visible; white-space:pre-wrap; }
+.lyric-line[data-distance="2"] { font-size:18px; opacity:.18; }
+.lyrics-empty { position:absolute; top:50%; width:100%; transform:translateY(-50%); margin:0; font-size:22px; color:var(--muted); }
+[data-listen-kind="diary"] .drive-progress { flex:none; margin-top:0; padding-top:0; }
+[data-listen-kind="diary"] .drive-times { margin-top:0; font-size:17px; }
+[data-listen-kind="diary"] .drive-transport { flex:none; margin-top:12px; gap:32px; }
+[data-listen-kind="diary"] .drive-transport button { width:76px; height:76px; }
+[data-listen-kind="diary"] .drive-transport [data-drive="listenToggle"] { width:88px; height:88px; }
+[data-listen-kind="diary"] .drive-transport button svg { width:34px; height:34px; }
+@media(prefers-reduced-motion:reduce) { .lyric-line { transition:none; } }

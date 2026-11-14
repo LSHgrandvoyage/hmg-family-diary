@@ -25,6 +25,18 @@ class PlaybackService:Service() {
     data class NarrationItem(val file:File,val text:String,val title:String)
     data class NarrationProgress(val elapsed:Double,val current:Int,val total:Int,val complete:Boolean)
     private var finishedNarration:Pair<File,NarrationProgress>?=null
+    data class NarrationLine(val index:Int,val text:String)
+    private var spokenSentenceIndex=-1
+    private var finishedLines:Pair<File,List<NarrationLine>>?=null
+    private fun lineWindow(index:Int)=if(index !in utterances.indices)emptyList() else
+        ((index-2).coerceAtLeast(0)..(index+2).coerceAtMost(utterances.lastIndex)).map{NarrationLine(it,utterances[it])}
+    fun narrationLines(target:File?):List<NarrationLine> =
+        if(target==file && queueIndex in queue.indices)lineWindow(spokenSentenceIndex)
+        else finishedLines?.takeIf{it.first==target}?.second?:emptyList()
+    fun narrationLineIndex(target:File?):Int =
+        if(target==file && queueIndex in queue.indices)spokenSentenceIndex
+        else finishedLines?.takeIf{it.first==target}?.second?.lastOrNull()?.index?:-1
+
     fun narrationProgress(target:File?):NarrationProgress? {
         if(target==file && queueIndex in queue.indices && utterances.isNotEmpty())
             return NarrationProgress(narrationElapsed,sentenceIndex+1,utterances.size,false)
@@ -200,7 +212,7 @@ class PlaybackService:Service() {
     fun previousNarration(){if(hasPrevious)moveNarration(queueIndex-1)}
     private fun moveNarration(index:Int){
         if(!narrating || settling || !hasFocus || motion==Motion.UNKNOWN)return
-        if(narrationPaused){queueIndex=index;file=queue[index].file;utterances=NarrationSegments.split(queue[index].text);sentenceIndex=0;elapsedBefore=0.0;emit();return}
+        if(narrationPaused){queueIndex=index;file=queue[index].file;utterances=NarrationSegments.split(queue[index].text);sentenceIndex=0;spokenSentenceIndex=-1;elapsedBefore=0.0;emit();return}
         if(!engineReady){queueIndex=index;file=queue[index].file;emit();return}
         val waiting=pendingIndex!=null;pendingIndex=index
         if(!waiting){
@@ -212,7 +224,7 @@ class PlaybackService:Service() {
     private fun releaseNarration(terminal:Boolean=false){
         generation++;handler.removeCallbacks(timeout)
         val engine=tts;val callback=events;val needsStop=submitted && !terminal
-        tts=null;events=null;speaking=false;narrationStartedAt=0L;elapsedBefore=0.0;engineReady=false;pendingIndex=null;submitted=false;pauseRequested=false;narrationPaused=false;utterances=emptyList();sentenceIndex=0
+        tts=null;events=null;speaking=false;narrationStartedAt=0L;elapsedBefore=0.0;engineReady=false;pendingIndex=null;submitted=false;pauseRequested=false;narrationPaused=false;utterances=emptyList();sentenceIndex=0;spokenSentenceIndex=-1
         if(engine==null)return
         runCatching{if(callback!=null)engine.removeEventListener(callback)}
         if(!needsStop){runCatching{engine.release()};return}
@@ -251,7 +263,7 @@ class PlaybackService:Service() {
     private fun speakCurrent(resetItem:Boolean=true){
         if(!hasFocus || motion==Motion.UNKNOWN){stop("재생할 수 없는 상태예요.");return}
         val engine=tts?:return
-        if(resetItem){utterances=NarrationSegments.split(queue[queueIndex].text);sentenceIndex=0;elapsedBefore=0.0}
+        if(resetItem){utterances=NarrationSegments.split(queue[queueIndex].text);sentenceIndex=0;spokenSentenceIndex=-1;elapsedBefore=0.0}
         generation++;handler.removeCallbacks(timeout);speaking=false;narrationStartedAt=0L;pendingIndex=null;narrationPaused=false
         events?.let {runCatching{engine.removeEventListener(it)}}
         val item=queue[queueIndex];file=item.file;notice="일기 준비 중 · ${queueIndex+1}/$queueCount"
@@ -259,7 +271,7 @@ class PlaybackService:Service() {
         val callback=object:EventListener {
             private fun update(action:()->Unit){handler.post{if(token==generation)action()}}
             override fun onReady()=Unit
-            override fun onStart(){update{if(pendingIndex==null){speaking=true;narrationStartedAt=SystemClock.elapsedRealtime();notice="일기 읽는 중 · ${queueIndex+1}/$queueCount";handler.removeCallbacks(timeout);emit()}}}
+            override fun onStart(){update{if(pendingIndex==null){spokenSentenceIndex=sentenceIndex;speaking=true;narrationStartedAt=SystemClock.elapsedRealtime();notice="일기 읽는 중 · ${queueIndex+1}/$queueCount";handler.removeCallbacks(timeout);emit()}}}
             override fun onUpdatedRms(rms:Double)=Unit
             override fun onDone(){update{
                 if(pendingIndex!=null)return@update // Explicit skip waits for the matching stop acknowledgement.
@@ -284,6 +296,7 @@ class PlaybackService:Service() {
     }
     private val timeout=Runnable {if(busy && (!speaking || pauseRequested))stop("음성 엔진 응답이 지연돼요. 다시 시도해 주세요.")}
     fun stop(message:String="재생을 종료했어요.",terminal:Boolean=false,naturalEnd:Boolean=false){
+        finishedLines=if(naturalEnd && file!=null)file!! to lineWindow(spokenSentenceIndex) else null
         finishedNarration=if(naturalEnd && queueIndex in queue.indices)
             queue[queueIndex].file to NarrationProgress(narrationElapsed,utterances.size,utterances.size,true)
             else null

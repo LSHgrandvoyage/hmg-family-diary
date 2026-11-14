@@ -1288,7 +1288,7 @@ class MainActivity : Activity() {
         }
         render()
     }
-    /** Only bounded audio metadata crosses the driving bridge; never body/photos/transcript. */
+    /** List metadata stays bounded; C052 separately allows only the active narration ±2 sentences. */
     private fun drivingSummary(file:File):JSONObject = drivingDiarySummaries.getOrPut(file) {
         val record=store.load(file)
         val at=runCatching {Instant.parse(record.recordedAt).atZone(zone)}.getOrNull()
@@ -1310,6 +1310,8 @@ class MainActivity : Activity() {
             .put("duration_ms",summary?.optLong("duration_ms")?:0L).put("elapsed",narration?.elapsed?:0.0)
             .put("sentence_count",narration?.total?:summary?.optInt("sentence_count")?:0).put("sentence_current",narration?.current?:0)
             .put("sentences_done",if(narration?.complete==true)narration.total else ((narration?.current?:0)-1).coerceAtLeast(0)).put("narration_complete",narration?.complete==true)
+            .put("lyrics_current",if(activeListenMode=="diary")service?.narrationLineIndex(file)?:-1 else -1)
+            .put("lyrics",org.json.JSONArray().also{result->if(activeListenMode=="diary")service?.narrationLines(file)?.forEach{line->result.put(JSONObject().put("index",line.index).put("text",line.text))}})
             .put("catalog_version",listenCatalogVersion).put("playing",service?.speaking==true || service?.player?.isPlaying==true).put("paused",service?.narrationPaused==true || service?.prepared==true && service.player?.isPlaying==false).put("settling",service?.settling==true).put("preparing",service?.busy==true && service.player==null && !service.speaking && !service.narrationPaused)
             .put("previous",enabled && index>0)
             .put("next",enabled && index>=0 && index<rows.lastIndex)

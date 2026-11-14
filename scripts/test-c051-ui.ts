@@ -69,12 +69,11 @@ try {
    await p.evaluate(()=>{const w=window as any;w.state.driving=true;w.state.tts_active=true;w.nativeStatus(w.state)});
    await expect(p.locator('[data-drive-stage=listening]')).toBeVisible();
    const bar=p.locator('[data-listen-progress]');
-   await expect(bar).toBeVisible();await expect(bar).toHaveAttribute('aria-valuemax','4');await expect(bar).toHaveAttribute('aria-valuenow','1');
-   await expect(p.locator('[data-listen-position]')).toHaveText('0:07');await expect(p.locator('[data-listen-duration]')).toHaveText('2 / 4 문장');
-   expect(await bar.locator('span').evaluate((e:HTMLElement)=>e.style.width)).toBe('25%');
+   await expect(bar).toBeHidden();
+   await expect(p.locator('[data-listen-position]')).toHaveText('0:07');await expect(p.locator('[data-listen-duration]')).toHaveText('');
    await p.waitForTimeout(250);await p.screenshot({path:`test-results/c051/tts-${theme}.png`});
    await p.evaluate(()=>{const w=window as any;Object.assign(w.state.driving_listen,{elapsed:14,sentence_current:4,sentences_done:4,narration_complete:true,playing:false});w.state.tts_active=false;w.nativeStatus(w.state)});
-   await expect(p.locator('[data-listen-position]')).toHaveText('0:14');await expect(p.locator('[data-listen-duration]')).toHaveText('낭독 완료');await expect(bar).toHaveAttribute('aria-valuenow','4');
+   await expect(p.locator('[data-listen-position]')).toHaveText('0:14');await expect(p.locator('[data-listen-duration]')).toHaveText('낭독 완료');
    await p.evaluate(()=>{const w=window as any;Object.assign(w.state.driving_listen,{mode:'original',duration_ms:90000});w.state.position=20;w.nativeStatus(w.state)});
    await expect(p.locator('[data-listen-duration]')).toHaveText('1:30');await expect(bar).toHaveAttribute('aria-valuemax','90');await expect(bar).toHaveAttribute('aria-valuenow','20');
    await expect(p.locator('[data-page=carhome]')).toHaveCount(0);

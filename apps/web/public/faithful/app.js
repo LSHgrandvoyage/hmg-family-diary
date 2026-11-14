@@ -1954,19 +1954,21 @@
     };
     return `<svg aria-hidden="true" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${paths[kind]}</svg>`;
   }
-  let visibleVehicleMode=null, modeAnimation=null, listenCommandsPending=0;
-  function animateVehicleMode(root,mode) {
-    const changed=visibleVehicleMode!==null&&visibleVehicleMode!==mode;
-    visibleVehicleMode=mode;
+  let visibleVehicleMode=null, visibleScreenKey=null, modeAnimation=null, listenCommandsPending=0;
+  function animateVehicleMode(root,mode,key=mode) {
+    const modeChanged=visibleVehicleMode!==null&&visibleVehicleMode!==mode;
+    const changed=visibleScreenKey!==null&&(modeChanged||visibleScreenKey!==key);
+    visibleVehicleMode=mode;visibleScreenKey=key;
     if(!changed)return;
     modeAnimation?.cancel();
     if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
-    root.dataset.modeTransition=mode;
+    if(modeChanged)root.dataset.modeTransition=mode;
+    root.dataset.screenTransition=key;
     modeAnimation=root.animate([
-      {opacity:.28,transform:`translateX(${mode==='driving'?20:-20}px)`},
+      {opacity:.28,transform:modeChanged?`translateX(${mode==='driving'?20:-20}px)`:'translateY(12px)'},
       {opacity:1,transform:'translateX(0)'},
     ],{duration:220,easing:'cubic-bezier(.2,.75,.25,1)'});
-    const clear=()=>delete root.dataset.modeTransition;
+    const clear=()=>{delete root.dataset.modeTransition;delete root.dataset.screenTransition;};
     modeAnimation.onfinish=clear;modeAnimation.oncancel=clear;
   }
   async function listenRequest(command,values) {
@@ -2360,8 +2362,10 @@
         });
       themeShortcut(root);
       updatePlaylist(vehicleState);
+      if(token!==generation || !root.isConnected)return false;
       root.style.visibility = "visible";
-      if(native)animateVehicleMode(root,"parked");
+      const identity=['detail','transcript','cardetail','carreview'].includes(page)?selected||'':'';
+      animateVehicleMode(root,native?'parked':'mobile',page+':'+identity);
       return true;
     } catch (e) {
       if (token !== generation || vehicleState.driving) return;

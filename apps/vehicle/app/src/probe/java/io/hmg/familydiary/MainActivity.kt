@@ -280,8 +280,9 @@ class MainActivity : Activity() {
                 val p = player ?: return@runCatching
                 seek.progress = p.currentPosition
                 position.text = "${time(p.currentPosition.toLong())} / ${time(p.duration.toLong())}"
-                if(::exact.isInitialized)exact.state(referenceState())
             }
+            // TTS has no MediaPlayer: publish its monotonic clock on the same visible ticker.
+            if(foreground && ::exact.isInitialized)exact.state(referenceState())
             renderDriving()
             if (foreground && playbackService?.busy==true) handler.postDelayed(this, 250)
         }
@@ -1296,16 +1297,19 @@ class MainActivity : Activity() {
             .put("date",format("yyyy년 M월 d일 EEEE")).put("day",format("dd"))
             .put("year",format("yyyy")).put("month_day",format("MM.dd")).put("weekday",format("EEEE"))
             .put("short_date",format("M월 · EEEE")).put("duration_ms",record.durationMs)
+            .put("sentence_count",narrationItem(file)?.let{io.hmg.familydiary.capture.NarrationSegments.split(it.text).size}?:0)
     }
     private fun drivingListenState():JSONObject {
         if(!audioAllowed())return JSONObject().put("available",false)
         val rows=drivingDiaryFiles();val file=drivingListenFile();val index=rows.indexOf(file)
         val enabled=!capture.busy && recordingService?.settling!=true && !speech.busy && !syncBusy && !review.busy && playbackService?.settling!=true
-        val service=playbackService;val summary=file?.let(::drivingSummary)
+        val service=playbackService;val summary=file?.let(::drivingSummary);val narration=service?.narrationProgress(file)
         return JSONObject().put("mode",activeListenMode).put("browse_mode",drivingListenMode).put("auto_advance",service?.autoAdvance==true).put("available",enabled && file!=null)
             .put("memory",file?.name?:JSONObject.NULL).put("date",summary?.optString("date")?:"")
             .put("title",summary?.optString("title")?:"").put("count",rows.size).put("index",index)
-            .put("duration_ms",summary?.optLong("duration_ms")?:0L).put("elapsed",service?.narrationElapsed?:0.0)
+            .put("duration_ms",summary?.optLong("duration_ms")?:0L).put("elapsed",narration?.elapsed?:0.0)
+            .put("sentence_count",narration?.total?:summary?.optInt("sentence_count")?:0).put("sentence_current",narration?.current?:0)
+            .put("sentences_done",if(narration?.complete==true)narration.total else ((narration?.current?:0)-1).coerceAtLeast(0)).put("narration_complete",narration?.complete==true)
             .put("catalog_version",listenCatalogVersion).put("playing",service?.speaking==true || service?.player?.isPlaying==true).put("paused",service?.narrationPaused==true || service?.prepared==true && service.player?.isPlaying==false).put("settling",service?.settling==true).put("preparing",service?.busy==true && service.player==null && !service.speaking && !service.narrationPaused)
             .put("previous",enabled && index>0)
             .put("next",enabled && index>=0 && index<rows.lastIndex)
@@ -1323,7 +1327,7 @@ class MainActivity : Activity() {
             .put("paused",service?.narrationPaused==true || service?.prepared==true && service.player?.isPlaying==false)
             .put("title",service?.narrationTitle.orEmpty().ifBlank{playbackSummaryTitle}).put("memory",file?.name)
             .put("settling",service?.settling==true).put("preparing",service?.busy==true && service.player==null && !service.speaking && !service.narrationPaused).put("playing",if(original)service?.prepared==true && runCatching{service.player?.isPlaying==true}.getOrDefault(false) else service?.speaking==true)
-            .put("position",if(original && service?.prepared==true)runCatching{service.player!!.currentPosition/1000.0}.getOrDefault(0.0) else service?.narrationElapsed?:0.0)
+            .put("position",if(original && service?.prepared==true)runCatching{service.player!!.currentPosition/1000.0}.getOrDefault(0.0) else service?.narrationProgress(file)?.elapsed?:0.0)
             .put("duration",if(original && service?.prepared==true)runCatching{service.player!!.duration/1000.0}.getOrDefault(0.0) else 0.0)
     }
     private fun referenceState() = VehicleTheme.state(this).put("sync_change_seq",sync.changeSequence).put("playback",parkedPlaybackState()).put("driving_transcript",if(audioAllowed() && driving.isChecked && capture.busy)liveText.takeLast(180) else "").put("driving_listen",drivingListenState()).put("driving",::driving.isInitialized && driving.isChecked).put("sync_notice",sync.uploadNotice.ifBlank { syncNotice }).put("paired",sync.paired).put("recording",capture.busy).put("paused",capture.paused)

@@ -130,3 +130,7 @@
 .processing-spinner { width:56px; height:56px; border:5px solid var(--accent-soft); border-top-color:var(--accent); border-radius:50%; animation:processing-turn 1s linear infinite; }
 @keyframes processing-turn { to { transform:rotate(360deg); } }
 @media(prefers-reduced-motion:reduce) { .processing-spinner { animation:none; } }
+
+/* Sentence completion is not an estimated audio duration; lighter range is the current sentence. */
+.drive-progress-track { position:relative; }
+.drive-progress-track > i { position:absolute; top:0; height:100%; background:var(--coral); opacity:.3; border-radius:4px; }

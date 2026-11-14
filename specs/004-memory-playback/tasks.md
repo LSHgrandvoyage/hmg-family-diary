@@ -73,3 +73,11 @@
 - [x] 004-C050-03 `PLAY-016`: 관련 회귀·UI/에뮬레이터 검증·증거·실행/제출 반영·dev 커밋.
 
 검증 근거: [C050 차량 상호작용](../../docs/evidence/c050-vehicle-interaction.md).
+
+## C051
+
+- [x] 004-C051-01 `PLAY-009, PLAY-017`: 수용 조건·계획·정합성 검토.
+- [x] 004-C051-02 `PLAY-009, PLAY-017`: 소유 상태와 화면 구현.
+- [x] 004-C051-03 `PLAY-009, PLAY-017`: 관련 UI/실제 TTS 검증·증거·실행/제출 반영·dev 커밋.
+
+검증 근거: [C051 낭독 진행·화면 전환](../../docs/evidence/c051-narration-navigation.md).

@@ -23,6 +23,13 @@ import java.util.Locale
 /** Audio lifetime is independent of the screen. Never resumes after process death. */
 class PlaybackService:Service() {
     data class NarrationItem(val file:File,val text:String,val title:String)
+    data class NarrationProgress(val elapsed:Double,val current:Int,val total:Int,val complete:Boolean)
+    private var finishedNarration:Pair<File,NarrationProgress>?=null
+    fun narrationProgress(target:File?):NarrationProgress? {
+        if(target==file && queueIndex in queue.indices && utterances.isNotEmpty())
+            return NarrationProgress(narrationElapsed,sentenceIndex+1,utterances.size,false)
+        return finishedNarration?.takeIf{it.first==target}?.second
+    }
     private var queue=emptyList<NarrationItem>()
     private var originals=emptyList<File>()
     private var originalIndex=-1
@@ -260,7 +267,7 @@ class PlaybackService:Service() {
                 freezeClock();submitted=false
                 if(!hasFocus || motion==Motion.UNKNOWN)stop("재생할 수 없는 상태예요.")
                 else if(sentenceIndex<utterances.lastIndex){sentenceIndex++;speakCurrent(false)}
-                else if(autoAdvance){queueIndex=if(hasNext)queueIndex+1 else 0;speakCurrent()} else stop("일기 목록을 모두 들었어요.",terminal=true)
+                else if(autoAdvance){queueIndex=if(hasNext)queueIndex+1 else 0;speakCurrent()} else stop("일기 목록을 모두 들었어요.",terminal=true,naturalEnd=true)
             }}
             override fun onStop(){update{
                 if(pauseRequested){confirmPause();return@update}
@@ -276,7 +283,10 @@ class PlaybackService:Service() {
         catch(_:Exception){stop("일기 읽기를 시작하지 못했어요.")}
     }
     private val timeout=Runnable {if(busy && (!speaking || pauseRequested))stop("음성 엔진 응답이 지연돼요. 다시 시도해 주세요.")}
-    fun stop(message:String="재생을 종료했어요.",terminal:Boolean=false){
+    fun stop(message:String="재생을 종료했어요.",terminal:Boolean=false,naturalEnd:Boolean=false){
+        finishedNarration=if(naturalEnd && queueIndex in queue.indices)
+            queue[queueIndex].file to NarrationProgress(narrationElapsed,utterances.size,utterances.size,true)
+            else null
         releaseNarration(terminal);queue=emptyList();queueIndex=-1;originals=emptyList();originalIndex=-1
         runCatching{player?.release()};player=null;prepared=false;speaking=false;busy=stopping;ducked=false;completed=0.0
         if(::focus.isInitialized)audio.abandonAudioFocusRequest(focus);hasFocus=false

@@ -46,7 +46,7 @@
         catch(e){finishRequested=false;render(root,latest,handlers);throw e;}
       });
     } else {
-      body.innerHTML = `<section class="drive-current"><div class="drive-memory-head"><span data-listen-date></span><button class="drive-autoplay" data-drive="listenAutoplay" aria-label="전체 반복 켜기" aria-pressed="false">${icons.repeat}</button></div><h1 data-listen-title></h1><span class="drive-active-mode" data-listen-active-mode></span><div class="drive-progress"><div class="drive-progress-track" role="progressbar" aria-label="원본 재생 진행" data-listen-progress><span></span></div><div class="drive-times"><span data-listen-position></span><span data-listen-duration></span></div></div><div class="drive-transport"><button data-drive="listenPrevious" aria-label="이전 일기">${icons.previous}</button><button data-drive="listenToggle">${icons.play}</button><button data-drive="listenNext" aria-label="다음 일기">${icons.next}</button></div></section><aside class="drive-listen-side"><div class="drive-listen-tabs" role="group" aria-label="듣기 방식"><button data-drive="listenDiary">일기 읽어주기</button><button data-drive="listenOriginal">그날의 목소리</button></div><section class="drive-up-next"><h2>지난 일기 <span data-list-total></span></h2><div data-listen-upcoming role="region" aria-label="최근순 일기 목록" tabindex="0"></div></section></aside>`;
+      body.innerHTML = `<section class="drive-current"><div class="drive-memory-head"><span data-listen-date></span><button class="drive-autoplay" data-drive="listenAutoplay" aria-label="전체 반복 켜기" aria-pressed="false">${icons.repeat}</button></div><h1 data-listen-title></h1><span class="drive-active-mode" data-listen-active-mode></span><div class="drive-progress"><div class="drive-progress-track" role="progressbar" aria-label="원본 재생 진행" data-listen-progress><span></span><i data-current-sentence></i></div><div class="drive-times"><span data-listen-position></span><span data-listen-duration></span></div></div><div class="drive-transport"><button data-drive="listenPrevious" aria-label="이전 일기">${icons.previous}</button><button data-drive="listenToggle">${icons.play}</button><button data-drive="listenNext" aria-label="다음 일기">${icons.next}</button></div></section><aside class="drive-listen-side"><div class="drive-listen-tabs" role="group" aria-label="듣기 방식"><button data-drive="listenDiary">일기 읽어주기</button><button data-drive="listenOriginal">그날의 목소리</button></div><section class="drive-up-next"><h2>지난 일기 <span data-list-total></span></h2><div data-listen-upcoming role="region" aria-label="최근순 일기 목록" tabindex="0"></div></section></aside>`;
       body.querySelectorAll('[data-drive]').forEach(b => handlers.action(b, () => handlers.drive(b.dataset.drive)));
     }
   }
@@ -103,11 +103,19 @@
       const progress = q('[data-listen-progress]');
       const duration = Math.max(0, (listen.duration_ms || 0) / 1000);
       const position = original ? Math.min(duration, Math.max(0, state.position || 0)) : Math.max(0, listen.elapsed || 0);
-      progress.hidden = !original || !duration;
-      progress.setAttribute('aria-valuemin', '0'); progress.setAttribute('aria-valuemax', String(duration)); progress.setAttribute('aria-valuenow', String(position));
-      progress.querySelector('span').style.width = `${duration ? 100 * position / duration : 0}%`;
-      put('[data-listen-position]', handlers.stamp(position));
-      put('[data-listen-duration]', original ? handlers.stamp(duration) : listen.playing ? '낭독 중' : listen.paused ? '일시정지' : '일기 읽어주기');
+      const count=Math.max(0,listen.sentence_count||0),current=Math.min(count,Math.max(0,listen.sentence_current||0));
+      const done=Math.min(count,Math.max(0,listen.sentences_done||0));
+      progress.hidden=original?!duration:!count;
+      progress.setAttribute('aria-label',original?'원본 재생 진행':'일기 문장 완료 진행');
+      progress.setAttribute('aria-valuemin','0');progress.setAttribute('aria-valuemax',String(original?duration:count));
+      progress.setAttribute('aria-valuenow',String(original?position:done));
+      progress.setAttribute('aria-valuetext',original?`${handlers.stamp(position)} / ${handlers.stamp(duration)}`:`${count}문장 중 ${done}문장 완료`);
+      progress.querySelector('span').style.width=`${original?(duration?100*position/duration:0):(count?100*done/count:0)}%`;
+      const currentSegment=q('[data-current-sentence]');
+      currentSegment.hidden=original||!current||listen.narration_complete;
+      currentSegment.style.left=`${count?100*(current-1)/count:0}%`;currentSegment.style.width=`${count?100/count:0}%`;
+      put('[data-listen-position]',handlers.stamp(position));
+      put('[data-listen-duration]',original?handlers.stamp(duration):listen.narration_complete?'낭독 완료':count?`${current} / ${count} 문장`:listen.preparing?'낭독 준비 중':'일기 읽어주기');
       q('.drive-progress').dataset.original = String(original);
       for (const mode of ['Diary','Original']) {
         const button = q(`[data-drive="listen${mode}"]`);

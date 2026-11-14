@@ -42,6 +42,7 @@ try {for(const theme of ['light','dark']) {
  expect(await p.evaluate(()=>(window as any).animationCount)).toBe(count);
  await p.locator('[data-drive=listenToggle]').focus();
  await p.evaluate(()=>{const w=window as any;w.windowAt(3);w.publish()});
+ expect(await p.locator('[data-lyric-index="2"]').evaluate(e=>e.getAnimations().some(a=>(a as CSSTransition).transitionProperty==='opacity'))).toBe(true);
  await expect(active).toHaveText(words[3]);await expect(p.locator('[data-lyric-index="0"]')).toHaveCount(0);await expect(p.locator('[data-lyric-index]')).toHaveCount(5);
  expect(await p.evaluate(()=>document.activeElement?.getAttribute('data-drive'))).toBe('listenToggle');
  await p.waitForTimeout(350);await fits();

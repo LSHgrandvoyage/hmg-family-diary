@@ -50,12 +50,13 @@
     for(const line of lines) {
       let n=root.querySelector(`[data-lyric-index="${line.index}"]`);
       if(!n){n=document.createElement('p');n.dataset.lyricIndex=String(line.index);n.dataset.fresh='true';n.className='lyric-line';root.append(n);}
+      // Enable fading before changing emphasis; measuring after a disabled transition would snap opacity.
+      if(animate&&!matchMedia('(prefers-reduced-motion: reduce)').matches)n.style.removeProperty('transition');else n.style.transition='none';
       n.textContent=line.text;n.dataset.distance=String(Math.abs(line.index-index));n.dataset.side=line.index<index?'before':line.index>index?'after':'current';
       n.setAttribute('aria-current',String(line.index===index));n.setAttribute('aria-hidden',String(line.index!==index));
       if(line.index!==index)n.style.removeProperty('font-size');
     }
-    const nodes=[...root.children].sort((a,b)=>Number(a.dataset.lyricIndex)-Number(b.dataset.lyricIndex));
-    for(const n of nodes)root.append(n);
+    // Forward windows are already ordered. Re-appending retained nodes would cancel their CSS transitions.
     layout(animate);
   }
   window.DiaryLyrics={render};

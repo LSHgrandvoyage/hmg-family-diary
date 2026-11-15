@@ -1,0 +1,27 @@
+{
+  "team": "새벽개발팸",
+  "app": "차곡차곡",
+  "package": "io.hmg.familydiary.contest",
+  "variant": "contestRelease",
+  "debuggable": false,
+  "version": "0.2.13",
+  "apk_path": "apk/새벽개발팸_차곡차곡_release.apk",
+  "apk_sha256": "35f04d789de885ad6e97a63a91a594dc410ca89352414cccdb89ef0d7b064863",
+  "signer_sha256": "f5a5be9e5ffa4bdd1bf95e29f63250205b9abf348550e03ac197b7ed262223cc",
+  "environment": {
+    "pleos": "2.1.0 API34 ARM64",
+    "emulator": "37.2.13",
+    "physical_screen": "2560x1440",
+    "reference_ui": "1280x720",
+    "compile_target_sdk": 35,
+    "gradle": "8.10.2",
+    "agp": "8.8.2",
+    "kotlin": "2.0.0",
+    "java_target": "17",
+    "packaging_java": "openjdk version \"21.0.11\" 2026-04-21 LTS",
+    "host": "macOS ARM64"
+  },
+  "version_code": 14,
+  "apk_build_source_commit": "5f62e010479f149762e58816d97cc2ef949f22a4",
+  "scope": "Pleos Connect emulator prototype; AI diary generation is a fixed mock."
+}

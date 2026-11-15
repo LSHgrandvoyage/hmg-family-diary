@@ -9,7 +9,7 @@ apk = root / 'apps/vehicle/app/build/outputs/apk/probe/debug/app-probe-debug.apk
 source_only = "--source-only" in sys.argv
 if not source_only and not apk.is_file():
     raise SystemExit('Build :app:assembleProbeDebug first.')
-roots = ('apps/', 'packages/', 'workers/', 'db/', 'infra/', 'scripts/', 'tests/', 'specs/', 'docs/contest/', '.specify/memory/', '.specify/scripts/', '.specify/templates/', '.specify/workflows/', '.agents/skills/speckit-')
+roots = ('apps/', 'packages/', 'workers/', 'db/', 'infra/', 'scripts/', 'tests/', 'specs/', 'docs/contest/', 'docs/architecture/', '.specify/memory/', '.specify/scripts/', '.specify/templates/', '.specify/workflows/', '.agents/skills/speckit-')
 fixed = {'AGENTS.md', 'docs/evidence/c040-spec-reorganization.md', 'docs/evidence/compose-runtime.md', 'docs/evidence/g0-environment.md', 'docs/product-brief.md', 'docs/evidence/connected-ui/c021-phone-filter.png', 'docs/evidence/connected-ui/c021-car-filter.png', 'README.md', 'THIRD_PARTY_NOTICES.md', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.json', 'vitest.config.ts', 'playwright.config.ts', 'compose.yaml', 'compose.preview.yaml', '.dockerignore', '.gitignore', '.env.example', '.env.probe.example'}
 fixed.update('docs/evidence/connected-ui/'+name for name in ('c025-car-1280-light.png','c025-car-1280-dark.png','c025-detail-active-dark.png','c025-driving.png'))
 fixed.update('docs/evidence/connected-ui/'+name for name in ('c026-phone-light.png','c026-phone-dark.png','c026-car-light.png','c026-car-dark.png'))
@@ -36,6 +36,7 @@ fixed.add('docs/evidence/c049-team-startup.md')
 fixed.add('docs/evidence/c050-vehicle-interaction.md')
 fixed.add('docs/evidence/c051-narration-navigation.md')
 fixed.add('docs/evidence/c052-narration-lyrics.md')
+fixed.add('docs/evidence/c053-public-submission.md')
 fixed.update('docs/evidence/connected-ui/c052-'+name+'.png' for name in ('lyrics-light','lyrics-dark','long-light'))
 fixed.update('docs/evidence/connected-ui/c051-tts-'+theme+'.png' for theme in ('light','dark'))
 fixed.update('docs/evidence/connected-ui/c050-'+name+'-'+theme+'.png' for name in ('processing','listening') for theme in ('light','dark'))
@@ -57,7 +58,7 @@ fixed.update('docs/evidence/connected-ui/'+name for name in ('c029-settings-dark
 fixed.update('docs/evidence/connected-ui/'+name for name in ('c028-phone-375-family-light.png','c028-phone-375-family-dark.png','c028-phone-375-search-light.png','c028-phone-375-search-dark.png'))
 fixed.update('docs/evidence/connected-ui/'+name for name in ('c027-phone-375-light.png','c027-phone-375-dark.png','c027-car-1280-light.png','c027-car-1280-dark.png','c027-recording-light.png','c027-recording-dark.png'))
 names = subprocess.check_output(['git','ls-files','-z','--cached','--others','--exclude-standard'],cwd=root).decode().split('\0')
-allowed_suffixes = {'.ts','.tsx','.js','.mjs','.cjs','.css','.html','.json','.yaml','.yml','.toml','.md','.txt','.sql','.sh','.py','.kt','.kts','.xml','.properties','.woff2','.ttf','.svg','.png'}
+allowed_suffixes = {'.ts','.tsx','.js','.mjs','.cjs','.css','.html','.json','.yaml','.yml','.toml','.md','.mmd','.txt','.sql','.sh','.py','.kt','.kts','.xml','.properties','.woff2','.ttf','.svg','.png'}
 selected = []
 for name in sorted(set(names)):
     if not name or not (name in fixed or name.startswith(roots)):
